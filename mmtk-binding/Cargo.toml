@@ -12,9 +12,12 @@ crate-type = ["cdylib"]
 lto = true
 
 [dependencies]
-mmtk = { path = "../../", version = "*" }
 libc = "0.2"
 lazy_static = "1.1"
+
+[dependencies.mmtk]
+git = "ssh://git@gitlab.anu.edu.au/mmtk/mmtk.git"
+rev = "69223ba4f7b0465183e63c005828c33a25bdf467"
 
 [features]
 default = []
