@@ -1,0 +1,9 @@
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - sed -i 's,ssh://git,https://'$DEPLOY_TOKEN_NAME':'$DEPLOY_TOKEN_PASS',g' mmtk-binding/Cargo.toml
+    - cargo +nightly build --manifest-path mmtk-binding/Cargo.toml --features nogc
+    - cargo +nightly build --manifest-path mmtk-binding/Cargo.toml --features semispace
