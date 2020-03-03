@@ -57,6 +57,7 @@ extern void process_edge(MMTk_TraceLocal trace, void* obj);
 /**
  * Misc
  */
+extern void enable_collection(void *tls);
 extern void gc_init(size_t heap_size);
 extern bool will_never_move(void* object);
 extern bool process(char* name, char* value);
