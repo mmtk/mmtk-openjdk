@@ -6,7 +6,7 @@ authors = [" <>"]
 [lib]
 name = "mmtk_openjdk"
 # be careful - LTO is only allowed for certain crate types
-crate-type = ["rlib", "dylib", "staticlib"]
+crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
