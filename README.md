@@ -9,17 +9,22 @@ This repository provides binding between MMTk and OpenJDK.
 
 ## Requirements
 
-This sections describes prerequisite for building {VM} with MMTk.
+This sections describes prerequisite for building OpenJDK with MMTk.
 
 ### Before You Start
 
 #### Software Dependencies
 
-(Other tools required for building. OS supported by this binding. Refer to VM or MMTk instructions if possible)
+1. git, make, jdk and the gcc toolchain
+  * You can install them simply via `sudo apt install git build-essential default-jdk`.
+2. Rustup nightly toolchain
+  * Please visit [rustup.rs](https://rustup.rs/) for installation instructions.
 
 #### Supported Hardware
 
-(Architectures supported by this binding and architecture we have tested on)
+MMTk/OpenJDK only supports `linux-x86_64`.
+
+_Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Linux kernel version 4.15.0-21-generic)._
 
 ### Getting Sources (for MMTk and VM)
 
@@ -33,7 +38,7 @@ The `mmtk-core` crate is a cargo dependency of the `mmtk-openjdk` binding repo.
 
 ## Build
 
-**Note:** MMTk currently only supports `linux` with `x86` or `x86_64` archtecture (and only tested with the `server` variant).
+_**Note:** MMTk is only tested with the `server` build variant._
 
 After cloned the OpenJDK repo, cd into the root directiory:
 
