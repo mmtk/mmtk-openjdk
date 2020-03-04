@@ -15,9 +15,9 @@ This sections describes prerequisite for building OpenJDK with MMTk.
 
 #### Software Dependencies
 
-1. git, make, jdk and the gcc toolchain
+* git, make, jdk and the gcc toolchain
   * You can install them simply via `sudo apt install git build-essential default-jdk`.
-2. Rustup nightly toolchain
+* Rustup nightly toolchain
   * Please visit [rustup.rs](https://rustup.rs/) for installation instructions.
 
 #### Supported Hardware
