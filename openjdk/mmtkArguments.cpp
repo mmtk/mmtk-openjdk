@@ -33,6 +33,7 @@
 #include "runtime/java.hpp"
 #include "runtime/vm_version.hpp"
 #include "utilities/defaultStream.hpp"
+#include "mmtkCollectorPolicy.hpp"
 
 size_t MMTkArguments::conservative_max_heap_alignment() {
   return CollectorPolicy::compute_heap_alignment();
@@ -46,5 +47,5 @@ void MMTkArguments::initialize_flags() {
 }
 
 CollectedHeap* MMTkArguments::create_heap() {
-  return create_heap_with_policy<MMTkHeap, NoPolicy>();
+  return create_heap_with_policy<MMTkHeap, MMTkCollectorPolicy>();
 }

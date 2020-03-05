@@ -36,6 +36,7 @@
 #include "mmtkMemoryPool.hpp"
 #include "memory/iterator.hpp"
 #include "gc/shared/workgroup.hpp"
+#include "mmtkCollectorPolicy.hpp"
 
 
 class GCMemoryManager;
@@ -43,7 +44,7 @@ class MemoryPool;
 //class mmtkGCTaskManager;
 
 class MMTkHeap : public CollectedHeap {
-    NoPolicy* _collector_policy;
+    MMTkCollectorPolicy* _collector_policy;
     SoftRefPolicy* _soft_ref_policy;
     MMTkMemoryPool* _mmtk_pool;
     GCMemoryManager* _mmtk_manager;
@@ -75,7 +76,7 @@ private:
 
 public:
      
-  MMTkHeap(NoPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes)) {
+  MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes)) {
     _heap = this;
   }
 
