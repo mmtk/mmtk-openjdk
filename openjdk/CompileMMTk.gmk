@@ -1,0 +1,23 @@
+
+
+LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
+
+ifeq ($(DEBUG_LEVEL), release)
+  CARGO_PROFILE = release
+  CARGO_PROFILE_FLAG = --release
+else
+  CARGO_PROFILE = debug
+endif
+
+$(LIB_MMTK): FORCE
+	cargo +nightly build --manifest-path=$(TOPDIR)/mmtk/mmtk/Cargo.toml $(CARGO_PROFILE_FLAG) --features semispace
+	cp $(TOPDIR)/mmtk/mmtk/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+
+JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
+JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
+
+FORCE:
+
+TARGETS += $(LIB_MMTK)
+
+$(BUILD_LIBJVM): $(LIB_MMTK)
