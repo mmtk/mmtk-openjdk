@@ -1,7 +1,7 @@
 #include "memory/iterator.hpp"
 #include "oops/oop.hpp"
 #include "oops/oop.inline.hpp"
-#include "../mmtk/api/mmtk.h"
+#include "mmtk.h"
 
 class MMTkRootsClosure : public OopClosure {
   void* _trace;

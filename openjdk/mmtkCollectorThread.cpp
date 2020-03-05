@@ -23,7 +23,7 @@
  */
 
 #include "mmtkCollectorThread.hpp"
-#include "../mmtk/api/mmtk.h"
+#include "mmtk.h"
 
 MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
   _mmtk_collector = context;

@@ -37,7 +37,7 @@
 #include "services/memoryManager.hpp"
 #include "services/memTracker.hpp"
 #include "utilities/vmError.hpp"
-#include "../mmtk/api/mmtk.h"
+#include "mmtk.h"
 #include "mmtkMutator.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"

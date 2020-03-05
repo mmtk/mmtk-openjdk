@@ -2,7 +2,7 @@
 #ifndef SHARE_VM_GC_MMTK_MMTKMUTATOR_HPP
 #define SHARE_VM_GC_MMTK_MMTKMUTATOR_HPP
 
-#include "../mmtk/api/mmtk.h"
+#include "mmtk.h"
 
 class MMTkMutatorContext {
     void* _tls;

@@ -31,7 +31,7 @@
 #ifndef MMTKUPCALLS_HPP
 #define MMTKUPCALLS_HPP
 
-#include "../mmtk/api/mmtk.h"
+#include "mmtk.h"
 
 extern OpenJDK_Upcalls mmtk_upcalls;
 
