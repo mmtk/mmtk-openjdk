@@ -27,13 +27,17 @@ _Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Li
 
 ### Getting Sources (for MMTk and VM)
 
+First, clone this binding repo:
+
 ```console
-$ git clone -b mmtk --recursive git@gitlab.anu.edu.au:mmtk/openjdk.git
+$ git clone --recursive git@gitlab.anu.edu.au:mmtk/mmtk-openjdk.git
 ```
 
 The `mmtk-openjdk` binding repo is located under the `mmtk` folder, as a git-submodule of the OpenJDK repo.
 
 The `mmtk-core` crate is a cargo dependency of the `mmtk-openjdk` binding repo.
+
+The `openjdk` repo is at `./repos/openjdk`. And `./openjdk` contains mmtk's ThirdPartyHeap implementation files.
 
 ## Build
 
@@ -42,7 +46,7 @@ _**Note:** MMTk is only tested with the `server` build variant._
 After cloned the OpenJDK repo, cd into the root directiory:
 
 ```console
-$ cd openjdk
+$ cd mmtk-openjdk/repos/openjdk
 ```
 
 Then select a `DEBUG_LEVEL`, can be one of `release`, `fastdebug`, `slowdebug` and `optimized`.
@@ -70,7 +74,7 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/mmtk/openjdk
+$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
 ```
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
@@ -96,7 +100,7 @@ Hello World!
 **Note:** Pass `-XX:+UseThirdPartyHeap -XX:-UseCompressedOops` as java command line arguments to enable MMTk.
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -XX:-UseCompressedOops -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
 ===== DaCapo 9.12 lusearch starting =====
 4 query batches completed

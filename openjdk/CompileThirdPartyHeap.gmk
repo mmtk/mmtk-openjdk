@@ -1,4 +1,6 @@
 
+MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
+MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
@@ -10,8 +12,8 @@ else
 endif
 
 $(LIB_MMTK): FORCE
-	cargo +nightly build --manifest-path=$(TOPDIR)/mmtk/mmtk/Cargo.toml $(CARGO_PROFILE_FLAG) --features semispace
-	cp $(TOPDIR)/mmtk/mmtk/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	cargo +nightly build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features semispace
+	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
@@ -19,7 +21,7 @@ JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
 FORCE:
 
 TARGETS += $(LIB_MMTK)
-JVM_SRC_DIRS += $(TOPDIR)/mmtk/openjdk
-JVM_CFLAGS += -DTHIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(TOPDIR)/mmtk/openjdk
+JVM_SRC_DIRS += $(MMTK_CPP_ROOT)
+JVM_CFLAGS += -DTHIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
 
 $(BUILD_LIBJVM): $(LIB_MMTK)

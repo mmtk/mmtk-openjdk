@@ -1,0 +1,4 @@
+[submodule "repos/openjdk"]
+	path = repos/openjdk
+	url = https://gitlab.anu.edu.au/mmtk/openjdk.git
+	branch = mmtk
