@@ -1,4 +1,4 @@
-# OpenJDK's Third-Party Heap design
+# OpenJDK's Third-Party Heap Design
 
 
 
