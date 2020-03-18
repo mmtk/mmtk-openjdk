@@ -93,7 +93,7 @@ public:
   
   
   Name kind() const {
-    return CollectedHeap::MMTkHeap;
+    return CollectedHeap::ThirdPartyHeap;
   }
   const char* name() const {
     return "MMTk";

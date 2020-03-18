@@ -26,10 +26,10 @@
 #include "mmtk.h"
 
 MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
-  _mmtk_collector = context;
+  third_party_heap_collector = context;
   set_name("Collector Thread");
 }
 
 void MMTkCollectorThread::run() {
-  start_worker((void*) this, _mmtk_collector);
+  start_worker((void*) this, third_party_heap_collector);
 }

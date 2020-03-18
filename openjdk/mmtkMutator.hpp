@@ -3,8 +3,12 @@
 #define SHARE_VM_GC_MMTK_MMTKMUTATOR_HPP
 
 #include "mmtk.h"
+#include "utilities/globalDefinitions.hpp"
+#include "gc/shared/thirdPartyHeap.hpp"
 
-class MMTkMutatorContext {
+// class Thread;
+
+class MMTkMutatorContext: public third_party_heap::MutatorContext {
     void* _tls;
     char* _cursor;
     char* _limit;

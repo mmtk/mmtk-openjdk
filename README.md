@@ -1,5 +1,4 @@
 # mmtk-openjdk
-
 This repository provides binding between MMTk and OpenJDK. 
 
 ## Table of Content
@@ -71,7 +70,7 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL
+$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/mmtk/openjdk
 ```
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
@@ -94,7 +93,7 @@ Hello World!
 
 ### Run DaCapo Benchmarks with MMTk (on a moma machine)
 
-**Note:** Pass `-XX:+UseMMTk -XX:-UseCompressedOops` as java command line arguments to enable MMTk.
+**Note:** Pass `-XX:+UseThirdPartyHeap -XX:-UseCompressedOops` as java command line arguments to enable MMTk.
 
 ```console
 $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch

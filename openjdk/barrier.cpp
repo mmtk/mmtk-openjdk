@@ -22,7 +22,7 @@
  *
  */
 
-#include "noBarrier.hpp"
+#include "barrier.hpp"
 
 void NoBarrier::write_ref_array_work(MemRegion mr) {
     guarantee(false, "NoBarrier::write_ref_arrey_work not supported");

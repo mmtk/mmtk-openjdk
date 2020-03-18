@@ -41,7 +41,7 @@ size_t MMTkArguments::conservative_max_heap_alignment() {
 
 void MMTkArguments::initialize_flags() {
   GCArguments::initialize_flags();
-  assert(UseMMTk , "Error, should UseMMTk");
+  assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
   
 }

@@ -44,7 +44,7 @@ public:
   bool is_GC_thread() const                      { return true; }
 
   inline void* get_context() {
-    return _mmtk_collector;
+    return third_party_heap_collector;
   }
 
   // Entry for starting vm thread
