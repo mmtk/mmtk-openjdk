@@ -2,3 +2,6 @@
 	path = repos/openjdk
 	url = https://gitlab.anu.edu.au/mmtk/openjdk.git
 	branch = mmtk
+[submodule "repos/mmtk-core"]
+	path = repos/mmtk-core
+	url = https://gitlab.anu.edu.au/mmtk/mmtk-core.git
