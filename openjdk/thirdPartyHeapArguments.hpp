@@ -22,30 +22,18 @@
  *
  */
 
-#include "precompiled.hpp"
-#include "mmtkArguments.hpp"
-#include "mmtkHeap.hpp"
-#include "gc/shared/adaptiveSizePolicy.hpp"
-#include "gc/shared/collectorPolicy.hpp"
-#include "gc/shared/gcArguments.inline.hpp"
-#include "runtime/globals.hpp"
-#include "runtime/globals_extension.hpp"
-#include "runtime/java.hpp"
-#include "runtime/vm_version.hpp"
-#include "utilities/defaultStream.hpp"
-#include "mmtkCollectorPolicy.hpp"
+#ifndef SHARE_GC_MMTK_THIRDPARTYHEAPARGUMENTS_HPP
+#define SHARE_GC_MMTK_THIRDPARTYHEAPARGUMENTS_HPP
 
-size_t MMTkArguments::conservative_max_heap_alignment() {
-  return CollectorPolicy::compute_heap_alignment();
-}
+#include "gc/shared/gcArguments.hpp"
 
-void MMTkArguments::initialize() {
-  GCArguments::initialize();
-  assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
-  FLAG_SET_DEFAULT(UseTLAB, false);
-  
-}
+class CollectedHeap;
 
-CollectedHeap* MMTkArguments::create_heap() {
-  return create_heap_with_policy<MMTkHeap, MMTkCollectorPolicy>();
-}
+class ThirdPartyHeapArguments : public GCArguments {
+public:
+  virtual void initialize();
+  virtual size_t conservative_max_heap_alignment();
+  virtual CollectedHeap* create_heap();
+};
+
+#endif // SHARE_GC_MMTK_THIRDPARTYHEAPARGUMENTS_HPP

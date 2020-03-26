@@ -1,11 +1,7 @@
 
 #include "gc/shared/thirdPartyHeap.hpp"
 #include "mmtk.h"
-#include "mmtkArguments.hpp"
-
-// GCArguments* mmtk_new_gc_arguments() {
-//     return new MMTkArguments();
-// }
+#include "thirdPartyHeapArguments.hpp"
 
 namespace third_party_heap {
 
