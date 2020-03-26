@@ -60,6 +60,12 @@ object iterator??!!
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
+MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
+// , _par_state_string(StringTable::weak_storage()) 
+{
+   _heap = this;
+}
+
 jint MMTkHeap::initialize() {
 
     const size_t heap_size = collector_policy()->max_heap_byte_size();
@@ -92,7 +98,7 @@ jint MMTkHeap::initialize() {
 
     NoBarrier* const barrier_set = new NoBarrier(reserved_region());
     //barrier_set->initialize();
-    set_barrier_set(barrier_set);
+    BarrierSet::set_barrier_set(barrier_set);
 
     // Set up the GCTaskManager
     //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
@@ -325,10 +331,11 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
    if (!_root_tasks->is_task_claimed(MMTk_Management_oops_do)) Management::oops_do(&cl);
    if (!_root_tasks->is_task_claimed(MMTk_jvmti_oops_do)) JvmtiExport::oops_do(&cl);
    if (UseAOT && !_root_tasks->is_task_claimed(MMTk_aot_oops_do)) AOTLoader::oops_do(&cl);
-   if (!_root_tasks->is_task_claimed(MMTk_SystemDictionary_oops_do)) SystemDictionary::roots_oops_do(&cl, &cl);
+   if (!_root_tasks->is_task_claimed(MMTk_SystemDictionary_oops_do)) SystemDictionary::oops_do(&cl);
    if (!_root_tasks->is_task_claimed(MMTk_CodeCache_oops_do)) CodeCache::blobs_do(&cb_cl);
 
-   StringTable::possibly_parallel_oops_do(&cl);
+   OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());   
+   StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
 
    // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
    if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::cld_do(&cld_cl);
@@ -348,7 +355,7 @@ void MMTkHeap::scan_thread_roots(OopClosure& cl) {
       if (_root_tasks->all_tasks_completed(_n_workers) == 0) {
          nmethod::oops_do_marking_prologue();
          Threads::change_thread_claim_parity();
-         StringTable::clear_parallel_claimed_index();
+         // StringTable::clear_parallel_claimed_index();
       }
    }
    CodeBlobToOopClosure cb_cl(&cl, false);
@@ -375,13 +382,13 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
    Management::oops_do(&cl);
    JvmtiExport::oops_do(&cl);
    if (UseAOT) AOTLoader::oops_do(&cl);
-   SystemDictionary::roots_oops_do(&cl, &cl);
+   SystemDictionary::oops_do(&cl);
    {
       MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
       CodeCache::blobs_do(&cb_cl);
    }
    if (is_parallel) {
-      StringTable::possibly_parallel_oops_do(&cl);
+      StringTable::possibly_parallel_oops_do(NULL, &cl);
    } else {
       StringTable::oops_do(&cl);
    }

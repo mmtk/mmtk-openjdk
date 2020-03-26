@@ -42,6 +42,7 @@
 #include "runtime/threadSMR.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
+#include "memory/iterator.inline.hpp"
 
 static bool gcInProgress = false;
 

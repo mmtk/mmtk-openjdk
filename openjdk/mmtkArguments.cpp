@@ -39,8 +39,8 @@ size_t MMTkArguments::conservative_max_heap_alignment() {
   return CollectorPolicy::compute_heap_alignment();
 }
 
-void MMTkArguments::initialize_flags() {
-  GCArguments::initialize_flags();
+void MMTkArguments::initialize() {
+  GCArguments::initialize();
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
   

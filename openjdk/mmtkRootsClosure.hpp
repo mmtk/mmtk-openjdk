@@ -21,12 +21,12 @@ public:
 
   virtual void do_oop(oop* p)       { do_oop_work(p); }
   virtual void do_oop(narrowOop* p) {
-    printf("narrowoop root %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
+    // printf("narrowoop root %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
     do_oop_work(p);
   }
 };
 
-class MMTkScanObjectClosure : public ExtendedOopClosure {
+class MMTkScanObjectClosure : public BasicOopIterateClosure {
   void* _trace;
   CLDToOopClosure follow_cld_closure;
 
@@ -41,7 +41,7 @@ public:
 
   virtual void do_oop(oop* p)       { do_oop_work(p); }
   virtual void do_oop(narrowOop* p) {
-    printf("narrowoop edge %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
+    // printf("narrowoop edge %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
     do_oop_work(p);
   }
   

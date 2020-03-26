@@ -24,14 +24,25 @@
 
 #include "barrier.hpp"
 
+#ifdef COMPILER1
+#include "gc/shared/c1/barrierSetC1.hpp"
+#endif
+#ifdef COMPILER2
+#include "gc/shared/c2/barrierSetC2.hpp"
+#endif
+
+
+NoBarrier::NoBarrier(MemRegion whole_heap): BarrierSet(
+      make_barrier_set_assembler<BarrierSetAssembler>(),
+      make_barrier_set_c1<BarrierSetC1>(),
+      make_barrier_set_c2<BarrierSetC2>(),
+      BarrierSet::FakeRtti(BarrierSet::NoBarrier)
+    )
+    , _whole_heap(whole_heap) {}
+
 void NoBarrier::write_ref_array_work(MemRegion mr) {
     guarantee(false, "NoBarrier::write_ref_arrey_work not supported");
 }
-
-void NoBarrier::write_region_work(MemRegion mr) {
-    //guarantee(false, "NoBarrier::write_region_work not supported");
-}
-
 
 // Inform the BarrierSet that the the covered heap region that starts
 // with "base" has been changed to have the given size (possibly from 0,

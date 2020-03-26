@@ -3,6 +3,10 @@
 #include "mmtk.h"
 #include "mmtkArguments.hpp"
 
+// GCArguments* mmtk_new_gc_arguments() {
+//     return new MMTkArguments();
+// }
+
 namespace third_party_heap {
 
 class MutatorContext;
@@ -12,7 +16,7 @@ MutatorContext* bind_mutator(::Thread* current) {
 }
 
 GCArguments* new_gc_arguments() {
-    return new MMTkArguments();
+    return NULL;
 }
 
 };

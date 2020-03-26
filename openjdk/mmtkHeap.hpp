@@ -27,6 +27,7 @@
 
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/collectorPolicy.hpp"
+#include "gc/shared/oopStorage.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/strongRootsScope.hpp"
@@ -37,7 +38,7 @@
 #include "memory/iterator.hpp"
 #include "gc/shared/workgroup.hpp"
 #include "mmtkCollectorPolicy.hpp"
-
+#include "gc/shared/oopStorageParState.hpp"
 
 class GCMemoryManager;
 class MemoryPool;
@@ -54,6 +55,7 @@ class MMTkHeap : public CollectedHeap {
     SubTasksDone* _root_tasks;
     size_t _n_workers;
     Monitor* _gc_lock;
+    ContiguousSpace* _space;
 
   enum mmtk_strong_roots_tasks {
     MMTk_Universe_oops_do,
@@ -72,13 +74,12 @@ class MMTkHeap : public CollectedHeap {
     
 private:
    // static mmtkGCTaskManager* _mmtk_gc_task_manager;
+  //  OopStorage::ParState<false, false> _par_state_string;
     
 
 public:
      
-  MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes)) {
-    _heap = this;
-  }
+  MMTkHeap(MMTkCollectorPolicy* policy);
 
   inline static MMTkHeap* heap() {
     return _heap;

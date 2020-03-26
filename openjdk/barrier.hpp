@@ -38,34 +38,26 @@
 
 class NoBarrier : public BarrierSet {
   friend class VMStructs;
-  private:
-      MemRegion _whole_heap;
+private:
+  MemRegion _whole_heap;
 
 protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
-protected:
-  virtual void write_region_work(MemRegion mr) ;
-
 public:
-
-    NoBarrier(MemRegion whole_heap): BarrierSet((BarrierSet::FakeRtti(BarrierSet::NoBarrier))
-        .add_tag(BarrierSet::NoBarrier)),
-            _whole_heap(whole_heap){
-        
-    }
+  NoBarrier(MemRegion whole_heap);
     
   // Inform the BarrierSet that the the covered heap region that starts
   // with "base" has been changed to have the given size (possibly from 0,
   // for initialization.)
-  virtual void resize_covered_region(MemRegion new_region) ;
+  virtual void resize_covered_region(MemRegion new_region);
 
   // If the barrier set imposes any alignment restrictions on boundaries
   // within the heap, this function tells whether they are met.
-  virtual bool is_aligned(HeapWord* addr) ;
+  virtual bool is_aligned(HeapWord* addr);
 
   // Print a description of the memory for the barrier set
-  virtual void print_on(outputStream* st) const ;
+  virtual void print_on(outputStream* st) const;
 
 
   // The AccessBarrier of a BarrierSet subclass is called by the Access API
@@ -79,10 +71,26 @@ public:
   // 1) Provide an enum "name" for the BarrierSet in barrierSetConfig.hpp
   // 2) Make sure the barrier set headers are included from barrierSetConfig.inline.hpp
   // 3) Provide specializations for BarrierSet::GetName and BarrierSet::GetType.
- template <DecoratorSet decorators, typename BarrierSetT = NoBarrier>
+  template <DecoratorSet decorators, typename BarrierSetT = NoBarrier>
   class AccessBarrier: public BarrierSet::AccessBarrier<decorators, BarrierSetT> {
- 
- };
+  private:
+    typedef RawAccessBarrier<decorators> Raw;
+  public:
+    template <typename T>
+    static void oop_store_in_heap(T* addr, oop value) {
+      // printf("oop_store_in_heap(addr=%p, value=%p)\n", addr, value);
+      Raw::oop_store(addr, value);
+    }
+
+    static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
+      // printf("oop_store_in_heap_at(base=%p, offset=%ld, value=%p)\n", base, offset, value);
+      Raw::oop_store_at(base, offset, value);
+    }
+  };
+
+  // void post_barrier(LIR_OprDesc* addr, LIR_OprDesc* new_val) {
+
+  // }
 };
 
 

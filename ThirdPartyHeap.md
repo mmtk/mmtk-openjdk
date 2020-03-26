@@ -16,7 +16,7 @@
 ```makefile
 # TOPDIR points to openjdk root directory
 JVM_SRC_DIRS += $(TOPDIR)/my_third_party_heap
-JVM_CFLAGS += -DTHIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(TOPDIR)/my_third_party_heap
+JVM_CFLAGS += -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(TOPDIR)/my_third_party_heap
 ```
 This will compile every `.cpp` files under `$PWD/my_third_party_heap` and link to _libjava.so_.
 
