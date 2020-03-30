@@ -87,12 +87,12 @@ public:
       Raw::oop_store_at(base, offset, value);
     }
   };
-
-  // void post_barrier(LIR_OprDesc* addr, LIR_OprDesc* new_val) {
-
-  // }
 };
 
+struct MMTkBarrierRuntime: AllStatic {
+public:
+  static void write_barrier_slow(JavaThread *thread, oop src, oop new_val);
+};
 
 template<>
 struct BarrierSet::GetName<NoBarrier> {

@@ -28,14 +28,15 @@
 #include "gc/shared/c1/barrierSetC1.hpp"
 #endif
 #ifdef COMPILER2
-#include "gc/shared/c2/barrierSetC2.hpp"
+#include "mmtkBarrierSetC2.hpp"
 #endif
 
+#include "runtime/interfaceSupport.inline.hpp"
 
 NoBarrier::NoBarrier(MemRegion whole_heap): BarrierSet(
       make_barrier_set_assembler<BarrierSetAssembler>(),
       make_barrier_set_c1<BarrierSetC1>(),
-      make_barrier_set_c2<BarrierSetC2>(),
+      make_barrier_set_c2<MMTkBarrierSetC2>(),
       BarrierSet::FakeRtti(BarrierSet::NoBarrier)
     )
     , _whole_heap(whole_heap) {}
@@ -61,3 +62,7 @@ bool NoBarrier::is_aligned(HeapWord* addr) {
 void NoBarrier::print_on(outputStream* st) const {
 
 }
+
+JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(JavaThread *thread, oop src, oop new_val))
+    // Do nothing
+JRT_END
