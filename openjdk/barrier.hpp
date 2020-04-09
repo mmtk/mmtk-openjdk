@@ -91,7 +91,7 @@ public:
 
 struct MMTkBarrierRuntime: AllStatic {
 public:
-  static void write_barrier_slow(JavaThread *thread, oop src, oop new_val);
+  static void write_barrier_slow(oop src, jlong offset, oop new_val);
 };
 
 template<>

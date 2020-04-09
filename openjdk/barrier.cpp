@@ -63,6 +63,11 @@ void NoBarrier::print_on(outputStream* st) const {
 
 }
 
-JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(JavaThread *thread, oop src, oop new_val))
+JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(oop src, jlong offset, oop new_val))
     // Do nothing
+    assert(offset > 0, "");
+    intptr_t x = ((intptr_t) src) + ((intptr_t) offset);
+    oop* slot = (oop*) x;
+    // printf("offset %ld\n", offset);
+    *slot = new_val;
 JRT_END

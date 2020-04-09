@@ -275,7 +275,7 @@ jlong MMTkHeap::millis_since_last_gc() {//later when gc is implemented in rust
 
 
 void MMTkHeap::prepare_for_verify() {
-   guarantee(false, "prepare for verify not supported");
+   // guarantee(false, "prepare for verify not supported");
 }
 
 
@@ -315,7 +315,7 @@ bool MMTkHeap::is_scavengable(oop obj) {return false;}
 // Override with specific mechanism for each specialized heap type.
 
 // Heap verification
-void MMTkHeap::verify(VerifyOption option) {guarantee(false, "verify not supported");}
+void MMTkHeap::verify(VerifyOption option) {}
 
 void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
