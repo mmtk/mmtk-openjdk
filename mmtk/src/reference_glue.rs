@@ -1,20 +1,20 @@
-use libc::c_void;
+
 use mmtk::vm::ReferenceGlue;
 use mmtk::util::ObjectReference;
 use mmtk::TraceLocal;
 use mmtk::util::OpaquePointer;
-use OpenJDK;
+use crate::OpenJDK;
 
 pub struct VMReferenceGlue {}
 
 impl ReferenceGlue<OpenJDK> for VMReferenceGlue {
-    fn set_referent(reff: ObjectReference, referent: ObjectReference) {
+    fn set_referent(_reff: ObjectReference, _referent: ObjectReference) {
         unimplemented!()
     }
-    fn get_referent(object: ObjectReference) -> ObjectReference {
+    fn get_referent(_object: ObjectReference) -> ObjectReference {
         unimplemented!()
     }
-    fn process_reference<T: TraceLocal>(trace: &mut T, reference: ObjectReference, tls: OpaquePointer) -> ObjectReference {
+    fn process_reference<T: TraceLocal>(_trace: &mut T, _reference: ObjectReference, _tls: OpaquePointer) -> ObjectReference {
         unimplemented!()
     }
 }

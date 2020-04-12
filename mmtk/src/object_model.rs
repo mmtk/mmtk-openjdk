@@ -1,11 +1,11 @@
-use libc::c_void;
+
 use mmtk::vm::*;
 use mmtk::Allocator;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::util::OpaquePointer;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use super::UPCALLS;
-use OpenJDK;
+use crate::OpenJDK;
 use mmtk::CollectorContext;
 
 pub struct VMObjectModel {}
@@ -34,55 +34,55 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         to_obj
     }
 
-    fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
+    fn copy_to(_from: ObjectReference, _to: ObjectReference, _region: Address) -> Address {
         unimplemented!()
     }
 
-    fn get_reference_when_copied_to(from: ObjectReference, to: Address) -> ObjectReference {
+    fn get_reference_when_copied_to(_from: ObjectReference, _to: Address) -> ObjectReference {
         unimplemented!()
     }
 
-    fn get_size_when_copied(object: ObjectReference) -> usize {
+    fn get_size_when_copied(_object: ObjectReference) -> usize {
         unimplemented!()
     }
 
-    fn get_align_when_copied(object: ObjectReference) -> usize {
+    fn get_align_when_copied(_object: ObjectReference) -> usize {
         unimplemented!()
     }
 
-    fn get_align_offset_when_copied(object: ObjectReference) -> isize {
+    fn get_align_offset_when_copied(_object: ObjectReference) -> isize {
         unimplemented!()
     }
 
-    fn get_current_size(object: ObjectReference) -> usize {
+    fn get_current_size(_object: ObjectReference) -> usize {
         unimplemented!()
     }
 
-    fn get_next_object(object: ObjectReference) -> ObjectReference {
+    fn get_next_object(_object: ObjectReference) -> ObjectReference {
         unimplemented!()
     }
 
-    unsafe fn get_object_from_start_address(start: Address) -> ObjectReference {
+    unsafe fn get_object_from_start_address(_start: Address) -> ObjectReference {
         unimplemented!()
     }
 
-    fn get_object_end_address(object: ObjectReference) -> Address {
+    fn get_object_end_address(_object: ObjectReference) -> Address {
         unimplemented!()
     }
 
-    fn get_type_descriptor(reference: ObjectReference) -> &'static [i8] {
+    fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }
 
-    fn is_array(object: ObjectReference) -> bool {
+    fn is_array(_object: ObjectReference) -> bool {
         unimplemented!()
     }
 
-    fn is_primitive_array(object: ObjectReference) -> bool {
+    fn is_primitive_array(_object: ObjectReference) -> bool {
         unimplemented!()
     }
 
-    fn get_array_length(object: ObjectReference) -> usize {
+    fn get_array_length(_object: ObjectReference) -> usize {
         unimplemented!()
     }
 
@@ -96,11 +96,11 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unsafe { object.to_address().load() }
     }
 
-    fn write_available_byte(object: ObjectReference, val: u8) {
+    fn write_available_byte(_object: ObjectReference, _val: u8) {
         unimplemented!()
     }
 
-    fn read_available_byte(object: ObjectReference) -> u8 {
+    fn read_available_byte(_object: ObjectReference) -> u8 {
         unimplemented!()
     }
 
@@ -124,7 +124,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         object.to_address()
     }
 
-    fn is_acyclic(typeref: ObjectReference) -> bool {
+    fn is_acyclic(_typeref: ObjectReference) -> bool {
         unimplemented!()
     }
 
@@ -138,7 +138,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unimplemented!()
     }
 
-    fn array_base_offset_trapdoor<T>(o: T) -> isize {
+    fn array_base_offset_trapdoor<T>(_o: T) -> isize {
         unimplemented!()
     }
 
