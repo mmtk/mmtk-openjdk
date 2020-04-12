@@ -112,8 +112,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unsafe { object.to_address().atomic_load::<AtomicUsize>(Ordering::SeqCst) }
     }
 
-    fn GC_HEADER_OFFSET() -> isize {
-        unimplemented!()
+    fn gc_header_offset() -> isize {
+        0
     }
 
     fn object_start_ref(object: ObjectReference) -> Address {
