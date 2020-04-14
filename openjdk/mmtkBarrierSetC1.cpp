@@ -26,7 +26,7 @@
 #include "c1/c1_LIRGenerator.hpp"
 #include "c1/c1_CodeStubs.hpp"
 #include "mmtkBarrierSetC1.hpp"
-#include "barrier.hpp"
+#include "mmtkBarrierSet.hpp"
 #include "utilities/macros.hpp"
 
 #ifdef ASSERT

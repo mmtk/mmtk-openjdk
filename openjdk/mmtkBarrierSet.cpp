@@ -22,7 +22,7 @@
  *
  */
 
-#include "barrier.hpp"
+#include "mmtkBarrierSet.hpp"
 
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"

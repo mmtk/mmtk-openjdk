@@ -27,12 +27,11 @@
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
 #include "opto/narrowptrnode.hpp"
-#include "barrier.hpp"
 #include "opto/macro.hpp"
 #include "opto/type.hpp"
 #include "utilities/macros.hpp"
 #include "mmtkBarrierSetC2.hpp"
-#include "barrier.hpp"
+#include "mmtkBarrierSet.hpp"
 
 
 #define __ ideal.
