@@ -25,7 +25,7 @@
 #include "barrier.hpp"
 
 #ifdef COMPILER1
-#include "gc/shared/c1/barrierSetC1.hpp"
+#include "mmtkBarrierSetC1.hpp"
 #endif
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
@@ -35,7 +35,7 @@
 
 NoBarrier::NoBarrier(MemRegion whole_heap): BarrierSet(
       make_barrier_set_assembler<BarrierSetAssembler>(),
-      make_barrier_set_c1<BarrierSetC1>(),
+      make_barrier_set_c1<MMTkBarrierSetC1>(),
       make_barrier_set_c2<MMTkBarrierSetC2>(),
       BarrierSet::FakeRtti(BarrierSet::NoBarrier)
     )
