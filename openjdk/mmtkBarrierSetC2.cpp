@@ -63,14 +63,13 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
 
 
 const TypeFunc* write_barrier_slow_entry_Type() {
-  const Type **fields = TypeTuple::fields(4);
+  const Type **fields = TypeTuple::fields(3);
   // fields[TypeFunc::Parms+0] = TypeRawPtr::NOTNULL; // JavaThread* thread
   fields[TypeFunc::Parms+0] = TypeOopPtr::NOTNULL; // oop src
-  fields[TypeFunc::Parms+1] = TypeLong::LONG; // oop new_val
-  fields[TypeFunc::Parms+2] = Type::HALF;
-  fields[TypeFunc::Parms+3] = TypeOopPtr::BOTTOM; // oop new_val
+  fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop new_val
+  fields[TypeFunc::Parms+2] = TypeOopPtr::BOTTOM; // oop new_val
   // fields[TypeFunc::Parms+2] = TypeOopPtr::BOTTOM; // oop* slot
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+4, fields);
+  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+3, fields);
 
   // create result type (range)
   fields = TypeTuple::fields(0);
@@ -91,25 +90,10 @@ void MMTkBarrierSetC2::write_barrier(GraphKit* kit,
                                  BasicType bt) const {
   IdealKit ideal(kit, true);
 
-  Node* tls = __ thread(); // ThreadLocalStorage
-
-  // pre_val = __ load(__ ctrl(), adr, val_type, bt, alias_idx);
-  assert(adr->is_AddP(), "");
-  Node* off;
-  {
-    Node* base = adr->in(AddPNode::Base);
-    Node* addr = adr->in(AddPNode::Address);
-    if (base != addr) {
-      Node* addrOff = __ SubX(__ CastPX(__ ctrl(), addr), __ CastPX(__ ctrl(), base));
-      off = __ AddX(addrOff, adr->in(AddPNode::Offset));
-    } else {
-      off = adr->in(AddPNode::Offset);
-    }
-  }
+  // Node* tls = __ thread(); // ThreadLocalStorage
 
   const TypeFunc *tf = write_barrier_slow_entry_Type();
-  
-  __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), "write_barrier_slow", obj, off, __ top(), val);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), "write_barrier_slow", obj, adr, val);
   
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
@@ -123,5 +107,5 @@ bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
     return false;
   }
 
-  return strcmp(call->_name, "write_barrier_slow") == 0 || strcmp(call->_name, "write_ref_field_post_entry") == 0;
+  return strcmp(call->_name, "write_barrier_slow") == 0;// || strcmp(call->_name, "write_ref_field_post_entry") == 0;
 }

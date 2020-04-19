@@ -87,11 +87,13 @@ public:
       Raw::oop_store_at(base, offset, value);
     }
   };
+
+  static address slow_path_call();
 };
 
 struct MMTkBarrierRuntime: AllStatic {
 public:
-  static void write_barrier_slow(oop src, jlong offset, oop new_val);
+  static void write_barrier_slow(oop src, oop* offset, oop new_val);
 };
 
 template<>

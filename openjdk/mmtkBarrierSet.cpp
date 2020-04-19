@@ -30,6 +30,7 @@
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
+// #include "mmtkBarrierSetAssembler_x86.hpp"
 
 #include "runtime/interfaceSupport.inline.hpp"
 
@@ -63,11 +64,11 @@ void NoBarrier::print_on(outputStream* st) const {
 
 }
 
-JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(oop src, jlong offset, oop new_val))
-    // Do nothing
-    assert(offset > 0, "");
-    intptr_t x = ((intptr_t) src) + ((intptr_t) offset);
-    oop* slot = (oop*) x;
-    // printf("offset %ld\n", offset);
+
+address NoBarrier::slow_path_call() {
+    return CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow);
+}
+
+JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(oop src, oop* slot, oop new_val))
     *slot = new_val;
 JRT_END
