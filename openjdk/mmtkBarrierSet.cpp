@@ -30,12 +30,12 @@
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
-// #include "mmtkBarrierSetAssembler_x86.hpp"
+#include "mmtkBarrierSetAssembler_x86.hpp"
 
 #include "runtime/interfaceSupport.inline.hpp"
 
 NoBarrier::NoBarrier(MemRegion whole_heap): BarrierSet(
-      make_barrier_set_assembler<BarrierSetAssembler>(),
+      make_barrier_set_assembler<MMTkBarrierSetAssembler>(),
       make_barrier_set_c1<MMTkBarrierSetC1>(),
       make_barrier_set_c2<MMTkBarrierSetC2>(),
       BarrierSet::FakeRtti(BarrierSet::NoBarrier)
