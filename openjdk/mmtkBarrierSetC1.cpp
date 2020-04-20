@@ -54,7 +54,7 @@ void MMTkBarrierSetC1::store_at_resolved(LIRAccess& access, LIR_Opr value) {
 
   BarrierSetC1::store_at_resolved(access, value);
 
-  if (access.is_oop()) {
+  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
     // bool precise = is_array || on_anonymous;
     // LIR_Opr offset = access.offset().opr();// : access.base().opr();
     // LIR_Opr adr = access.resolved_addr();

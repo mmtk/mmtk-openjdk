@@ -48,7 +48,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
   bool in_heap = (decorators & IN_HEAP) != 0;
   bool use_precise = is_array || anonymous;
 
-  if (!access.is_oop() || (!in_heap && !anonymous)) {
+  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop() || (!in_heap && !anonymous)) {
     return BarrierSetC2::store_at_resolved(access, val);
   }
 
