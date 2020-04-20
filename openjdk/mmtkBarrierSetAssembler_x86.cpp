@@ -37,6 +37,97 @@
 
 #define __ masm->
 
+void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) {
+  assert(obj == rax, "obj must be in rax, for cmpxchg");
+  assert_different_registers(obj, var_size_in_bytes, t1);
+  // printf("eden_allocate\n");
+  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
+    __ jmp(slow_case);
+  } else {
+    assert(false, "Unimplemented");
+    // Register end = t1;
+    // Label retry;
+    // __ bind(retry);
+    // ExternalAddress heap_top((address) Universe::heap()->top_addr());
+    // __ movptr(obj, heap_top);
+    // if (var_size_in_bytes == noreg) {
+    //   __ lea(end, Address(obj, con_size_in_bytes));
+    // } else {
+    //   __ lea(end, Address(obj, var_size_in_bytes, Address::times_1));
+    // }
+    // // if end < obj then we wrapped around => object too long => slow case
+    // __ cmpptr(end, obj);
+    // __ jcc(Assembler::below, slow_case);
+    // __ cmpptr(end, ExternalAddress((address) Universe::heap()->end_addr()));
+    // __ jcc(Assembler::above, slow_case);
+    // // Compare obj with the top addr, and if still equal, store the new top addr in
+    // // end at the address of the top addr pointer. Sets ZF if was equal, and clears
+    // // it otherwise. Use lock prefix for atomicity on MPs.
+    // __ locked_cmpxchgptr(end, heap_top);
+    // __ jcc(Assembler::notEqual, retry);
+    // // incr_allocated_bytes(masm, thread, var_size_in_bytes, con_size_in_bytes, thread->is_valid() ? noreg : t1);
+  }
+}
+
+void MMTkBarrierSetAssembler::store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
+                                         Address dst, Register val, Register tmp1, Register tmp2) {
+  if (type == T_OBJECT || type == T_ARRAY) {
+    oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  } else {
+    BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  }
+}
+
+void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
+                                                Address dst, Register val, Register tmp1, Register tmp2) {
+  bool in_heap = (decorators & IN_HEAP) != 0;
+  bool as_normal = (decorators & AS_NORMAL) != 0;
+  assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
+
+  if (!in_heap || val == noreg) {
+    BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+    return;
+  }
+  
+  if (dst.index() == noreg && dst.disp() == 0) {
+    if (dst.base() != tmp1) {
+      __ movptr(tmp1, dst.base());
+    }
+  } else {
+    __ lea(tmp1, dst);
+  }
+  
+  BarrierSetAssembler::store_at(masm, decorators, type, Address(tmp1, 0), val, noreg, noreg);
+
+  write_barrier(masm /*masm*/, dst.base(), tmp1, val);
+}
+
+
+void MMTkBarrierSetAssembler::write_barrier(MacroAssembler* masm, Register obj, Register slot, Register val) {
+  Label done;
+  Label runtime;
+
+  __ bind(runtime);
+  
+  __ mov(c_rarg0, obj);
+  __ mov(c_rarg1, slot);
+  __ mov(c_rarg2, val);
+
+  __ push(obj);
+  __ push(slot);
+  __ push(val);
+
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), 3);
+
+  __ pop(val);
+  __ pop(slot);
+  __ pop(obj);
+
+  __ bind(done);
+}
+
+
+
 #ifdef COMPILER1
 
 #undef __

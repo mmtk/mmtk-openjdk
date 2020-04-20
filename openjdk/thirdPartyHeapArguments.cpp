@@ -43,6 +43,9 @@ void ThirdPartyHeapArguments::initialize() {
   GCArguments::initialize();
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
+  FLAG_SET_DEFAULT(UseCompressedOops, false);
+  assert(!UseTLAB , "should disable TLAB");
+  assert(!UseCompressedOops , "should disable CompressedOops");
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {
