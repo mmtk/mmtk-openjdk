@@ -96,7 +96,7 @@ jint MMTkHeap::initialize() {
     initialize_reserved_region(_start, _end);
 
 
-    NoBarrier* const barrier_set = new NoBarrier(reserved_region());
+    MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(reserved_region());
     //barrier_set->initialize();
     BarrierSet::set_barrier_set(barrier_set);
 
