@@ -67,7 +67,9 @@ MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_po
 }
 
 jint MMTkHeap::initialize() {
-
+    assert(!UseTLAB , "should disable UseTLAB");
+    assert(!UseCompressedOops , "should disable CompressedOops");
+    assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
     const size_t heap_size = collector_policy()->max_heap_byte_size();
    //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
     size_t mmtk_heap_size = heap_size;

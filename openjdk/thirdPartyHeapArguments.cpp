@@ -44,8 +44,7 @@ void ThirdPartyHeapArguments::initialize() {
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
   FLAG_SET_DEFAULT(UseCompressedOops, false);
-  assert(!UseTLAB , "should disable TLAB");
-  assert(!UseCompressedOops , "should disable CompressedOops");
+  FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {
