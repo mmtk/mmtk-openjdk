@@ -216,7 +216,7 @@ bool MMTkHeap::card_mark_must_follow_store() const { //OK
 }
 
 void MMTkHeap::collect(GCCause::Cause cause) {//later when gc is implemented in rust
-   handle_user_collection_request((MMTk_Mutator) Thread::current()->third_party_heap_mutator);
+   handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
    // guarantee(false, "collect not supported");
 }
 

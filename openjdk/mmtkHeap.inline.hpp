@@ -29,10 +29,9 @@
 #include "mmtkMutator.hpp"
 
 HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
-    MMTkMutatorContext* thread = (MMTkMutatorContext*) (void*) Thread::current()->third_party_heap_mutator;
-    HeapWord* obj = thread->alloc(size << LogHeapWordSize);
-   //  post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
-    // guarantee(obj, "MMTk gave us null!");
+    HeapWord* obj = Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize);
+    // post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
+    guarantee(obj, "MMTk gave us null!");
     return obj;
 }
 

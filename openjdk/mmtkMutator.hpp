@@ -4,15 +4,29 @@
 
 #include "mmtk.h"
 #include "utilities/globalDefinitions.hpp"
-#include "gc/shared/thirdPartyHeap.hpp"
 
-// class Thread;
 
-class MMTkMutatorContext: public third_party_heap::MutatorContext {
-    void* _tls;
-    char* _cursor;
-    char* _limit;
-public:
+
+struct MMTkMutatorContext {
+    // ss
+    void* ss_tls;
+    void* ss_cursor;
+    void* ss_limit;
+    void* ss_space;
+    void* ss_plan;
+    // vs
+    void* vs_tls;
+    void* vs_cursor;
+    void* vs_limit;
+    void* vs_space;
+    void* vs_plan;
+    // los
+    void* los_tls;
+    void* los_space;
+    void* los_plan;
+    //,
+    void* plan;
+
     inline HeapWord* alloc(size_t bytes) {
         HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, 0);
         // printf("Alloc %p\n", o);
@@ -26,6 +40,8 @@ public:
         //     return (HeapWord*) alloc_slow((MMTk_Mutator) this, bytes, HeapWordSize, 0, 0);
         // }
     }
+
+    static MMTkMutatorContext bind(::Thread* current);
 };
 
 #endif
