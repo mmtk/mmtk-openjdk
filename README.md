@@ -97,10 +97,10 @@ Hello World!
 
 ### Run DaCapo Benchmarks with MMTk (on a moma machine)
 
-**Note:** Pass `-XX:+UseThirdPartyHeap -XX:-UseCompressedOops` as java command line arguments to enable MMTk.
+**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -XX:-UseCompressedOops -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
 ===== DaCapo 9.12 lusearch starting =====
 4 query batches completed
