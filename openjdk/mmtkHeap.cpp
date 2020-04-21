@@ -24,7 +24,6 @@
 
 #include "precompiled.hpp"
 #include "code/codeCache.hpp"
-#include "mmtkHeap.inline.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
@@ -39,6 +38,7 @@
 #include "utilities/vmError.hpp"
 #include "mmtk.h"
 #include "mmtkMutator.hpp"
+#include "mmtkHeap.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "mmtkUpcalls.hpp"
@@ -397,6 +397,14 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
  
    // Weak refs (really needed???)
    WeakProcessor::oops_do(&cl);
+}
+
+HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
+    HeapWord* obj = Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize);
+    // post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
+    // printf("offset: %ld\n", ((size_t) &Thread::current()->third_party_heap_mutator) - ((size_t) Thread::current()));
+    guarantee(obj, "MMTk gave us null!");
+    return obj;
 }
 
 /*
