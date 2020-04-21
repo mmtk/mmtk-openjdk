@@ -44,28 +44,35 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
-    assert(false, "Unimplemented");
-    // Register end = t1;
-    // Label retry;
-    // __ bind(retry);
-    // ExternalAddress heap_top((address) Universe::heap()->top_addr());
-    // __ movptr(obj, heap_top);
-    // if (var_size_in_bytes == noreg) {
-    //   __ lea(end, Address(obj, con_size_in_bytes));
-    // } else {
-    //   __ lea(end, Address(obj, var_size_in_bytes, Address::times_1));
-    // }
-    // // if end < obj then we wrapped around => object too long => slow case
-    // __ cmpptr(end, obj);
-    // __ jcc(Assembler::below, slow_case);
-    // __ cmpptr(end, ExternalAddress((address) Universe::heap()->end_addr()));
-    // __ jcc(Assembler::above, slow_case);
-    // // Compare obj with the top addr, and if still equal, store the new top addr in
-    // // end at the address of the top addr pointer. Sets ZF if was equal, and clears
-    // // it otherwise. Use lock prefix for atomicity on MPs.
-    // __ locked_cmpxchgptr(end, heap_top);
-    // __ jcc(Assembler::notEqual, retry);
-    // // incr_allocated_bytes(masm, thread, var_size_in_bytes, con_size_in_bytes, thread->is_valid() ? noreg : t1);
+    Address cursor = Address(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()) + 8 * 1);
+    Address limit = Address(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()) + 8 * 2);
+    // obj = load lab.cursor
+    __ movptr(obj, cursor);
+    // end = obj + size
+    Register end = t1;
+    if (var_size_in_bytes == noreg) {
+      __ lea(end, Address(obj, con_size_in_bytes));
+    } else {
+      __ lea(end, Address(obj, var_size_in_bytes, Address::times_1));
+    }
+    // slowpath if end < obj
+    __ cmpptr(end, obj);
+    __ jcc(Assembler::below, slow_case);
+    // slowpath if end > lab.limit
+    // FIXME: We are lack of temp registers here... we have to push obj to stack
+    __ push(obj);
+    __ movptr(obj, limit);
+    __ cmpptr(end, obj);
+    __ pop(obj);
+    __ jcc(Assembler::above, slow_case);
+    // lab.limit = end
+    __ movptr(cursor, end);
+    // BarrierSetAssembler::incr_allocated_bytes
+    if (var_size_in_bytes->is_valid()) {
+      __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), var_size_in_bytes);
+    } else {
+      __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), con_size_in_bytes);
+    }
   }
 }
 

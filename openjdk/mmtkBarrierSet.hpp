@@ -33,7 +33,7 @@
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH false
+#define MMTK_ENABLE_ALLOCATION_FASTPATH true
 #define MMTK_ENABLE_WRITE_BARRIER false
 
 // This class provides the interface between a barrier implementation and
