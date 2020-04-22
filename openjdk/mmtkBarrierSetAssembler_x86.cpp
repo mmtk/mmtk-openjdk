@@ -59,13 +59,9 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ cmpptr(end, obj);
     __ jcc(Assembler::below, slow_case);
     // slowpath if end > lab.limit
-    // FIXME: We are lack of temp registers here... we have to push obj to stack
-    __ push(obj);
-    __ movptr(obj, limit);
-    __ cmpptr(end, obj);
-    __ pop(obj);
+    __ cmpptr(end, limit);
     __ jcc(Assembler::above, slow_case);
-    // lab.limit = end
+    // lab.cursor = end
     __ movptr(cursor, end);
     // BarrierSetAssembler::incr_allocated_bytes
     if (var_size_in_bytes->is_valid()) {
