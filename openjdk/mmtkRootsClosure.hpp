@@ -8,10 +8,11 @@ class MMTkRootsClosure : public OopClosure {
 
   template <class T>
   void do_oop_work(T* p) {
-    // T heap_oop = oopDesc::load_heap_oop(p);
-    // if (!oopDesc::is_null(heap_oop)) {
-    //   oop obj = oopDesc::decode_heap_oop_not_null(heap_oop);
-    //   report_delayed_root_edge(_trace, (void*) obj);
+    // T heap_oop = RawAccess<>::oop_load(p);
+    // if (!CompressedOops::is_null(heap_oop)) {
+    //   oop obj = CompressedOops::decode_not_null(heap_oop);
+    //   oop fwd = (oop) trace_root_object(_trace, obj);
+    //   RawAccess<>::oop_store(p, fwd);
     // }
     report_delayed_root_edge(_trace, (void*) p);
   }

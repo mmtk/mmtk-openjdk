@@ -324,7 +324,7 @@ void MMTkHeap::scan_static_roots(OopClosure& cl) {
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
    ResourceMark rm;
-   CodeBlobToOopClosure cb_cl(&cl, false);
+   CodeBlobToOopClosure cb_cl(&cl, true);
    CLDToOopClosure cld_cl(&cl, false);
 
    if (!_root_tasks->is_task_claimed(MMTk_Universe_oops_do)) Universe::oops_do(&cl);
@@ -334,7 +334,10 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
    if (!_root_tasks->is_task_claimed(MMTk_jvmti_oops_do)) JvmtiExport::oops_do(&cl);
    if (UseAOT && !_root_tasks->is_task_claimed(MMTk_aot_oops_do)) AOTLoader::oops_do(&cl);
    if (!_root_tasks->is_task_claimed(MMTk_SystemDictionary_oops_do)) SystemDictionary::oops_do(&cl);
-   if (!_root_tasks->is_task_claimed(MMTk_CodeCache_oops_do)) CodeCache::blobs_do(&cb_cl);
+   if (!_root_tasks->is_task_claimed(MMTk_CodeCache_oops_do)) {
+      MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::blobs_do(&cb_cl);
+   }
 
    OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());   
    StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
@@ -368,7 +371,7 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
    // Need to tell runtime we are about to walk the roots with 1 thread
    StrongRootsScope scope(1);
    CLDToOopClosure cld_cl(&cl, false);
-   CodeBlobToOopClosure cb_cl(&cl, false);
+   CodeBlobToOopClosure cb_cl(&cl, true);
 
    // Static Roots
    ClassLoaderDataGraph::cld_do(&cld_cl);
@@ -405,6 +408,10 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
     // printf("offset: %ld\n", ((size_t) &Thread::current()->third_party_heap_mutator) - ((size_t) Thread::current()));
     guarantee(obj, "MMTk gave us null!");
     return obj;
+}
+
+HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
+    return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
 }
 
 /*

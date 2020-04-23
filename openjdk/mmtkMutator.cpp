@@ -6,16 +6,8 @@ MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
     return *((MMTkMutatorContext*) ::bind_mutator((void*) current));
 }
 
-HeapWord* MMTkMutatorContext::alloc(size_t bytes) {
-    HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, 0);
-    // printf("Alloc %p\n", o);
+HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
+    HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, allocator);
+    // post_alloc((MMTk_Mutator) this, o, NULL, bytes, a);
     return o;
-    // bytes = (bytes + (HeapWordSize - 1)) & ~(HeapWordSize - 1);
-    // if (_cursor + bytes <= _limit) {
-    //     HeapWord* start = (HeapWord*) _cursor;
-    //     _cursor = _cursor + bytes;
-    //     return start;
-    // } else {
-    //     return (HeapWord*) alloc_slow((MMTk_Mutator) this, bytes, HeapWordSize, 0, 0);
-    // }
 }

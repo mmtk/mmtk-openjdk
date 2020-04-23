@@ -5,7 +5,19 @@
 #include "mmtk.h"
 #include "utilities/globalDefinitions.hpp"
 
-
+enum Allocator {
+    AllocatorDefault = 0,
+    AllocatorNonReference = 1,
+    AllocatorNonMoving = 2,
+    AllocatorImmortal = 3,
+    AllocatorLos = 4,
+    AllocatorPrimitiveLos = 5,
+    AllocatorGcSpy = 6,
+    AllocatorCode = 7,
+    AllocatorLargeCode = 8,
+    AllocatorAllocators = 9,
+    AllocatorDefaultSite = -1,
+};
 
 struct MMTkMutatorContext {
     // ss
@@ -27,7 +39,7 @@ struct MMTkMutatorContext {
     //,
     void* plan;
 
-    HeapWord* alloc(size_t bytes);
+    HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
     static MMTkMutatorContext bind(::Thread* current);
 };
