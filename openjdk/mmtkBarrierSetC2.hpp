@@ -28,6 +28,10 @@
 #include "gc/shared/c2/barrierSetC2.hpp"
 
 class TypeOopPtr;
+class PhaseMacroExpand;
+class AllocateNode;
+class Node;
+class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
@@ -46,6 +50,13 @@ protected:
 
 public:
   virtual bool is_gc_barrier_node(Node* node) const;
+  static void expand_allocate(
+            PhaseMacroExpand* x,
+            AllocateNode* alloc, // allocation node to be expanded
+            Node* length,  // array length for an array allocation
+            const TypeFunc* slow_call_type, // Type of slow call
+            address slow_call_address  // Address of slow call
+    );
 };
 
 #endif // MMTK_BARRIERSETC2_HPP
