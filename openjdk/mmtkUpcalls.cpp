@@ -80,6 +80,7 @@ static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
 }
 
 static void mmtk_block_for_gc() {
+    MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
     do {
         MMTkHeap::heap()->gc_lock()->lock();
         MMTkHeap::heap()->gc_lock()->wait();

@@ -60,7 +60,7 @@ object iterator??!!
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
-MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
+MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _last_gc_time(0), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
 // , _par_state_string(StringTable::weak_storage()) 
 {
    _heap = this;
@@ -222,7 +222,9 @@ void MMTkHeap::collect(GCCause::Cause cause) {//later when gc is implemented in 
 
 // Perform a full collection
 void MMTkHeap::do_full_collection(bool clear_all_soft_refs) {//later when gc is implemented in rust
-   guarantee(false, "do full collection not supported");
+   // guarantee(false, "do full collection not supported");
+
+   // handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
 }
 
 
@@ -271,8 +273,13 @@ return false;
 }
 
 jlong MMTkHeap::millis_since_last_gc() {//later when gc is implemented in rust
-   guarantee(false, "time since last gc not supported");
-   return 0;
+    jlong ret_val = (os::javaTimeNanos() / NANOSECS_PER_MILLISEC) - _last_gc_time;
+    if (ret_val < 0) {
+      log_warning(gc)("millis_since_last_gc() would return : " JLONG_FORMAT
+        ". returning zero instead.", ret_val);
+      return 0;
+    }
+    return ret_val;
 }
 
 

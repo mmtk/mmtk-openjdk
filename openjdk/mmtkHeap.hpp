@@ -203,6 +203,8 @@ public:
   void scan_static_roots(OopClosure& cl);
   void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
+
+  jlong _last_gc_time;
 };
 
 
