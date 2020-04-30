@@ -2,7 +2,7 @@
 MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
-GC := semispace
+GC := $(MMTK_PLAN)
 
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
