@@ -2,7 +2,11 @@
 MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
-GC := $(MMTK_PLAN)
+ifndef MMTK_PLAN
+  GC=semispace
+else
+  GC=$(MMTK_PLAN)
+endif
 
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
@@ -13,8 +17,14 @@ else
   CARGO_PROFILE = debug
 endif
 
+ifndef RUSTUP_TOOLCHAIN
+  CARGO_VERSION=
+else
+  CARGO_VERSION=+$(RUSTUP_TOOLCHAIN)
+endif
+
 $(LIB_MMTK): FORCE
-	cargo +nightly build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features $(GC)
+	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features $(GC)
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk

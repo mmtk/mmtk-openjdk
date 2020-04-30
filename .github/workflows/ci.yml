@@ -16,8 +16,8 @@ jobs:
           token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
       - name: Setup Environments
-        run: ./.github/scripts/ci-setup.sh
+        run: RUSTUP_TOOLCHAIN=nightly-2019-08-26 ./.github/scripts/ci-setup.sh
 
       # Run the tests
       - name: Dacapo Tests
-        run: ./.github/scripts/ci-test.sh
+        run: RUSTUP_TOOLCHAIN=nightly-2019-08-26 ./.github/scripts/ci-test.sh
