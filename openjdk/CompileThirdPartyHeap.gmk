@@ -18,7 +18,7 @@ else
 endif
 
 ifndef RUSTUP_TOOLCHAIN
-  CARGO_VERSION=
+  CARGO_VERSION=+nightly
 else
   CARGO_VERSION=+$(RUSTUP_TOOLCHAIN)
 endif
