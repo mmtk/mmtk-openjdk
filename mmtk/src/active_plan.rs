@@ -1,9 +1,9 @@
-use libc::c_void;
+
 use mmtk::{Plan, SelectedPlan};
 use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
-use OpenJDK;
-use SINGLETON;
+use crate::OpenJDK;
+use crate::SINGLETON;
 use super::UPCALLS;
 use std::sync::Mutex;
 
@@ -17,7 +17,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
     unsafe fn collector(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::CollectorT {
         let c = ((*UPCALLS).active_collector)(tls);
         assert!(!c.is_null());
-        unsafe { &mut *c }
+        &mut *c
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
@@ -26,7 +26,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
 
     unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-        unsafe { &mut *m }
+        &mut *m
     }
 
     fn collector_count() -> usize {

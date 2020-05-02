@@ -89,7 +89,8 @@ public:
  
   jint initialize();
   
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
+  virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
+  HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);
   
   
   
@@ -202,6 +203,8 @@ public:
   void scan_static_roots(OopClosure& cl);
   void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
+
+  jlong _last_gc_time;
 };
 
 

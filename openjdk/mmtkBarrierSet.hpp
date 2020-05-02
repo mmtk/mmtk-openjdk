@@ -33,10 +33,13 @@
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
 
+#define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#define MMTK_ENABLE_WRITE_BARRIER false
+
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
 
-class NoBarrier : public BarrierSet {
+class MMTkBarrierSet : public BarrierSet {
   friend class VMStructs;
 private:
   MemRegion _whole_heap;
@@ -45,7 +48,7 @@ protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
 public:
-  NoBarrier(MemRegion whole_heap);
+  MMTkBarrierSet(MemRegion whole_heap);
     
   // Inform the BarrierSet that the the covered heap region that starts
   // with "base" has been changed to have the given size (possibly from 0,
@@ -71,7 +74,7 @@ public:
   // 1) Provide an enum "name" for the BarrierSet in barrierSetConfig.hpp
   // 2) Make sure the barrier set headers are included from barrierSetConfig.inline.hpp
   // 3) Provide specializations for BarrierSet::GetName and BarrierSet::GetType.
-  template <DecoratorSet decorators, typename BarrierSetT = NoBarrier>
+  template <DecoratorSet decorators, typename BarrierSetT = MMTkBarrierSet>
   class AccessBarrier: public BarrierSet::AccessBarrier<decorators, BarrierSetT> {
   private:
     typedef RawAccessBarrier<decorators> Raw;
@@ -88,20 +91,22 @@ public:
     }
   };
 
-  // void post_barrier(LIR_OprDesc* addr, LIR_OprDesc* new_val) {
-
-  // }
+  static address slow_path_call();
 };
 
-
-template<>
-struct BarrierSet::GetName<NoBarrier> {
-  static const BarrierSet::Name value = BarrierSet::NoBarrier;
+struct MMTkBarrierRuntime: AllStatic {
+public:
+  static void write_barrier_slow(oop src, oop* offset, oop new_val);
 };
 
 template<>
-struct BarrierSet::GetType<BarrierSet::NoBarrier> {
-  typedef ::NoBarrier type;
+struct BarrierSet::GetName<MMTkBarrierSet> {
+  static const BarrierSet::Name value = BarrierSet::ThirdPartyHeapBarrierSet;
+};
+
+template<>
+struct BarrierSet::GetType<BarrierSet::ThirdPartyHeapBarrierSet> {
+  typedef ::MMTkBarrierSet type;
 };
 
 

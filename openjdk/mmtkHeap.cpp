@@ -24,7 +24,6 @@
 
 #include "precompiled.hpp"
 #include "code/codeCache.hpp"
-#include "mmtkHeap.inline.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
@@ -39,6 +38,7 @@
 #include "utilities/vmError.hpp"
 #include "mmtk.h"
 #include "mmtkMutator.hpp"
+#include "mmtkHeap.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "mmtkUpcalls.hpp"
@@ -60,14 +60,16 @@ object iterator??!!
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
-MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
+MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _last_gc_time(0), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
 // , _par_state_string(StringTable::weak_storage()) 
 {
    _heap = this;
 }
 
 jint MMTkHeap::initialize() {
-
+    assert(!UseTLAB , "should disable UseTLAB");
+    assert(!UseCompressedOops , "should disable CompressedOops");
+    assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
     const size_t heap_size = collector_policy()->max_heap_byte_size();
    //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
     size_t mmtk_heap_size = heap_size;
@@ -96,7 +98,7 @@ jint MMTkHeap::initialize() {
     initialize_reserved_region(_start, _end);
 
 
-    NoBarrier* const barrier_set = new NoBarrier(reserved_region());
+    MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(reserved_region());
     //barrier_set->initialize();
     BarrierSet::set_barrier_set(barrier_set);
 
@@ -214,13 +216,15 @@ bool MMTkHeap::card_mark_must_follow_store() const { //OK
 }
 
 void MMTkHeap::collect(GCCause::Cause cause) {//later when gc is implemented in rust
-   handle_user_collection_request((MMTk_Mutator) Thread::current()->third_party_heap_mutator);
+   handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
    // guarantee(false, "collect not supported");
 }
 
 // Perform a full collection
 void MMTkHeap::do_full_collection(bool clear_all_soft_refs) {//later when gc is implemented in rust
-   guarantee(false, "do full collection not supported");
+   // guarantee(false, "do full collection not supported");
+
+   // handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
 }
 
 
@@ -269,13 +273,18 @@ return false;
 }
 
 jlong MMTkHeap::millis_since_last_gc() {//later when gc is implemented in rust
-   guarantee(false, "time since last gc not supported");
-   return 0;
+    jlong ret_val = (os::javaTimeNanos() / NANOSECS_PER_MILLISEC) - _last_gc_time;
+    if (ret_val < 0) {
+      log_warning(gc)("millis_since_last_gc() would return : " JLONG_FORMAT
+        ". returning zero instead.", ret_val);
+      return 0;
+    }
+    return ret_val;
 }
 
 
 void MMTkHeap::prepare_for_verify() {
-   guarantee(false, "prepare for verify not supported");
+   // guarantee(false, "prepare for verify not supported");
 }
 
 
@@ -315,14 +324,14 @@ bool MMTkHeap::is_scavengable(oop obj) {return false;}
 // Override with specific mechanism for each specialized heap type.
 
 // Heap verification
-void MMTkHeap::verify(VerifyOption option) {guarantee(false, "verify not supported");}
+void MMTkHeap::verify(VerifyOption option) {}
 
 void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
    ResourceMark rm;
-   CodeBlobToOopClosure cb_cl(&cl, false);
+   CodeBlobToOopClosure cb_cl(&cl, true);
    CLDToOopClosure cld_cl(&cl, false);
 
    if (!_root_tasks->is_task_claimed(MMTk_Universe_oops_do)) Universe::oops_do(&cl);
@@ -332,7 +341,10 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
    if (!_root_tasks->is_task_claimed(MMTk_jvmti_oops_do)) JvmtiExport::oops_do(&cl);
    if (UseAOT && !_root_tasks->is_task_claimed(MMTk_aot_oops_do)) AOTLoader::oops_do(&cl);
    if (!_root_tasks->is_task_claimed(MMTk_SystemDictionary_oops_do)) SystemDictionary::oops_do(&cl);
-   if (!_root_tasks->is_task_claimed(MMTk_CodeCache_oops_do)) CodeCache::blobs_do(&cb_cl);
+   if (!_root_tasks->is_task_claimed(MMTk_CodeCache_oops_do)) {
+      MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::blobs_do(&cb_cl);
+   }
 
    OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());   
    StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
@@ -366,7 +378,7 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
    // Need to tell runtime we are about to walk the roots with 1 thread
    StrongRootsScope scope(1);
    CLDToOopClosure cld_cl(&cl, false);
-   CodeBlobToOopClosure cb_cl(&cl, false);
+   CodeBlobToOopClosure cb_cl(&cl, true);
 
    // Static Roots
    ClassLoaderDataGraph::cld_do(&cld_cl);
@@ -395,6 +407,18 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
  
    // Weak refs (really needed???)
    WeakProcessor::oops_do(&cl);
+}
+
+HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
+    HeapWord* obj = Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize);
+    // post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
+    // printf("offset: %ld\n", ((size_t) &Thread::current()->third_party_heap_mutator) - ((size_t) Thread::current()));
+    guarantee(obj, "MMTk gave us null!");
+    return obj;
+}
+
+HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
+    return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
 }
 
 /*

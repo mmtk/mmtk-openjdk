@@ -1,7 +1,7 @@
-use libc::c_void;
+
 use libc::c_char;
 use std::ffi::CStr;
-use std::ptr::null_mut;
+
 use mmtk::memory_manager;
 use mmtk::Allocator;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
@@ -9,10 +9,10 @@ use mmtk::Plan;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::{SelectedMutator, SelectedTraceLocal, SelectedCollector};
 
-use OpenJDK;
-use UPCALLS;
-use OpenJDK_Upcalls;
-use SINGLETON;
+use crate::OpenJDK;
+use crate::UPCALLS;
+use crate::OpenJDK_Upcalls;
+use crate::SINGLETON;
 
 #[no_mangle]
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
@@ -180,7 +180,7 @@ pub extern "C" fn harness_begin(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn harness_end(tls: OpaquePointer) {
+pub extern "C" fn harness_end(_tls: OpaquePointer) {
     memory_manager::harness_end(&SINGLETON)
 }
 

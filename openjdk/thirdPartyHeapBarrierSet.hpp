@@ -1,0 +1,9 @@
+#ifndef SHARE_GC_MMTK_THIRDPARTYHEAPBARRIERSET_HPP
+#define SHARE_GC_MMTK_THIRDPARTYHEAPBARRIERSET_HPP
+
+#include "mmtkBarrierSet.hpp"
+
+typedef MMTkBarrierSet ThirdPartyHeapBarrierSet;
+typedef MMTkBarrierRuntime ThirdPartyHeapBarrierRuntime;
+
+#endif // SHARE_GC_MMTK_THIRDPARTYHEAPBARRIERSET_HPP

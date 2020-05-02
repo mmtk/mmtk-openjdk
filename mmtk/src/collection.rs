@@ -1,10 +1,10 @@
-use libc::c_void;
+
 use mmtk::vm::Collection;
 use mmtk::util::OpaquePointer;
 use mmtk::{MutatorContext, ParallelCollector};
 
-use OpenJDK;
-use UPCALLS;
+use crate::OpenJDK;
+use crate::UPCALLS;
 
 pub struct VMCollection {}
 
@@ -21,7 +21,7 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn block_for_gc(tls: OpaquePointer) {
+    fn block_for_gc(_tls: OpaquePointer) {
         unsafe {
             ((*UPCALLS).block_for_gc)();
         }
@@ -38,7 +38,7 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext>(tls: OpaquePointer, m: &T) {
+    fn prepare_mutator<T: MutatorContext>(_tls: OpaquePointer, _m: &T) {
         // unimplemented!()
     }
 }

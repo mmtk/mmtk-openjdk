@@ -80,6 +80,7 @@ static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
 }
 
 static void mmtk_block_for_gc() {
+    MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
     do {
         MMTkHeap::heap()->gc_lock()->lock();
         MMTkHeap::heap()->gc_lock()->wait();
@@ -92,7 +93,7 @@ static void* mmtk_active_collector(void* tls) {
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
-    return (void*) ((Thread*) tls)->third_party_heap_mutator;
+    return (void*) &((Thread*) tls)->third_party_heap_mutator;
 }
 
 static bool mmtk_is_mutator(void* tls) {
@@ -109,7 +110,7 @@ static void* mmtk_get_next_mutator() {
     }
     // printf("_thread_cursor %p -> %p\n", _thread_cursor, _thread_cursor == NULL ? NULL : _thread_cursor->mmtk_mutator());
     if (_thread_cursor == NULL) return NULL;
-    return (void*) _thread_cursor->third_party_heap_mutator;
+    return (void*) &_thread_cursor->third_party_heap_mutator;
 }
 
 static void mmtk_reset_mutator_iterator() {
