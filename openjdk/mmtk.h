@@ -21,11 +21,11 @@ extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
 extern void* alloc_slow_bump_monotone_immortal(MMTk_Mutator mutator, size_t size,
-    size_t align, size_t offset, int allocator);
+    size_t align, size_t offset);
 extern void* alloc_slow_bump_monotone_copy(MMTk_Mutator mutator, size_t size,
-    size_t align, size_t offset, int allocator);
+    size_t align, size_t offset);
 extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
-    size_t align, size_t offset, int allocator);
+    size_t align, size_t offset);
 
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
     int bytes, int allocator);
