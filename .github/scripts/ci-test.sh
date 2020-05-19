@@ -1,5 +1,8 @@
 set -xe
 
+eval `ssh-agent -s`
+ssh-add
+
 # To OpenJDK folder
 cd repos/openjdk
 
