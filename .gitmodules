@@ -1,6 +1,3 @@
 [submodule "repos/openjdk"]
 	path = repos/openjdk
 	url = ../openjdk.git
-[submodule "repos/mmtk-core"]
-	path = repos/mmtk-core
-	url = ../mmtk-core.git
