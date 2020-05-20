@@ -1,5 +1,5 @@
 
-use libc::c_char;
+use libc::{c_char, c_void};
 use std::ffi::CStr;
 
 use mmtk::memory_manager;
@@ -41,10 +41,36 @@ pub extern "C" fn alloc(mutator: *mut SelectedMutator<OpenJDK>, size: usize,
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
+// Allocation slow path
+
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
+use mmtk::util::alloc::Allocator as IAllocator;
+use mmtk::util::heap::MonotonePageResource;
+
 #[no_mangle]
-pub extern "C" fn alloc_slow(mutator: *mut SelectedMutator<OpenJDK>, size: usize,
-                                        align: usize, offset: isize, allocator: Allocator) -> Address {
-    memory_manager::alloc_slow::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
+pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    use mmtk::policy::immortalspace::ImmortalSpace;
+    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK, MonotonePageResource<OpenJDK, ImmortalSpace<OpenJDK>>>) }.alloc_slow(size, align, offset)
+}
+
+// For plans that do not include copy space, use the other implementation
+// FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
+
+#[no_mangle]
+#[cfg(any(feature = "semispace"))]
+pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    use mmtk::policy::copyspace::CopySpace;
+    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK, MonotonePageResource<OpenJDK, CopySpace<OpenJDK>>>) }.alloc_slow(size, align, offset)
+}
+#[no_mangle]
+#[cfg(not(any(feature = "semispace")))]
+pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    unimplemented!()
+}
+
+#[no_mangle]
+pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    unsafe { &mut *(allocator as *mut LargeObjectAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
 
 #[no_mangle]
