@@ -81,12 +81,7 @@ pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<OpenJDK>, refer: Obje
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    memory_manager::will_never_move(&SINGLETON, object)
-}
-
-#[no_mangle]
-pub extern "C" fn is_valid_ref(val: ObjectReference) -> bool {
-    memory_manager::is_valid_ref(&SINGLETON, val)
+    !object.is_movable()
 }
 
 #[no_mangle]
@@ -146,11 +141,6 @@ pub extern "C" fn trace_get_forwarded_reference(trace_local: *mut SelectedTraceL
 }
 
 #[no_mangle]
-pub extern "C" fn trace_is_live(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> bool{
-    memory_manager::trace_is_live::<OpenJDK>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
 pub extern "C" fn trace_root_object(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> ObjectReference {
     memory_manager::trace_root_object::<OpenJDK>(unsafe { &mut *trace_local }, object)
 }
@@ -172,12 +162,12 @@ pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
 
 #[no_mangle]
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(&SINGLETON, object)
+    object.is_mapped()
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_address(object: Address) -> bool {
-    memory_manager::is_mapped_address(&SINGLETON, object)
+pub extern "C" fn is_mapped_address(addr: Address) -> bool {
+    addr.is_mapped()
 }
 
 #[no_mangle]
