@@ -30,7 +30,6 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
     int bytes, int allocator);
 
-extern bool is_valid_ref(void* ref);
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
@@ -53,7 +52,6 @@ extern void* trace_get_forwarded_reference(MMTk_TraceLocal trace_local, void* ob
 
 extern void* trace_retain_referent(MMTk_TraceLocal trace_local, void* obj);
 
-extern bool trace_is_live(MMTk_TraceLocal trace_local, void* obj);
 extern void* trace_root_object(MMTk_TraceLocal trace_local, void* obj);
 
 extern void process_edge(MMTk_TraceLocal trace, void* obj);
