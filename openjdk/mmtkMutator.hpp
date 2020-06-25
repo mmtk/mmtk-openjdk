@@ -24,17 +24,22 @@ struct MMTkMutatorContext {
     void* ss_tls;
     void* ss_cursor;
     void* ss_limit;
+    // The `space` field in mmtk's mutator struct is a fat pointer,
+    // which takes up 2 words.
     void* ss_space;
+    void* ss_space_fat;
     void* ss_plan;
     // vs
     void* vs_tls;
     void* vs_cursor;
     void* vs_limit;
     void* vs_space;
+    void* vs_space_fat;
     void* vs_plan;
     // los
     void* los_tls;
     void* los_space;
+    void* los_space_fat;
     void* los_plan;
     //,
     void* plan;
