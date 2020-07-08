@@ -30,7 +30,7 @@ _Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Li
 First, clone this binding repo:
 
 ```console
-$ git clone --recursive git@gitlab.anu.edu.au:mmtk/mmtk-openjdk.git
+$ git clone --recursive git@github.com:mmtk/mmtk-openjdk.git
 ```
 
 The `mmtk-openjdk` binding repo is located under the `mmtk` folder, as a git-submodule of the OpenJDK repo.
