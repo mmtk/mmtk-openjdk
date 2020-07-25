@@ -40,6 +40,9 @@ extern void modify_check(void* ref);
 extern void report_delayed_root_edge(MMTk_TraceLocal trace_local,
                                      void* addr);
 
+extern void bulk_report_delayed_root_edge(MMTk_TraceLocal trace_local,
+                                          void** buffer, size_t length);
+
 extern bool will_not_move_in_current_collection(MMTk_TraceLocal trace_local,
                                                 void* obj);
 

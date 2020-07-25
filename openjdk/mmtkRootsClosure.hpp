@@ -1,10 +1,15 @@
 #include "memory/iterator.hpp"
 #include "oops/oop.hpp"
 #include "oops/oop.inline.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "mmtk.h"
+
+#define ROOTS_BUFFER_SIZE 512
 
 class MMTkRootsClosure : public OopClosure {
   void* _trace;
+  void* _buffer[ROOTS_BUFFER_SIZE];
+  size_t _cursor;
 
   template <class T>
   void do_oop_work(T* p) {
@@ -14,11 +19,23 @@ class MMTkRootsClosure : public OopClosure {
     //   oop fwd = (oop) trace_root_object(_trace, obj);
     //   RawAccess<>::oop_store(p, fwd);
     // }
-    report_delayed_root_edge(_trace, (void*) p);
+    _buffer[_cursor++] = (void*) p;
+    if (_cursor >= ROOTS_BUFFER_SIZE) {
+      flush();
+    }
+  }
+
+  NOINLINE void flush() {
+    bulk_report_delayed_root_edge(_trace, _buffer, _cursor);
+    _cursor = 0;
   }
 
 public:
-  MMTkRootsClosure(void* trace): _trace(trace) {}
+  MMTkRootsClosure(void* trace): _trace(trace), _cursor(0) {}
+
+  ~MMTkRootsClosure() {
+    if (_cursor > 0) flush();
+  }
 
   virtual void do_oop(oop* p)       { do_oop_work(p); }
   virtual void do_oop(narrowOop* p) {

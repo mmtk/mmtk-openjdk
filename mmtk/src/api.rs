@@ -90,6 +90,14 @@ pub extern "C" fn report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<
 }
 
 #[no_mangle]
+pub extern "C" fn bulk_report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<OpenJDK>, buffer: *const Address, length: usize) {
+    let trace_local = unsafe { &mut *trace_local };
+    for i in 0..length {
+        memory_manager::report_delayed_root_edge(&SINGLETON, trace_local, unsafe { *buffer.add(i) })
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn will_not_move_in_current_collection(trace_local: *mut SelectedTraceLocal<OpenJDK>, obj: ObjectReference) -> bool {
     memory_manager::will_not_move_in_current_collection(&SINGLETON, unsafe { &mut *trace_local}, obj)
 }
