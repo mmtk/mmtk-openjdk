@@ -192,12 +192,16 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 
 #[no_mangle]
 pub extern "C" fn harness_begin(tls: OpaquePointer) {
-    memory_manager::harness_begin(&SINGLETON, tls)
+    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    memory_manager::harness_begin(&SINGLETON, tls);
+    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
 pub extern "C" fn harness_end(_tls: OpaquePointer) {
-    memory_manager::harness_end(&SINGLETON)
+    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    memory_manager::harness_end(&SINGLETON);
+    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
