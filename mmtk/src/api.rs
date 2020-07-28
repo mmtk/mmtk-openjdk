@@ -191,14 +191,15 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn harness_begin(tls: OpaquePointer) {
+pub extern "C" fn harness_begin(_id: usize) {
     let state = unsafe { ((*UPCALLS).enter_vm)() };
-    memory_manager::harness_begin(&SINGLETON, tls);
+    // Pass null as tls, OpenJDK binding does not rely on the tls value to block the current thread and do a GC
+    memory_manager::harness_begin(&SINGLETON, OpaquePointer::UNINITIALIZED);
     unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
-pub extern "C" fn harness_end(_tls: OpaquePointer) {
+pub extern "C" fn harness_end(_id: usize) {
     let state = unsafe { ((*UPCALLS).enter_vm)() };
     memory_manager::harness_end(&SINGLETON);
     unsafe { ((*UPCALLS).leave_vm)(state) };
