@@ -1,3 +1,5 @@
+#![feature(specialization)]
+#![feature(const_fn)]
 extern crate mmtk;
 extern crate libc;
 #[macro_use]
@@ -8,7 +10,7 @@ use std::ptr::null_mut;
 use mmtk::vm::VMBinding;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
-use mmtk::util::ObjectReference;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::{Plan, SelectedPlan};
 use libc::c_void;
 pub mod scanning;
@@ -17,6 +19,7 @@ pub mod object_model;
 pub mod active_plan;
 pub mod reference_glue;
 pub mod api;
+mod object_scanning;
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
@@ -37,6 +40,9 @@ pub struct OpenJDK_Upcalls {
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
     pub enter_vm: extern "C" fn() -> i32,
     pub leave_vm: extern "C" fn(st: i32),
+    pub validate_klass_mem_layout: extern "C" fn(klass_size: usize, instanceklass_size: usize),
+    pub start_of_static_fields: extern "C" fn(obj: *const c_void) -> Address,
+    pub static_oop_field_count: extern "C" fn(obj: *const c_void) -> i32,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

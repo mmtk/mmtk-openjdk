@@ -169,7 +169,7 @@ static size_t mmtk_get_object_size(void* object) {
 
 static int mmtk_enter_vm() {
     assert(Thread::current()->is_Java_thread(), "Only Java thread can enter vm");
-    
+
     JavaThread* current = ((JavaThread*) Thread::current());
     JavaThreadState state = current->thread_state();
     current->set_thread_state(_thread_in_vm);
@@ -182,6 +182,29 @@ static void mmtk_leave_vm(int st) {
     JavaThread* current = ((JavaThread*) Thread::current());
     assert(current->thread_state() == _thread_in_vm, "Cannot leave vm when the current thread is not in _thread_in_vm");
     current->set_thread_state((JavaThreadState)st);
+}
+
+static void* start_of_static_fields(void* object) {
+    return (void*) InstanceMirrorKlass::start_of_static_fields((oop) object);
+}
+
+static int static_oop_field_count(void* object) {
+    oop o = (oop) object;
+    return java_lang_Class::static_oop_field_count(o);
+}
+
+static void validate_klass_mem_layout(size_t klass_size, size_t instanceklass_size) {
+    printf("validate_klass_mem_layout\n");
+    printf("rs klass_size = %zu\n", klass_size);
+    printf("rs instanceklass_size = %zu\n", instanceklass_size);
+    printf("sizeof(MetaspaceObj) = %zu\n", sizeof(MetaspaceObj));
+    printf("sizeof(Metadata) = %zu\n", sizeof(Metadata));
+    printf("sizeof(Klass) = %zu\n", sizeof(Klass));
+    printf("sizeof(InstanceKlass) = %zu\n", sizeof(InstanceKlass));
+    JFR_ONLY(printf("JFR_ONLY = 1\n");)
+    #if INCLUDE_JVMTI
+        printf("INCLUDE_JVMTI = 1\n");
+    #endif
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
@@ -202,4 +225,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_is_mutator,
     mmtk_enter_vm,
     mmtk_leave_vm,
+    validate_klass_mem_layout,
+    start_of_static_fields,
+    static_oop_field_count,
 };
