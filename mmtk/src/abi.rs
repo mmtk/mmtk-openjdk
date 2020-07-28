@@ -1,8 +1,7 @@
-use mmtk::util::{OpaquePointer, Address, ObjectReference};
-use mmtk::TransitiveClosure;
+use mmtk::util::{OpaquePointer, Address};
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
-use std::mem;
+use std::{mem, slice};
 use std::marker::PhantomData;
 use super::UPCALLS;
 
@@ -36,27 +35,27 @@ pub enum KlassID {
 
 #[repr(C)]
 pub struct Klass {
-    vptr: *const (),
+    vptr: OpaquePointer,
     #[cfg(debug_assertions)]
     valid: i32,
     pub layout_helper: i32,
     pub id: KlassID,
     pub super_check_offset: u32,
-    pub name: *const (), // Symbol*
+    pub name: OpaquePointer, // Symbol*
     pub secondary_super_cache: &'static Klass,
-    pub secondary_supers: *mut (), // Array<Klass*>*
+    pub secondary_supers: OpaquePointer, // Array<Klass*>*
     pub primary_supers: [&'static Klass; 8],
-    pub java_mirror:  &'static &'static Oop, // OopHandle
+    pub java_mirror:  &'static Oop, // OopHandle
     pub super_: &'static Klass,
     pub subklass: &'static Klass,
     pub next_sibling: &'static Klass,
     pub next_link: &'static Klass,
-    pub class_loader_data: *const (), // ClassLoaderData*
+    pub class_loader_data: OpaquePointer, // ClassLoaderData*
     pub modifier_flags: i32,
     pub access_flags: i32, // AccessFlags
     pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
     pub last_biased_lock_bulk_revocation_time: i64,
-    pub prototype_header: &'static Oop, // markOop,
+    pub prototype_header: Oop, // markOop,
     pub biased_lock_revocation_count: i32,
     pub vtable_len: i32,
     pub shared_class_path_index: i16,
@@ -71,16 +70,16 @@ impl Klass {
 #[repr(C)]
 pub struct InstanceKlass {
     pub klass: Klass,
-    pub annotations: *const (), // Annotations*
-    pub package_entry: *const (), // PackageEntry*
+    pub annotations: OpaquePointer, // Annotations*
+    pub package_entry: OpaquePointer, // PackageEntry*
     pub array_klasses: &'static Klass,
-    pub constants: *const (), // ConstantPool*
-    pub inner_classes: *const (), // Array<jushort>*
-    pub nest_members: *const (), // Array<jushort>*
+    pub constants: OpaquePointer, // ConstantPool*
+    pub inner_classes: OpaquePointer, // Array<jushort>*
+    pub nest_members: OpaquePointer, // Array<jushort>*
     pub nest_host_index: u16,
     pub nest_host: &'static InstanceKlass,
-    pub source_debug_extension: *const (), // const char*
-    pub array_name: *const (), // Symbol*
+    pub source_debug_extension: OpaquePointer, // const char*
+    pub array_name: OpaquePointer, // Symbol*
     pub nonstatic_field_size: i32,
     pub static_field_size: i32,
     pub generic_signature_index: u16,
@@ -94,33 +93,33 @@ pub struct InstanceKlass {
     pub misc_flags: u16,
     pub minor_version: u16,
     pub major_version: u16,
-    pub init_thread: *const (), // Thread*
-    pub oop_map_cache: *const (), // OopMapCache*
-    pub jni_ids: *const (), // JNIid*
-    pub methods_jmethod_ids: *const (), // jmethodID*
+    pub init_thread: OpaquePointer, // Thread*
+    pub oop_map_cache: OpaquePointer, // OopMapCache*
+    pub jni_ids: OpaquePointer, // JNIid*
+    pub methods_jmethod_ids: OpaquePointer, // jmethodID*
     pub dep_context: usize, // intptr_t
-    pub osr_nmethods_head: *const (), // nmethod*
+    pub osr_nmethods_head: OpaquePointer, // nmethod*
 // #if INCLUDE_JVMTI
-    pub breakpoints: *const (), // BreakpointInfo*
-    pub previous_versions: *const (), // InstanceKlass*
-    pub cached_class_file: *const (), // JvmtiCachedClassFileData*
+    pub breakpoints: OpaquePointer, // BreakpointInfo*
+    pub previous_versions: OpaquePointer, // InstanceKlass*
+    pub cached_class_file: OpaquePointer, // JvmtiCachedClassFileData*
 // #endif
     pub idnum_allocated_count: u16,
     pub init_state: u8,
     pub reference_type: u8,
     pub this_class_index: u16,
 // #if INCLUDE_JVMTI
-    pub jvmti_cached_class_field_map: *const (), // JvmtiCachedClassFieldMap*
+    pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
 // #endif
     #[cfg(debug_assertions)]
     verify_count: i32,
-    pub methods: *const (), // Array<Method*>*
-    pub default_methods: *const (), // Array<Method*>*
-    pub local_interfaces: *const (), // Array<Klass*>*
-    pub transitive_interfaces: *const (), // Array<Klass*>*
-    pub method_ordering: *const (), // Array<int>*
-    pub default_vtable_indices: *const (), // Array<int>*
-    pub fields: *const (), // Array<u2>*
+    pub methods: OpaquePointer, // Array<Method*>*
+    pub default_methods: OpaquePointer, // Array<Method*>*
+    pub local_interfaces: OpaquePointer, // Array<Klass*>*
+    pub transitive_interfaces: OpaquePointer, // Array<Klass*>*
+    pub method_ordering: OpaquePointer, // Array<int>*
+    pub default_vtable_indices: OpaquePointer, // Array<int>*
+    pub fields: OpaquePointer, // Array<u2>*
 }
 
 impl InstanceKlass {
@@ -145,9 +144,7 @@ impl InstanceKlass {
         let start_of_itable = self.start_of_itable();
         let start = unsafe { start_of_itable.add(self.itable_len as _) as *const OopMapBlock };
         let count = self.nonstatic_oop_map_count();
-        unsafe {
-            std::slice::from_raw_parts(start, count)
-        }
+        unsafe { slice::from_raw_parts(start, count) }
     }
 }
 
@@ -157,10 +154,10 @@ pub struct InstanceMirrorKlass {
 }
 
 impl InstanceMirrorKlass {
-    pub fn start_of_static_fields(oop: &'static Oop) -> Address {
+    pub fn start_of_static_fields(oop: Oop) -> Address {
         unsafe { ((*UPCALLS).start_of_static_fields)(oop as *const _ as _) }
     }
-    pub fn static_oop_field_count(oop: &'static Oop) -> usize {
+    pub fn static_oop_field_count(oop: Oop) -> usize {
         unsafe { ((*UPCALLS).static_oop_field_count)(oop as *const _ as _) as _ }
     }
 }
@@ -199,18 +196,16 @@ pub struct InstanceRefKlass {
 
 
 #[repr(C)]
-pub struct Oop {
+pub struct OopDesc {
     pub mark: usize,
     pub klass: &'static Klass,
 }
 
-impl Oop {
-    pub unsafe fn cast<'a, T>(&self) -> &'a T {
-        &*(self as *const _ as usize as *const T)
-    }
+pub type Oop = &'static OopDesc;
 
-    pub fn to_address(&self) -> Address {
-        Address::from_ref(self)
+impl OopDesc {
+    pub unsafe fn as_array_oop<T>(&self) -> ArrayOop<T> {
+        mem::transmute(self)
     }
 
     pub fn get_field_address(&self, offset: i32) -> Address {
@@ -219,9 +214,11 @@ impl Oop {
 }
 
 #[repr(C)]
-pub struct ArrayOop<T>(Oop, PhantomData<T>);
+pub struct ArrayOopDesc<T>(OopDesc, PhantomData<T>);
 
-impl <T> ArrayOop<T> {
+pub type ArrayOop<T> = &'static ArrayOopDesc<T>;
+
+impl <T> ArrayOopDesc<T> {
     const ELEMENT_TYPE_SHOULD_BE_ALIGNED: bool = type_equal::<T, f64>() || type_equal::<T, i64>();
     const LENGTH_OFFSET: usize = mem::size_of::<Self>();
     fn header_size() -> usize {
@@ -240,9 +237,7 @@ impl <T> ArrayOop<T> {
         unsafe { (self as *const _ as *const u8).add(base_offset_in_bytes) as _ }
     }
     pub fn data(&self) -> &[T] {
-        unsafe {
-            std::slice::from_raw_parts(self.base(), self.length() as _)
-        }
+        unsafe { slice::from_raw_parts(self.base(), self.length() as _) }
     }
 }
 

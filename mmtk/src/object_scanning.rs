@@ -1,20 +1,18 @@
 use mmtk::util::{OpaquePointer, Address, ObjectReference};
 use mmtk::TransitiveClosure;
 use mmtk::util::constants::*;
-use mmtk::util::conversions;
-use std::mem;
-use std::marker::PhantomData;
+use std::{mem, slice};
 use super::UPCALLS;
 use super::abi::*;
 
 
 
 trait OopIterate: Sized {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure);
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure);
 }
 
 impl OopIterate for OopMapBlock {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
             let edge = start + (i << LOG_BYTES_IN_ADDRESS);
@@ -24,7 +22,7 @@ impl OopIterate for OopMapBlock {
 }
 
 impl OopIterate for InstanceKlass {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
             map.oop_iterate(oop, closure)
@@ -33,7 +31,7 @@ impl OopIterate for InstanceKlass {
 }
 
 impl OopIterate for InstanceMirrorKlass {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
         //     Klass* klass = java_lang_Class::as_Klass(obj);
@@ -63,17 +61,17 @@ impl OopIterate for InstanceMirrorKlass {
         // }
 
         // static fields
-        let start: *const &'static Oop = Self::start_of_static_fields(oop).to_ptr::<&'static Oop>();
+        let start: *const Oop = Self::start_of_static_fields(oop).to_ptr::<Oop>();
         let len = Self::static_oop_field_count(oop);
-        let slice = unsafe { std::slice::from_raw_parts(start, len as _) };
+        let slice = unsafe { slice::from_raw_parts(start, len as _) };
         for oop in slice {
-            closure.process_edge(Address::from_ref(oop as &&Oop));
+            closure.process_edge(Address::from_ref(oop as &Oop));
         }
     }
 }
 
 impl OopIterate for InstanceClassLoaderKlass {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
         //     ClassLoaderData* cld = java_lang_ClassLoader::loader_data(obj);
@@ -86,17 +84,16 @@ impl OopIterate for InstanceClassLoaderKlass {
 }
 
 impl OopIterate for ObjArrayKlass {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
-        let array = unsafe { oop.cast::<ArrayOop<&'static Oop>>() };
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+        let array = unsafe { oop.as_array_oop::<Oop>() };
         for oop in array.data() {
-            let slot = oop as &&Oop;
-            closure.process_edge(Address::from_ref(slot));
+            closure.process_edge(Address::from_ref(oop as &Oop));
         }
     }
 }
 
 impl OopIterate for TypeArrayKlass {
-    fn oop_iterate(&self, oop: &'static Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, _oop: Oop, _closure: &mut impl TransitiveClosure) {
         // Performance tweak: We skip processing the klass pointer since all
         // TypeArrayKlasses are guaranteed processed via the null class loader.
     }
@@ -104,13 +101,13 @@ impl OopIterate for TypeArrayKlass {
 
 
 
-fn oop_iterate_slow(oop: &'static Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
+fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
     unsafe {
         ((*UPCALLS).scan_object)(closure as *mut _ as _, mem::transmute(oop), tls);
     }
 }
 
-fn oop_iterate(oop: &'static Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
+fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
     let klass_id = oop.klass.id;
     debug_assert!(klass_id as i32 >= 0 && (klass_id as i32) < 6, "Invalid klass-id: {:?}", klass_id as i32);
     match klass_id {
