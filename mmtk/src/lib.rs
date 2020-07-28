@@ -42,8 +42,8 @@ pub struct OpenJDK_Upcalls {
     pub enter_vm: extern "C" fn() -> i32,
     pub leave_vm: extern "C" fn(st: i32),
     pub validate_klass_mem_layout: extern "C" fn(klass_size: usize, instanceklass_size: usize),
-    pub start_of_static_fields: extern "C" fn(obj: *const c_void) -> Address,
-    pub static_oop_field_count: extern "C" fn(obj: *const c_void) -> i32,
+    pub offset_of_static_fields: extern "C" fn() -> i32,
+    pub static_oop_field_count_offset: extern "C" fn() -> i32,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

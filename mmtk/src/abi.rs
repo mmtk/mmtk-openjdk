@@ -154,11 +154,28 @@ pub struct InstanceMirrorKlass {
 }
 
 impl InstanceMirrorKlass {
+    fn offset_of_static_fields() -> usize {
+        lazy_static! {
+            pub static ref OFFSET_OF_STATIC_FIELDS: usize = unsafe {
+                ((*UPCALLS).offset_of_static_fields)() as usize
+            };
+        }
+        *OFFSET_OF_STATIC_FIELDS
+    }
+    fn static_oop_field_count_offset() -> i32 {
+        lazy_static! {
+            pub static ref STATIC_OOP_FIELD_COUNT_OFFSET: i32 = unsafe {
+                ((*UPCALLS).static_oop_field_count_offset)()
+            };
+        }
+        *STATIC_OOP_FIELD_COUNT_OFFSET
+    }
     pub fn start_of_static_fields(oop: Oop) -> Address {
-        unsafe { ((*UPCALLS).start_of_static_fields)(oop as *const _ as _) }
+        Address::from_ref(oop) + Self::offset_of_static_fields()
     }
     pub fn static_oop_field_count(oop: Oop) -> usize {
-        unsafe { ((*UPCALLS).static_oop_field_count)(oop as *const _ as _) as _ }
+        let offset = Self::static_oop_field_count_offset();
+        unsafe { oop.get_field_address(offset).load::<i32>() as _ }
     }
 }
 

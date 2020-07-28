@@ -184,13 +184,12 @@ static void mmtk_leave_vm(int st) {
     current->set_thread_state((JavaThreadState)st);
 }
 
-static void* start_of_static_fields(void* object) {
-    return (void*) InstanceMirrorKlass::start_of_static_fields((oop) object);
+static int offset_of_static_fields() {
+    return InstanceMirrorKlass::offset_of_static_fields();
 }
 
-static int static_oop_field_count(void* object) {
-    oop o = (oop) object;
-    return java_lang_Class::static_oop_field_count(o);
+static int static_oop_field_count_offset() {
+    return java_lang_Class::static_oop_field_count_offset();
 }
 
 static void validate_klass_mem_layout(size_t klass_size, size_t instanceklass_size) {
@@ -226,6 +225,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_enter_vm,
     mmtk_leave_vm,
     validate_klass_mem_layout,
-    start_of_static_fields,
-    static_oop_field_count,
+    offset_of_static_fields,
+    static_oop_field_count_offset,
 };

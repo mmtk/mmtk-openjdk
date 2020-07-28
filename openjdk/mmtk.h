@@ -100,8 +100,8 @@ typedef struct {
     int (*enter_vm) ();
     void (*leave_vm) (int st);
     void (*validate_klass_mem_layout) (size_t klass_size, size_t instanceklass_size);
-    void* (*start_of_static_fields) (void* oop);
-    int (*static_oop_field_count) (void* oop);
+    int (*offset_of_static_fields) ();
+    int (*static_oop_field_count_offset) ();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
