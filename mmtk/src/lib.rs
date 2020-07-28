@@ -19,6 +19,7 @@ pub mod object_model;
 pub mod active_plan;
 pub mod reference_glue;
 pub mod api;
+mod abi;
 mod object_scanning;
 
 #[repr(C)]
