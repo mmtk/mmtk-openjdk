@@ -19,3 +19,4 @@ Cargo.lock
 /*.dylib
 /*.so
 
+/repos/mmtk-core
