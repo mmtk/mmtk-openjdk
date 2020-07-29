@@ -22,7 +22,7 @@
  *
  */
 
-/* 
+/*
  * File:   mmtkUpcalls.cpp
  * Author: Pavel Zakopaylo
  *
@@ -47,9 +47,8 @@
 static bool gcInProgress = false;
 
 static void mmtk_stop_all_mutators(void *tls) {
-    SafepointSynchronize::begin();
     gcInProgress = true;
-    
+    SafepointSynchronize::begin();
 }
 
 static void mmtk_resume_mutators(void *tls) {
@@ -80,12 +79,15 @@ static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
 }
 
 static void mmtk_block_for_gc() {
+    gcInProgress = true;
     MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
-    do {
-        MMTkHeap::heap()->gc_lock()->lock();
-        MMTkHeap::heap()->gc_lock()->wait();
-        MMTkHeap::heap()->gc_lock()->unlock();
-    } while (gcInProgress);
+    {
+        Monitor* gc_lock = MMTkHeap::heap()->gc_lock();
+        MutexLocker ml(gc_lock);
+        while (gcInProgress) {
+            gc_lock->wait();
+        }
+    }
 }
 
 static void* mmtk_active_collector(void* tls) {
@@ -156,7 +158,7 @@ static void mmtk_dump_object(void* object) {
     // o->print();
     o->print_value();
     printf("\n");
-    
+
     // o->print_address();
 }
 
