@@ -1,3 +1,4 @@
 [submodule "repos/openjdk"]
 	path = repos/openjdk
 	url = ../openjdk.git
+	branch = jdk-11+28-mmtk
