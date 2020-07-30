@@ -4,6 +4,8 @@ use mmtk::util::conversions;
 use std::{mem, slice};
 use std::marker::PhantomData;
 use super::UPCALLS;
+use std::fmt;
+use std::ffi::CStr;
 
 trait EqualTo<T> {
     const VALUE: bool;
@@ -210,12 +212,46 @@ pub struct InstanceRefKlass {
     pub instance_klass: InstanceKlass,
 }
 
-
+impl InstanceRefKlass {
+    fn referent_offset() -> i32 {
+        lazy_static! {
+            pub static ref REFERENT_OFFSET: i32 = unsafe {
+                ((*UPCALLS).referent_offset)()
+            };
+        }
+        *REFERENT_OFFSET
+    }
+    fn discovered_offset() -> i32 {
+        lazy_static! {
+            pub static ref DISCOVERED_OFFSET: i32 = unsafe {
+                ((*UPCALLS).discovered_offset)()
+            };
+        }
+        *DISCOVERED_OFFSET
+    }
+    pub fn referent_address(oop: Oop) -> Address {
+        oop.get_field_address(Self::referent_offset())
+    }
+    pub fn discovered_address(oop: Oop) -> Address {
+        oop.get_field_address(Self::discovered_offset())
+    }
+}
 
 #[repr(C)]
 pub struct OopDesc {
     pub mark: usize,
     pub klass: &'static Klass,
+}
+
+impl fmt::Debug for OopDesc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let c_string = unsafe {
+            ((*UPCALLS).dump_object_string)(mem::transmute(self))
+        };
+        let c_str: &CStr = unsafe { CStr::from_ptr(c_string) };
+        let s: &str = c_str.to_str().unwrap();
+        write!(f, "{}", s)
+    }
 }
 
 pub type Oop = &'static OopDesc;

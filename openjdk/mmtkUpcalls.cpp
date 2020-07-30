@@ -192,18 +192,27 @@ static int static_oop_field_count_offset() {
     return java_lang_Class::static_oop_field_count_offset();
 }
 
-static void validate_klass_mem_layout(size_t klass_size, size_t instanceklass_size) {
-    printf("validate_klass_mem_layout\n");
-    printf("rs klass_size = %zu\n", klass_size);
-    printf("rs instanceklass_size = %zu\n", instanceklass_size);
-    printf("sizeof(MetaspaceObj) = %zu\n", sizeof(MetaspaceObj));
-    printf("sizeof(Metadata) = %zu\n", sizeof(Metadata));
-    printf("sizeof(Klass) = %zu\n", sizeof(Klass));
-    printf("sizeof(InstanceKlass) = %zu\n", sizeof(InstanceKlass));
-    JFR_ONLY(printf("JFR_ONLY = 1\n");)
-    #if INCLUDE_JVMTI
-        printf("INCLUDE_JVMTI = 1\n");
-    #endif
+static size_t compute_klass_mem_layout_checksum() {
+    return sizeof(Klass)
+    ^ sizeof(InstanceKlass)
+    ^ sizeof(InstanceRefKlass)
+    ^ sizeof(InstanceMirrorKlass)
+    ^ sizeof(InstanceClassLoaderKlass)
+    ^ sizeof(TypeArrayKlass)
+    ^ sizeof(ObjArrayKlass);
+}
+
+static int referent_offset() {
+    return java_lang_ref_Reference::referent_offset;
+}
+
+static int discovered_offset() {
+    return java_lang_ref_Reference::discovered_offset;
+}
+
+static char* dump_object_string(void* object) {
+    oop o = (oop) object;
+    return o->print_value_string();
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
@@ -224,7 +233,10 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_is_mutator,
     mmtk_enter_vm,
     mmtk_leave_vm,
-    validate_klass_mem_layout,
+    compute_klass_mem_layout_checksum,
     offset_of_static_fields,
     static_oop_field_count_offset,
+    referent_offset,
+    discovered_offset,
+    dump_object_string,
 };

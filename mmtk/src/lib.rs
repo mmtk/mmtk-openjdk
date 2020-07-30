@@ -12,7 +12,7 @@ use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::{Plan, SelectedPlan};
-use libc::c_void;
+use libc::{c_void, c_char};
 pub mod scanning;
 pub mod collection;
 pub mod object_model;
@@ -41,9 +41,12 @@ pub struct OpenJDK_Upcalls {
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
     pub enter_vm: extern "C" fn() -> i32,
     pub leave_vm: extern "C" fn(st: i32),
-    pub validate_klass_mem_layout: extern "C" fn(klass_size: usize, instanceklass_size: usize),
+    pub compute_klass_mem_layout_checksum: extern "C" fn() -> usize,
     pub offset_of_static_fields: extern "C" fn() -> i32,
     pub static_oop_field_count_offset: extern "C" fn() -> i32,
+    pub referent_offset: extern "C" fn() -> i32,
+    pub discovered_offset: extern "C" fn() -> i32,
+    pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

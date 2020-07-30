@@ -99,9 +99,12 @@ typedef struct {
     bool (*is_mutator) (void* tls);
     int (*enter_vm) ();
     void (*leave_vm) (int st);
-    void (*validate_klass_mem_layout) (size_t klass_size, size_t instanceklass_size);
+    size_t (*compute_klass_mem_layout_checksum) ();
     int (*offset_of_static_fields) ();
     int (*static_oop_field_count_offset) ();
+    int (*referent_offset) ();
+    int (*discovered_offset) ();
+    char* (*dump_object_string) (void* object);
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

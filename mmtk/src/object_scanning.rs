@@ -99,15 +99,25 @@ impl OopIterate for TypeArrayKlass {
     }
 }
 
+impl OopIterate for InstanceRefKlass {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+        self.instance_klass.oop_iterate(oop, closure);
+        let referent_addr = Self::referent_address(oop);
+        closure.process_edge(referent_addr);
+        let discovered_addr = Self::discovered_address(oop);
+        closure.process_edge(discovered_addr);
+    }
+}
 
 
+#[allow(unused)]
 fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
     unsafe {
         ((*UPCALLS).scan_object)(closure as *mut _ as _, mem::transmute(oop), tls);
     }
 }
 
-fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
+fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePointer) {
     let klass_id = oop.klass.id;
     debug_assert!(klass_id as i32 >= 0 && (klass_id as i32) < 6, "Invalid klass-id: {:?}", klass_id as i32);
     match klass_id {
@@ -131,7 +141,11 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointe
             let array_klass = unsafe { oop.klass.cast::<TypeArrayKlass>() };
             array_klass.oop_iterate(oop, closure);
         },
-        _ => oop_iterate_slow(oop, closure, tls),
+        KlassID::InstanceRef => {
+            let instance_klass = unsafe { oop.klass.cast::<InstanceRefKlass>() };
+            instance_klass.oop_iterate(oop, closure);
+        },
+        // _ => oop_iterate_slow(oop, closure, tls),
     }
 }
 
@@ -142,11 +156,18 @@ pub fn scan_object(object: ObjectReference, closure: &mut impl TransitiveClosure
 }
 
 pub fn validate_memory_layouts() {
-    unsafe {
-        ((*UPCALLS).validate_klass_mem_layout)(
-            mem::size_of::<Klass>(),
-            mem::size_of::<InstanceKlass>()
-        )
-    }
+    let vm_checksum = unsafe {
+        ((*UPCALLS).compute_klass_mem_layout_checksum)()
+    };
+    let binding_checksum = {
+        mem::size_of::<Klass>()
+        ^ mem::size_of::<InstanceKlass>()
+        ^ mem::size_of::<InstanceRefKlass>()
+        ^ mem::size_of::<InstanceMirrorKlass>()
+        ^ mem::size_of::<InstanceClassLoaderKlass>()
+        ^ mem::size_of::<TypeArrayKlass>()
+        ^ mem::size_of::<ObjArrayKlass>()
+    };
+    assert_eq!(vm_checksum, binding_checksum);
 }
 
