@@ -17,7 +17,7 @@ use crate::SINGLETON;
 #[no_mangle]
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     unsafe { UPCALLS = calls };
-    crate::object_scanning::validate_memory_layouts();
+    crate::abi::validate_memory_layouts();
     memory_manager::gc_init(&SINGLETON, heap_size);
 }
 
