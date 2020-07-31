@@ -165,6 +165,23 @@ static size_t mmtk_get_object_size(void* object) {
     return o->size() * HeapWordSize;
 }
 
+static int mmtk_enter_vm() {
+    assert(Thread::current()->is_Java_thread(), "Only Java thread can enter vm");
+    
+    JavaThread* current = ((JavaThread*) Thread::current());
+    JavaThreadState state = current->thread_state();
+    current->set_thread_state(_thread_in_vm);
+    return (int)state;
+}
+
+static void mmtk_leave_vm(int st) {
+    assert(Thread::current()->is_Java_thread(), "Only Java thread can leave vm");
+
+    JavaThread* current = ((JavaThread*) Thread::current());
+    assert(current->thread_state() == _thread_in_vm, "Cannot leave vm when the current thread is not in _thread_in_vm");
+    current->set_thread_state((JavaThreadState)st);
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_stop_all_mutators,
     mmtk_resume_mutators,
@@ -181,4 +198,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_get_object_size,
     mmtk_get_mmtk_mutator,
     mmtk_is_mutator,
+    mmtk_enter_vm,
+    mmtk_leave_vm,
 };

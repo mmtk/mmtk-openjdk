@@ -35,6 +35,8 @@ pub struct OpenJDK_Upcalls {
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT,
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
+    pub enter_vm: extern "C" fn() -> i32,
+    pub leave_vm: extern "C" fn(st: i32),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

@@ -97,6 +97,8 @@ typedef struct {
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
+    int (*enter_vm) ();
+    void (*leave_vm) (int st);
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
