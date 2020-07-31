@@ -190,6 +190,11 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
     memory_manager::add_phantom_candidate(&SINGLETON, reff, referent)
 }
 
+// The harness_begin()/end() functions are different than other API functions in terms of the thread state.
+// Other functions are called by the VM, thus the thread should already be in the VM state. But the harness
+// functions are called by the probe, and the thread is in JNI/application/native state. Thus we need an extra call
+// to switch the thread state (enter_vm/leave_vm)
+
 #[no_mangle]
 pub extern "C" fn harness_begin(_id: usize) {
     let state = unsafe { ((*UPCALLS).enter_vm)() };
