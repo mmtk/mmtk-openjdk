@@ -88,6 +88,7 @@ public:
   static HeapWord* allocate_from_tlab(Klass* klass, Thread* thread, size_t size);
  
   jint initialize();
+  void enable_collection();
   
   virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
   HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);

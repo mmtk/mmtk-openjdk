@@ -104,13 +104,16 @@ jint MMTkHeap::initialize() {
 
     // Set up the GCTaskManager
     //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
-    enable_collection(0);
     return JNI_OK;
 
 }
 
 void MMTkHeap::post_initialize() {
     CollectedHeap::post_initialize();
+}
+
+void MMTkHeap::enable_collection() {
+   ::enable_collection(0);
 }
 
 ////Previously pure abstract methods--
