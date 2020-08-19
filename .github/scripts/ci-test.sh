@@ -1,5 +1,7 @@
 set -xe
 
+unset JAVA_TOOL_OPTIONS
+
 # To OpenJDK folder
 cd repos/openjdk
 
