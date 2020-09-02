@@ -169,7 +169,7 @@ static size_t mmtk_get_object_size(void* object) {
 
 static int mmtk_enter_vm() {
     assert(Thread::current()->is_Java_thread(), "Only Java thread can enter vm");
-    
+
     JavaThread* current = ((JavaThread*) Thread::current());
     JavaThreadState state = current->thread_state();
     current->set_thread_state(_thread_in_vm);
@@ -182,6 +182,37 @@ static void mmtk_leave_vm(int st) {
     JavaThread* current = ((JavaThread*) Thread::current());
     assert(current->thread_state() == _thread_in_vm, "Cannot leave vm when the current thread is not in _thread_in_vm");
     current->set_thread_state((JavaThreadState)st);
+}
+
+static int offset_of_static_fields() {
+    return InstanceMirrorKlass::offset_of_static_fields();
+}
+
+static int static_oop_field_count_offset() {
+    return java_lang_Class::static_oop_field_count_offset();
+}
+
+static size_t compute_klass_mem_layout_checksum() {
+    return sizeof(Klass)
+    ^ sizeof(InstanceKlass)
+    ^ sizeof(InstanceRefKlass)
+    ^ sizeof(InstanceMirrorKlass)
+    ^ sizeof(InstanceClassLoaderKlass)
+    ^ sizeof(TypeArrayKlass)
+    ^ sizeof(ObjArrayKlass);
+}
+
+static int referent_offset() {
+    return java_lang_ref_Reference::referent_offset;
+}
+
+static int discovered_offset() {
+    return java_lang_ref_Reference::discovered_offset;
+}
+
+static char* dump_object_string(void* object) {
+    oop o = (oop) object;
+    return o->print_value_string();
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
@@ -202,4 +233,10 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_is_mutator,
     mmtk_enter_vm,
     mmtk_leave_vm,
+    compute_klass_mem_layout_checksum,
+    offset_of_static_fields,
+    static_oop_field_count_offset,
+    referent_offset,
+    discovered_offset,
+    dump_object_string,
 };
