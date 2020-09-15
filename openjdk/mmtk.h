@@ -116,6 +116,9 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
+    void (*scan_static_roots) (void (*process_edges)(void** buf, size_t len), void* tls);
+    void (*scan_global_roots) (void (*process_edges)(void** buf, size_t len), void* tls);
+    void (*scan_thread_roots)(void (*process_edges)(void** buf, size_t len), void* tls);
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

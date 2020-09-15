@@ -2,6 +2,7 @@
 use mmtk::{Plan, SelectedPlan};
 use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
+use mmtk::worker::Worker;
 use crate::OpenJDK;
 use crate::SINGLETON;
 use super::UPCALLS;
@@ -14,17 +15,24 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    unsafe fn collector(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::CollectorT {
+    unsafe fn worker(tls: OpaquePointer) -> &'static mut Worker<OpenJDK> {
         let c = ((*UPCALLS).active_collector)(tls);
         assert!(!c.is_null());
         &mut *c
+    }
+
+    unsafe fn collector(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::CollectorT {
+        // let c = ((*UPCALLS).active_collector)(tls);
+        // assert!(!c.is_null());
+        // &mut *c
+        unimplemented!()
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
         ((*UPCALLS).is_mutator)(tls)
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::MutatorT {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
     }
@@ -39,7 +47,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT> {
+    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<OpenJDK> as Plan>::MutatorT> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();

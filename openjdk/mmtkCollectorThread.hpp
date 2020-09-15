@@ -40,7 +40,7 @@ public:
   }
 
   // Tester
-  bool is_VM_thread() const                      { return false; }
+  bool is_VM_thread() const                      { return true; }
   bool is_GC_thread() const                      { return true; }
 
   inline void* get_context() {
