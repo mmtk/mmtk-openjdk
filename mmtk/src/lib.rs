@@ -1,5 +1,7 @@
 #![feature(specialization)]
 #![feature(const_fn)]
+#![feature(box_syntax)]
+
 extern crate mmtk;
 extern crate libc;
 #[macro_use]
@@ -12,6 +14,7 @@ use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::{Plan, SelectedPlan};
+use mmtk::worker::Worker;
 use libc::{c_void, c_char};
 pub mod scanning;
 pub mod collection;
@@ -26,10 +29,10 @@ mod object_scanning;
 pub struct OpenJDK_Upcalls {
     pub stop_all_mutators: extern "C" fn(tls: OpaquePointer),
     pub resume_mutators: extern "C" fn(tls: OpaquePointer),
-    pub spawn_collector_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::CollectorT),
+    pub spawn_collector_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut <SelectedPlan<OpenJDK> as Plan>::CollectorT),
     pub block_for_gc: extern "C" fn(),
-    pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::CollectorT,
-    pub get_next_mutator: extern "C" fn() -> *mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT,
+    pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut Worker<OpenJDK>,
+    pub get_next_mutator: extern "C" fn() -> *mut <SelectedPlan<OpenJDK> as Plan>::MutatorT,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
     pub compute_global_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
@@ -37,7 +40,7 @@ pub struct OpenJDK_Upcalls {
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
-    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut <SelectedPlan<OpenJDK> as Plan<OpenJDK>>::MutatorT,
+    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut <SelectedPlan<OpenJDK> as Plan>::MutatorT,
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
     pub enter_vm: extern "C" fn() -> i32,
     pub leave_vm: extern "C" fn(st: i32),
@@ -47,10 +50,14 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
+    pub scan_static_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
+    pub scan_global_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
+    pub scan_thread_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer) -> *const c_char,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
+#[derive(Default)]
 pub struct OpenJDK;
 
 impl VMBinding for OpenJDK {

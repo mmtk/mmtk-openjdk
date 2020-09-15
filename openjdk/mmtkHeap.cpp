@@ -61,7 +61,7 @@ object iterator??!!
 MMTkHeap* MMTkHeap::_heap = NULL;
 
 MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _last_gc_time(0), _collector_policy(policy), _root_tasks(new SubTasksDone(MMTk_NumElements)), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
-// , _par_state_string(StringTable::weak_storage()) 
+// , _par_state_string(StringTable::weak_storage())
 {
    _heap = this;
 }
@@ -349,7 +349,7 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
       CodeCache::blobs_do(&cb_cl);
    }
 
-   OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());   
+   OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());
    StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
 
    // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
@@ -389,7 +389,7 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
    // Thread Roots
    bool is_parallel = false;
    Threads::possibly_parallel_oops_do(is_parallel, &cl, &cb_cl);
-  
+
    // Global Roots
    Universe::oops_do(&cl);
    JNIHandles::oops_do(&cl);
@@ -407,7 +407,7 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
    } else {
       StringTable::oops_do(&cl);
    }
- 
+
    // Weak refs (really needed???)
    WeakProcessor::oops_do(&cl);
 }

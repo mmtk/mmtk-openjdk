@@ -44,6 +44,42 @@ public:
   }
 };
 
+class MMTkRootsClosure2 : public OopClosure {
+  void (*_process_edges)(void** buf, size_t len);
+  void* _buffer[ROOTS_BUFFER_SIZE];
+  size_t _cursor;
+
+  template <class T>
+  void do_oop_work(T* p) {
+    // T heap_oop = RawAccess<>::oop_load(p);
+    // if (!CompressedOops::is_null(heap_oop)) {
+    //   oop obj = CompressedOops::decode_not_null(heap_oop);
+    //   oop fwd = (oop) trace_root_object(_trace, obj);
+    //   RawAccess<>::oop_store(p, fwd);
+    // }
+    _buffer[_cursor++] = (void*) p;
+    if (_cursor >= ROOTS_BUFFER_SIZE) {
+      flush();
+    }
+  }
+
+  NOINLINE void flush() {
+    printf("flush %p %p\n", _buffer, _cursor);
+    _process_edges(_buffer, _cursor);
+    _cursor = 0;
+  }
+
+public:
+  MMTkRootsClosure2(void (*process_edges)(void** buf, size_t len)): _process_edges(process_edges), _cursor(0) {}
+
+  ~MMTkRootsClosure2() {
+    if (_cursor > 0) flush();
+  }
+
+  virtual void do_oop(oop* p)       { do_oop_work(p); }
+  virtual void do_oop(narrowOop* p) { do_oop_work(p); }
+};
+
 class MMTkScanObjectClosure : public BasicOopIterateClosure {
   void* _trace;
   CLDToOopClosure follow_cld_closure;
@@ -62,7 +98,7 @@ public:
     // printf("narrowoop edge %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
     do_oop_work(p);
   }
-  
+
   virtual bool do_metadata() {
     return true;
   }
@@ -85,7 +121,7 @@ public:
 // class MMTkCLDClosure : public CLDClosure {
 // public:
 //   virtual void do_cld(ClassLoaderData* cld) {
-    
+
 //     printf("CLD: %p", p);
 //   }
 // };

@@ -109,8 +109,8 @@ pub extern "C" fn process_interior_edge(trace_local: *mut SelectedTraceLocal<Ope
 }
 
 #[no_mangle]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut SelectedCollector<OpenJDK>) {
-    memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() })
+pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut mmtk::worker::Worker<OpenJDK>) {
+    memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]

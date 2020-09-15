@@ -99,6 +99,7 @@ static void* mmtk_get_mmtk_mutator(void* tls) {
 }
 
 static bool mmtk_is_mutator(void* tls) {
+    if (tls == NULL) return false;
     return ((Thread*) tls)->third_party_heap_collector == NULL;
 }
 
@@ -133,6 +134,21 @@ static void mmtk_compute_static_roots(void* trace, void* tls) {
 static void mmtk_compute_thread_roots(void* trace, void* tls) {
     MMTkRootsClosure cl(trace);
     MMTkHeap::heap()->scan_thread_roots(cl);
+}
+
+static void mmtk_scan_thread_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_thread_roots(cl);
+}
+
+static void mmtk_scan_static_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_static_roots(cl);
+}
+
+static void mmtk_scan_global_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_global_roots(cl);
 }
 
 // static void mmtk_start_computing_roots() {
@@ -239,4 +255,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
     referent_offset,
     discovered_offset,
     dump_object_string,
+    mmtk_scan_static_roots,
+    mmtk_scan_global_roots,
+    mmtk_scan_thread_roots,
 };
