@@ -37,20 +37,7 @@ impl Scanning<OpenJDK> for VMScanning {
     }
 
     fn scan_objects<W: ProcessEdgesWork<VM=OpenJDK>>(objects: &[ObjectReference]) {
-        let mut edges = Vec::with_capacity(W::CAPACITY);
-        crate::object_scanning::scan_objects(&objects, &mut |edge| {
-            edges.push(edge);
-            if edges.len() >= W::CAPACITY {
-                let mut new_edges = Vec::with_capacity(W::CAPACITY);
-                mem::swap(&mut new_edges, &mut edges);
-                debug_assert!(new_edges.len() > 0);
-                debug_assert!(edges.len() == 0);
-                SINGLETON.scheduler.closure_stage.add(W::new(new_edges, false));
-            }
-        });
-        if edges.len() > 0 {
-            SINGLETON.scheduler.closure_stage.add(W::new(edges, false));
-        }
+        crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
@@ -61,17 +48,19 @@ impl Scanning<OpenJDK> for VMScanning {
     }
 
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
-        SINGLETON.scheduler.prepare_stage.add(ScanUniverseRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanJNIHandlesRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanObjectSynchronizerRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanManagementRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanJvmtiExportRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanAOTLoaderRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanSystemDictionaryRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanCodeCacheRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanStringTableRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanClassLoaderDataGraphRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanWeakProcessorRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.bulk_add(1000, vec![
+            box ScanUniverseRoots::<W>::new(),
+            box ScanJNIHandlesRoots::<W>::new(),
+            box ScanObjectSynchronizerRoots::<W>::new(),
+            box ScanManagementRoots::<W>::new(),
+            box ScanJvmtiExportRoots::<W>::new(),
+            box ScanAOTLoaderRoots::<W>::new(),
+            box ScanSystemDictionaryRoots::<W>::new(),
+            box ScanCodeCacheRoots::<W>::new(),
+            box ScanStringTableRoots::<W>::new(),
+            box ScanClassLoaderDataGraphRoots::<W>::new(),
+            box ScanWeakProcessorRoots::<W>::new(),
+        ]);
     }
 
     fn compute_static_roots<T: TransitiveClosure>(trace: &mut T, tls: OpaquePointer) {

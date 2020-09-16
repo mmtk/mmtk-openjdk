@@ -4,14 +4,20 @@ use mmtk::util::constants::*;
 use std::{mem, slice};
 use super::UPCALLS;
 use super::abi::*;
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use crate::{OpenJDK, SINGLETON};
+use std::marker::PhantomData;
+
 
 
 
 trait OopIterate: Sized {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure);
 }
 
 impl OopIterate for OopMapBlock {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
@@ -22,6 +28,7 @@ impl OopIterate for OopMapBlock {
 }
 
 impl OopIterate for InstanceKlass {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
@@ -31,6 +38,7 @@ impl OopIterate for InstanceKlass {
 }
 
 impl OopIterate for InstanceMirrorKlass {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
@@ -71,6 +79,7 @@ impl OopIterate for InstanceMirrorKlass {
 }
 
 impl OopIterate for InstanceClassLoaderKlass {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
@@ -84,6 +93,7 @@ impl OopIterate for InstanceClassLoaderKlass {
 }
 
 impl OopIterate for ObjArrayKlass {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         let array = unsafe { oop.as_array_oop::<Oop>() };
         for oop in array.data() {
@@ -93,6 +103,7 @@ impl OopIterate for ObjArrayKlass {
 }
 
 impl OopIterate for TypeArrayKlass {
+    #[inline]
     fn oop_iterate(&self, _oop: Oop, _closure: &mut impl TransitiveClosure) {
         // Performance tweak: We skip processing the klass pointer since all
         // TypeArrayKlasses are guaranteed processed via the null class loader.
@@ -100,6 +111,7 @@ impl OopIterate for TypeArrayKlass {
 }
 
 impl OopIterate for InstanceRefKlass {
+    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
         self.instance_klass.oop_iterate(oop, closure);
         let referent_addr = Self::referent_address(oop);
@@ -117,6 +129,7 @@ fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaqueP
     }
 }
 
+#[inline]
 fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePointer) {
     let klass_id = oop.klass.id;
     debug_assert!(klass_id as i32 >= 0 && (klass_id as i32) < 6, "Invalid klass-id: {:?}", klass_id as i32);
@@ -149,21 +162,43 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePoint
     }
 }
 
+#[inline]
 pub fn scan_object(object: ObjectReference, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
     unsafe {
         oop_iterate(mem::transmute(object), closure, tls)
     }
 }
 
-pub fn scan_objects(objects: &[ObjectReference], f: &mut impl FnMut(Address)) {
-    struct TC<'a, F: FnMut(Address)>(&'a mut F);
-    impl <'a, F: FnMut(Address)> TransitiveClosure for TC<'a, F> {
-        fn process_edge(&mut self, slot: Address) {
-            (self.0)(slot);
+pub struct ObjectsClosure<E: ProcessEdgesWork<VM=OpenJDK>>(Vec<Address>, PhantomData<E>);
+
+impl <E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<E> {
+    #[inline]
+    fn process_edge(&mut self, slot: Address) {
+        if self.0.len() == 0 {
+            self.0.reserve(E::CAPACITY);
         }
-        fn process_node(&mut self, _object: ObjectReference) { unreachable!() }
+        self.0.push(slot);
+        if self.0.len() >= E::CAPACITY {
+            let mut new_edges = Vec::new();
+            mem::swap(&mut new_edges, &mut self.0);
+            SINGLETON.scheduler.closure_stage.add(E::new(new_edges, false));
+        }
     }
+    fn process_node(&mut self, _object: ObjectReference) { unreachable!() }
+}
+
+impl <E: ProcessEdgesWork<VM=OpenJDK>> Drop for ObjectsClosure<E> {
+    #[inline]
+    fn drop(&mut self) {
+        let mut new_edges = Vec::new();
+        mem::swap(&mut new_edges, &mut self.0);
+        SINGLETON.scheduler.closure_stage.add(E::new(new_edges, false));
+    }
+}
+
+pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM=OpenJDK>>(objects: &[ObjectReference]) {
+    let mut closure = ObjectsClosure::<E>(Vec::new(), PhantomData);
     for object in objects {
-        scan_object(*object, &mut TC(f), OpaquePointer::UNINITIALIZED);
+        scan_object(*object, &mut closure, OpaquePointer::UNINITIALIZED);
     }
 }
