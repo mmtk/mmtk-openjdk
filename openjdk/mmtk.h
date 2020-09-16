@@ -80,9 +80,18 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_static_roots) (void (*process_edges)(void** buf, size_t len), void* tls);
-    void (*scan_global_roots) (void (*process_edges)(void** buf, size_t len), void* tls);
     void (*scan_thread_roots)(void (*process_edges)(void** buf, size_t len), void* tls);
+    void (*scan_universe_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_jni_handle_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_object_synchronizer_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_management_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_jvmti_export_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_aot_loader_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_system_dictionary_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_code_cache_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_string_table_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_class_loader_data_graph_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_weak_processor_roots) (void (*process_edges)(void** buf, size_t len));
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

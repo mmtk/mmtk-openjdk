@@ -24,6 +24,7 @@ pub mod reference_glue;
 pub mod api;
 mod abi;
 mod object_scanning;
+mod gc_works;
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
@@ -50,9 +51,18 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_static_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
-    pub scan_global_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
-    pub scan_thread_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer) -> *const c_char,
+    pub scan_thread_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
+    pub scan_universe_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_jni_handle_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_object_synchronizer_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_management_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_jvmti_export_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_aot_loader_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_system_dictionary_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_code_cache_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_string_table_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_weak_processor_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

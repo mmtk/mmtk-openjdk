@@ -7,13 +7,14 @@ use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use crate::OpenJDK;
 use super::{UPCALLS, SINGLETON};
 use std::mem;
+use super::gc_works::*;
 
 
 static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 
 pub struct VMScanning {}
 
-extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *const Address, len: usize) {
+pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *const Address, len: usize) {
     let mut buf = Vec::with_capacity(len);
     for i in 0..len {
         buf.push(unsafe { *ptr.add(i) });
@@ -59,18 +60,18 @@ impl Scanning<OpenJDK> for VMScanning {
         }
     }
 
-    fn scan_global_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
-        let process_edges = create_process_edges_work::<W>;
-        unsafe {
-            ((*UPCALLS).scan_global_roots)(process_edges as _, OpaquePointer::UNINITIALIZED);
-        }
-    }
-
-    fn scan_static_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
-        let process_edges = create_process_edges_work::<W>;
-        unsafe {
-            ((*UPCALLS).scan_static_roots)(process_edges as _, OpaquePointer::UNINITIALIZED);
-        }
+    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
+        SINGLETON.scheduler.prepare_stage.add(ScanUniverseRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanJNIHandlesRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanObjectSynchronizerRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanManagementRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanJvmtiExportRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanAOTLoaderRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanSystemDictionaryRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanCodeCacheRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanStringTableRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanClassLoaderDataGraphRoots::<W>::new());
+        SINGLETON.scheduler.prepare_stage.add(ScanWeakProcessorRoots::<W>::new());
     }
 
     fn compute_static_roots<T: TransitiveClosure>(trace: &mut T, tls: OpaquePointer) {
