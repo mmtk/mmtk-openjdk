@@ -46,31 +46,6 @@ struct AllocatorSelector {
 extern AllocatorSelector get_allocator_mapping(int allocator);
 
 /**
- * Tracing
- */
-extern void report_delayed_root_edge(MMTk_TraceLocal trace_local,
-                                     void* addr);
-
-extern void bulk_report_delayed_root_edge(MMTk_TraceLocal trace_local,
-                                          void** buffer, size_t length);
-
-extern bool will_not_move_in_current_collection(MMTk_TraceLocal trace_local,
-                                                void* obj);
-
-extern void process_interior_edge(MMTk_TraceLocal trace_local, void* target,
-                                  void* slot, bool root);
-
-extern void* trace_get_forwarded_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_get_forwarded_reference(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_retain_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_root_object(MMTk_TraceLocal trace_local, void* obj);
-
-extern void process_edge(MMTk_TraceLocal trace, void* obj);
-
-/**
  * Misc
  */
 extern void enable_collection(void *tls);

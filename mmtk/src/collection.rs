@@ -35,7 +35,7 @@ impl Collection<OpenJDK> for VMCollection {
             std::ptr::null_mut()
         };
         unsafe {
-            ((*UPCALLS).spawn_collector_thread)(tls, ctx_ptr as usize as _);
+            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
         }
     }
 

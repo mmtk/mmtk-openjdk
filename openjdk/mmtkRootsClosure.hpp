@@ -26,7 +26,7 @@ class MMTkRootsClosure : public OopClosure {
   }
 
   NOINLINE void flush() {
-    bulk_report_delayed_root_edge(_trace, _buffer, _cursor);
+    // bulk_report_delayed_root_edge(_trace, _buffer, _cursor);
     _cursor = 0;
   }
 
@@ -86,7 +86,7 @@ class MMTkScanObjectClosure : public BasicOopIterateClosure {
   template <class T>
   void do_oop_work(T* p) {
     // oop ref = (void*) oopDesc::decode_heap_oop(oopDesc::load_heap_oop(p));
-    process_edge(_trace, (void*) p);
+    // process_edge(_trace, (void*) p);
   }
 
 public:
