@@ -21,18 +21,11 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         &mut *c
     }
 
-    unsafe fn collector(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::CollectorT {
-        // let c = ((*UPCALLS).active_collector)(tls);
-        // assert!(!c.is_null());
-        // &mut *c
-        unimplemented!()
-    }
-
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
         ((*UPCALLS).is_mutator)(tls)
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::MutatorT {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::Mutator {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
     }
@@ -47,7 +40,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<OpenJDK> as Plan>::MutatorT> {
+    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<OpenJDK> as Plan>::Mutator> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();

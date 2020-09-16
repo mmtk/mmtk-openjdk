@@ -7,7 +7,7 @@ use mmtk::Allocator;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
 use mmtk::Plan;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::{SelectedMutator, SelectedTraceLocal, SelectedCollector};
+use mmtk::SelectedMutator;
 use mmtk::scheduler::GCWorker;
 
 use crate::OpenJDK;
@@ -87,29 +87,6 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<OpenJDK>, addr: Address) {
-    memory_manager::report_delayed_root_edge(&SINGLETON, unsafe { &mut *trace_local }, addr)
-}
-
-#[no_mangle]
-pub extern "C" fn bulk_report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<OpenJDK>, buffer: *const Address, length: usize) {
-    let trace_local = unsafe { &mut *trace_local };
-    for i in 0..length {
-        memory_manager::report_delayed_root_edge(&SINGLETON, trace_local, unsafe { *buffer.add(i) })
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn will_not_move_in_current_collection(trace_local: *mut SelectedTraceLocal<OpenJDK>, obj: ObjectReference) -> bool {
-    memory_manager::will_not_move_in_current_collection(&SINGLETON, unsafe { &mut *trace_local}, obj)
-}
-
-#[no_mangle]
-pub extern "C" fn process_interior_edge(trace_local: *mut SelectedTraceLocal<OpenJDK>, target: ObjectReference, slot: Address, root: bool) {
-    memory_manager::process_interior_edge(&SINGLETON, unsafe { &mut *trace_local }, target, slot, root)
-}
-
-#[no_mangle]
 pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<OpenJDK>) {
     memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
@@ -138,31 +115,6 @@ pub extern "C" fn total_bytes() -> usize {
 #[cfg(feature = "sanity")]
 pub extern "C" fn scan_region() {
     memory_manager::scan_region(&SINGLETON)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_referent(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_referent::<OpenJDK>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_reference(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_reference::<OpenJDK>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_root_object(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> ObjectReference {
-    memory_manager::trace_root_object::<OpenJDK>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn process_edge(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: Address) {
-    memory_manager::process_edge::<OpenJDK>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_retain_referent(trace_local: *mut SelectedTraceLocal<OpenJDK>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_retain_referent::<OpenJDK>(unsafe { &mut *trace_local }, object)
 }
 
 #[no_mangle]

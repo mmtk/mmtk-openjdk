@@ -14,7 +14,6 @@ static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 pub struct VMScanning {}
 
 extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *const Address, len: usize) {
-    println!("create_process_edges_work");
     let mut buf = Vec::with_capacity(len);
     for i in 0..len {
         buf.push(unsafe { *ptr.add(i) });
