@@ -3,7 +3,7 @@ use mmtk::vm::Scanning;
 use mmtk::{TransitiveClosure, TraceLocal};
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
-use mmtk::work::*;
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use crate::OpenJDK;
 use super::{UPCALLS, SINGLETON};
 use std::mem;
@@ -19,7 +19,7 @@ extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *const
     for i in 0..len {
         buf.push(unsafe { *ptr.add(i) });
     }
-    SINGLETON.scheduler.closure_stage.add(box W::new(buf, false));
+    SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
 }
 
 impl Scanning<OpenJDK> for VMScanning {
@@ -45,11 +45,11 @@ impl Scanning<OpenJDK> for VMScanning {
                 mem::swap(&mut new_edges, &mut edges);
                 debug_assert!(new_edges.len() > 0);
                 debug_assert!(edges.len() == 0);
-                SINGLETON.scheduler.closure_stage.add(box W::new(new_edges, false));
+                SINGLETON.scheduler.closure_stage.add(W::new(new_edges, false));
             }
         });
         if edges.len() > 0 {
-            SINGLETON.scheduler.closure_stage.add(box W::new(edges, false));
+            SINGLETON.scheduler.closure_stage.add(W::new(edges, false));
         }
     }
 

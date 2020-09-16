@@ -14,7 +14,7 @@ use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::{Plan, SelectedPlan};
-use mmtk::worker::Worker;
+use mmtk::scheduler::GCWorker;
 use libc::{c_void, c_char};
 pub mod scanning;
 pub mod collection;
@@ -31,7 +31,7 @@ pub struct OpenJDK_Upcalls {
     pub resume_mutators: extern "C" fn(tls: OpaquePointer),
     pub spawn_collector_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut <SelectedPlan<OpenJDK> as Plan>::CollectorT),
     pub block_for_gc: extern "C" fn(),
-    pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut Worker<OpenJDK>,
+    pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut GCWorker<OpenJDK>,
     pub get_next_mutator: extern "C" fn() -> *mut <SelectedPlan<OpenJDK> as Plan>::MutatorT,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),

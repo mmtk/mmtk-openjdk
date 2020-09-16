@@ -8,6 +8,7 @@ use mmtk::util::{ObjectReference, OpaquePointer, Address};
 use mmtk::Plan;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::{SelectedMutator, SelectedTraceLocal, SelectedCollector};
+use mmtk::scheduler::GCWorker;
 
 use crate::OpenJDK;
 use crate::UPCALLS;
@@ -109,7 +110,7 @@ pub extern "C" fn process_interior_edge(trace_local: *mut SelectedTraceLocal<Ope
 }
 
 #[no_mangle]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut mmtk::worker::Worker<OpenJDK>) {
+pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<OpenJDK>) {
     memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
