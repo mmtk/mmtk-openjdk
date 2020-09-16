@@ -155,13 +155,13 @@ pub fn scan_object(object: ObjectReference, closure: &mut impl TransitiveClosure
     }
 }
 
-pub fn scan_objects(objects: &[ObjectReference], mut f: &mut impl FnMut(Address)) {
+pub fn scan_objects(objects: &[ObjectReference], f: &mut impl FnMut(Address)) {
     struct TC<'a, F: FnMut(Address)>(&'a mut F);
     impl <'a, F: FnMut(Address)> TransitiveClosure for TC<'a, F> {
         fn process_edge(&mut self, slot: Address) {
             (self.0)(slot);
         }
-        fn process_node(&mut self, object: ObjectReference) { unreachable!() }
+        fn process_node(&mut self, _object: ObjectReference) { unreachable!() }
     }
     for object in objects {
         scan_object(*object, &mut TC(f), OpaquePointer::UNINITIALIZED);

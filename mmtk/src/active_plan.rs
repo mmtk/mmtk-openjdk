@@ -2,7 +2,7 @@
 use mmtk::{Plan, SelectedPlan};
 use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
-use mmtk::worker::Worker;
+use mmtk::scheduler::GCWorker;
 use crate::OpenJDK;
 use crate::SINGLETON;
 use super::UPCALLS;
@@ -15,7 +15,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    unsafe fn worker(tls: OpaquePointer) -> &'static mut Worker<OpenJDK> {
+    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
         let c = ((*UPCALLS).active_collector)(tls);
         assert!(!c.is_null());
         &mut *c

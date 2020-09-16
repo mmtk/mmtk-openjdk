@@ -1,8 +1,8 @@
 
 use mmtk::vm::Collection;
 use mmtk::util::OpaquePointer;
-use mmtk::{MutatorContext, ParallelCollector};
-use mmtk::worker::Worker;
+use mmtk::MutatorContext;
+use mmtk::scheduler::GCWorker;
 
 use crate::OpenJDK;
 use crate::UPCALLS;
@@ -28,9 +28,9 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&Worker<OpenJDK>>) {
+    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<OpenJDK>>) {
         let ctx_ptr = if let Some(r) = ctx {
-            r as *const Worker<OpenJDK> as *mut Worker<OpenJDK>
+            r as *const GCWorker<OpenJDK> as *mut GCWorker<OpenJDK>
         } else {
             std::ptr::null_mut()
         };

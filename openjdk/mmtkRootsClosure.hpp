@@ -64,7 +64,6 @@ class MMTkRootsClosure2 : public OopClosure {
   }
 
   NOINLINE void flush() {
-    printf("flush %p %p\n", _buffer, _cursor);
     _process_edges(_buffer, _cursor);
     _cursor = 0;
   }
