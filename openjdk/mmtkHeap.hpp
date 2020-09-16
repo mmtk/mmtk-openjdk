@@ -184,6 +184,18 @@ public:
   void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
 
+  void scan_universe_roots(OopClosure& cl);
+  void scan_jni_handle_roots(OopClosure& cl);
+  void scan_object_synchronizer_roots(OopClosure& cl);
+  void scan_management_roots(OopClosure& cl);
+  void scan_jvmti_export_roots(OopClosure& cl);
+  void scan_aot_loader_roots(OopClosure& cl);
+  void scan_system_dictionary_roots(OopClosure& cl);
+  void scan_code_cache_roots(OopClosure& cl);
+  void scan_string_table_roots(OopClosure& cl);
+  void scan_class_loader_data_graph_roots(OopClosure& cl);
+  void scan_weak_processor_roots(OopClosure& cl);
+
   jlong _last_gc_time;
 };
 

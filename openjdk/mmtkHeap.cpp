@@ -330,7 +330,7 @@ bool MMTkHeap::is_scavengable(oop obj) {return false;}
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
 
-template<int MAX_TASKS = 2>
+template<int MAX_TASKS = 12>
 struct MMTkRootScanWorkScope {
     int* _num_root_scan_tasks;
     int _current_task_ordinal;
@@ -349,6 +349,69 @@ struct MMTkRootScanWorkScope {
 };
 
 void MMTkHeap::scan_static_roots(OopClosure& cl) {
+}
+
+
+void MMTkHeap::scan_universe_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   Universe::oops_do(&cl);
+}
+void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   JNIHandles::oops_do(&cl);
+}
+void MMTkHeap::scan_object_synchronizer_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   ObjectSynchronizer::oops_do(&cl);
+}
+void MMTkHeap::scan_management_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   Management::oops_do(&cl);
+}
+void MMTkHeap::scan_jvmti_export_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   JvmtiExport::oops_do(&cl);
+}
+void MMTkHeap::scan_aot_loader_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   AOTLoader::oops_do(&cl);
+}
+void MMTkHeap::scan_system_dictionary_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   SystemDictionary::oops_do(&cl);
+}
+void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   CodeBlobToOopClosure cb_cl(&cl, true);
+   {
+      MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::blobs_do(&cb_cl);
+   }
+}
+void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());
+   StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
+}
+void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   CLDToOopClosure cld_cl(&cl, false);
+   ClassLoaderDataGraph::cld_do(&cld_cl);
+}
+void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   WeakProcessor::oops_do(&cl); // (really needed???)
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {

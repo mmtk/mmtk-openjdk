@@ -231,6 +231,18 @@ static char* dump_object_string(void* object) {
     return o->print_value_string();
 }
 
+static void mmtk_scan_universe_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
+static void mmtk_scan_jni_handle_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
+static void mmtk_scan_object_synchronizer_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
+static void mmtk_scan_management_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_management_roots(cl); }
+static void mmtk_scan_jvmti_export_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
+static void mmtk_scan_aot_loader_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
+static void mmtk_scan_system_dictionary_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
+static void mmtk_scan_code_cache_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_string_table_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_weak_processor_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+
 OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_stop_all_mutators,
     mmtk_resume_mutators,
@@ -255,7 +267,16 @@ OpenJDK_Upcalls mmtk_upcalls = {
     referent_offset,
     discovered_offset,
     dump_object_string,
-    mmtk_scan_static_roots,
-    mmtk_scan_global_roots,
     mmtk_scan_thread_roots,
+    mmtk_scan_universe_roots,
+    mmtk_scan_jni_handle_roots,
+    mmtk_scan_object_synchronizer_roots,
+    mmtk_scan_management_roots,
+    mmtk_scan_jvmti_export_roots,
+    mmtk_scan_aot_loader_roots,
+    mmtk_scan_system_dictionary_roots,
+    mmtk_scan_code_cache_roots,
+    mmtk_scan_string_table_roots,
+    mmtk_scan_class_loader_data_graph_roots,
+    mmtk_scan_weak_processor_roots,
 };
