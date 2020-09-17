@@ -138,3 +138,15 @@ impl <E: ProcessEdgesWork<VM=OpenJDK>> GCWork<OpenJDK> for ScanWeakProcessorRoot
         unsafe { ((*UPCALLS).scan_weak_processor_roots)(create_process_edges_work::<E> as _); }
     }
 }
+
+pub struct ScanVMThreadRoots<E: ProcessEdgesWork<VM=OpenJDK>>(PhantomData<E>);
+
+impl <E: ProcessEdgesWork<VM=OpenJDK>> ScanVMThreadRoots<E> {
+    pub fn new() -> Self { Self(PhantomData) }
+}
+
+impl <E: ProcessEdgesWork<VM=OpenJDK>> GCWork<OpenJDK> for ScanVMThreadRoots<E> {
+    fn do_work(&mut self, worker: &mut GCWorker<OpenJDK>, mmtk: &'static MMTK<OpenJDK>) {
+        unsafe { ((*UPCALLS).scan_vm_thread_roots)(create_process_edges_work::<E> as _); }
+    }
+}

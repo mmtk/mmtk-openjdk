@@ -4,7 +4,7 @@
 #include "utilities/globalDefinitions.hpp"
 #include "mmtk.h"
 
-#define ROOTS_BUFFER_SIZE 512
+#define ROOTS_BUFFER_SIZE 4096
 
 class MMTkRootsClosure : public OopClosure {
   void* _trace;

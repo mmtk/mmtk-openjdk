@@ -1,18 +1,30 @@
 
-use mmtk::vm::Collection;
+use mmtk::vm::{Collection, Scanning, VMBinding};
 use mmtk::util::OpaquePointer;
-use mmtk::MutatorContext;
+use mmtk::{MutatorContext, SelectedMutator};
 use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::gc_works::{ScanStackRoot, ProcessEdgesWork};
 
 use crate::OpenJDK;
-use crate::UPCALLS;
+use crate::{UPCALLS, SINGLETON};
 
 pub struct VMCollection {}
 
+extern fn create_mutator_scan_work<E: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut SelectedMutator<OpenJDK>) {
+    SINGLETON.scheduler.unconstrained_works.add_with_priority_unsync(usize::max_value(), ScanStackRoot::<E>(mutator))
+}
+
 impl Collection<OpenJDK> for VMCollection {
-    fn stop_all_mutators(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM=OpenJDK>>(tls: OpaquePointer) {
+        let f = {
+            if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
+                0usize as _
+            } else {
+                create_mutator_scan_work::<E> as *const extern "C" fn(&'static mut SelectedMutator<OpenJDK>)
+            }
+        };
         unsafe {
-            ((*UPCALLS).stop_all_mutators)(tls);
+            ((*UPCALLS).stop_all_mutators)(tls, f);
         }
     }
 

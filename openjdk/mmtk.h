@@ -68,7 +68,7 @@ extern size_t total_bytes();
  * OpenJDK-specific
  */
 typedef struct {
-    void (*stop_all_mutators) (void *tls);
+    void (*stop_all_mutators) (void *tls, void (*create_stack_scan_work)(void* mutator));
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
@@ -92,6 +92,7 @@ typedef struct {
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
     void (*scan_thread_roots)(void (*process_edges)(void** buf, size_t len), void* tls);
+    void (*scan_thread_root)(void (*process_edges)(void** buf, size_t len), void* tls);
     void (*scan_universe_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_jni_handle_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_object_synchronizer_roots) (void (*process_edges)(void** buf, size_t len));
@@ -103,6 +104,7 @@ typedef struct {
     void (*scan_string_table_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_class_loader_data_graph_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_weak_processor_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_vm_thread_roots) (void (*process_edges)(void** buf, size_t len));
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
