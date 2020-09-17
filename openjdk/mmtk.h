@@ -94,6 +94,7 @@ typedef struct {
     void (*scan_class_loader_data_graph_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_weak_processor_roots) (void (*process_edges)(void** buf, size_t len));
     void (*scan_vm_thread_roots) (void (*process_edges)(void** buf, size_t len));
+    size_t (*number_of_mutators)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

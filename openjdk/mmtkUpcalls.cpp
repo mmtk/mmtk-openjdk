@@ -255,6 +255,10 @@ static void mmtk_scan_class_loader_data_graph_roots(void (*process_edges)(void**
 static void mmtk_scan_weak_processor_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
 static void mmtk_scan_vm_thread_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
+static size_t mmtk_number_of_mutators() {
+    return Threads::number_of_threads();
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_stop_all_mutators,
     mmtk_resume_mutators,
@@ -293,4 +297,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_scan_class_loader_data_graph_roots,
     mmtk_scan_weak_processor_roots,
     mmtk_scan_vm_thread_roots,
+    mmtk_number_of_mutators,
 };
