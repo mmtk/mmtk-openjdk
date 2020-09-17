@@ -51,6 +51,12 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
             }
         }
     }
+
+    fn number_of_mutators() -> usize {
+        unsafe {
+            ((*UPCALLS).number_of_mutators)()
+        }
+    }
 }
 
 lazy_static! {
