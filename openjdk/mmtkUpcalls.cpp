@@ -40,18 +40,21 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
+#include "memory/resourceArea.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
 
 static bool gcInProgress = false;
 
-static void mmtk_stop_all_mutators(void *tls) {
+static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
     gcInProgress = true;
+    MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
     SafepointSynchronize::begin();
 }
 
 static void mmtk_resume_mutators(void *tls) {
+    MMTkHeap::_create_stack_scan_work = NULL;
     SafepointSynchronize::end();
     MMTkHeap::heap()->gc_lock()->lock_without_safepoint_check();
     gcInProgress = false;
@@ -139,6 +142,14 @@ static void mmtk_compute_thread_roots(void* trace, void* tls) {
 static void mmtk_scan_thread_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_thread_roots(cl);
+}
+
+static void mmtk_scan_thread_root(void (*process_edges)(void** buf, size_t len), void* tls) {
+    ResourceMark rm;
+    JavaThread* thread = (JavaThread*) tls;
+    MMTkRootsClosure2 cl(process_edges);
+    CodeBlobToOopClosure cb_cl(&cl, false);
+    thread->oops_do(&cl, &cb_cl);
 }
 
 static void mmtk_scan_static_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
@@ -242,6 +253,7 @@ static void mmtk_scan_code_cache_roots(void (*process_edges)(void** buf, size_t 
 static void mmtk_scan_string_table_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
 static void mmtk_scan_class_loader_data_graph_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
 static void mmtk_scan_weak_processor_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_stop_all_mutators,
@@ -268,6 +280,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
     discovered_offset,
     dump_object_string,
     mmtk_scan_thread_roots,
+    mmtk_scan_thread_root,
     mmtk_scan_universe_roots,
     mmtk_scan_jni_handle_roots,
     mmtk_scan_object_synchronizer_roots,
@@ -279,4 +292,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_scan_string_table_roots,
     mmtk_scan_class_loader_data_graph_roots,
     mmtk_scan_weak_processor_roots,
+    mmtk_scan_vm_thread_roots,
 };

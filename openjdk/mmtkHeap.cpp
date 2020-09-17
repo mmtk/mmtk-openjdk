@@ -399,8 +399,7 @@ void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
 void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
    ResourceMark rm;
    MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-   OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());
-   StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
+   StringTable::oops_do(&cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
    ResourceMark rm;
@@ -412,6 +411,12 @@ void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
    ResourceMark rm;
    MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
    WeakProcessor::oops_do(&cl); // (really needed???)
+}
+void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
+   ResourceMark rm;
+   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
+   CodeBlobToOopClosure cb_cl(&cl, false);
+   VMThread::vm_thread()->oops_do(&cl, &cb_cl);
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
@@ -495,6 +500,12 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
 
 HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
     return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
+}
+
+void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
+
+void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
+   if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
 }
 
 /*

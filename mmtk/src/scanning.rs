@@ -1,6 +1,6 @@
 
 use mmtk::vm::Scanning;
-use mmtk::{TransitiveClosure, TraceLocal};
+use mmtk::{TransitiveClosure, TraceLocal, SelectedMutator};
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
@@ -8,6 +8,7 @@ use crate::OpenJDK;
 use super::{UPCALLS, SINGLETON};
 use std::mem;
 use super::gc_works::*;
+use mmtk::MutatorContext;
 
 
 static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
@@ -23,6 +24,9 @@ pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *c
 }
 
 impl Scanning<OpenJDK> for VMScanning {
+    const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
+    const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
+
     fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
         crate::object_scanning::scan_object(object, trace, tls)
     }
@@ -47,6 +51,14 @@ impl Scanning<OpenJDK> for VMScanning {
         }
     }
 
+    fn scan_thread_root<W: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut SelectedMutator<OpenJDK>) {
+        let tls = mutator.get_tls();
+        let process_edges = create_process_edges_work::<W>;
+        unsafe {
+            ((*UPCALLS).scan_thread_root)(process_edges as _, tls);
+        }
+    }
+
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
         SINGLETON.scheduler.prepare_stage.bulk_add(1000, vec![
             box ScanUniverseRoots::<W>::new(),
@@ -61,6 +73,9 @@ impl Scanning<OpenJDK> for VMScanning {
             box ScanClassLoaderDataGraphRoots::<W>::new(),
             box ScanWeakProcessorRoots::<W>::new(),
         ]);
+        if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
+            SINGLETON.scheduler.prepare_stage.add(ScanVMThreadRoots::<W>::new());
+        }
     }
 
     fn compute_static_roots<T: TransitiveClosure>(trace: &mut T, tls: OpaquePointer) {
