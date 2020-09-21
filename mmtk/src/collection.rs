@@ -11,7 +11,7 @@ use crate::{UPCALLS, SINGLETON};
 pub struct VMCollection {}
 
 extern fn create_mutator_scan_work<E: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut SelectedMutator<OpenJDK>) {
-    SINGLETON.scheduler.unconstrained_works.add_with_priority_unsync(usize::max_value(), ScanStackRoot::<E>(mutator))
+    SINGLETON.scheduler.unconstrained_works.add(ScanStackRoot::<E>(mutator))
 }
 
 impl Collection<OpenJDK> for VMCollection {
