@@ -10,6 +10,7 @@ use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::{Mutator, SelectedPlan};
 use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::scheduler::GCWorker;
+use mmtk::MutatorContext;
 
 use crate::OpenJDK;
 use crate::UPCALLS;
@@ -65,13 +66,13 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size
 // FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
 
 #[no_mangle]
-#[cfg(any(feature = "semispace"))]
+#[cfg(any(feature = "semispace", feature = "gencopy"))]
 pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
     use mmtk::policy::copyspace::CopySpace;
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
-#[cfg(not(any(feature = "semispace")))]
+#[cfg(not(any(feature = "semispace", feature = "gencopy")))]
 pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
     unimplemented!()
 }
@@ -203,4 +204,9 @@ pub extern "C" fn openjdk_max_capacity() -> usize {
 #[no_mangle]
 pub extern "C" fn executable() -> bool {
     true
+}
+
+#[no_mangle]
+pub extern "C" fn object_reference_write(mutator: &'static mut SelectedMutator<OpenJDK>, src: ObjectReference, slot: Address, value: ObjectReference) {
+    mutator.object_reference_write(src, slot, value);
 }

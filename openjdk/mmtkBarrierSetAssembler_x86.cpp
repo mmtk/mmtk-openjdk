@@ -107,7 +107,13 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     return;
   }
-  
+
+  assert_different_registers(tmp1, noreg);
+  assert_different_registers(tmp2, noreg);
+  assert_different_registers(tmp1, tmp2);
+
+  __ push(dst.base());
+
   if (dst.index() == noreg && dst.disp() == 0) {
     if (dst.base() != tmp1) {
       __ movptr(tmp1, dst.base());
@@ -115,10 +121,12 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
   } else {
     __ lea(tmp1, dst);
   }
-  
+
   BarrierSetAssembler::store_at(masm, decorators, type, Address(tmp1, 0), val, noreg, noreg);
 
-  write_barrier(masm /*masm*/, dst.base(), tmp1, val);
+  __ pop(tmp2);
+
+  write_barrier(masm /*masm*/, tmp2, tmp1, val);
 }
 
 
@@ -127,16 +135,27 @@ void MMTkBarrierSetAssembler::write_barrier(MacroAssembler* masm, Register obj, 
   Label runtime;
 
   __ bind(runtime);
-  
-  __ mov(c_rarg0, obj);
-  __ mov(c_rarg1, slot);
-  __ mov(c_rarg2, val);
 
   __ push(obj);
   __ push(slot);
   __ push(val);
 
+  __ push(c_rarg0);
+  __ push(c_rarg1);
+  __ push(c_rarg2);
+
+  assert_different_registers(c_rarg0, slot);
+  assert_different_registers(c_rarg0, val);
+  __ mov(c_rarg0, obj);
+  assert_different_registers(c_rarg1, val);
+  __ mov(c_rarg1, slot);
+  __ mov(c_rarg2, val);
+
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), 3);
+
+  __ pop(c_rarg2);
+  __ pop(c_rarg1);
+  __ pop(c_rarg0);
 
   __ pop(val);
   __ pop(slot);
