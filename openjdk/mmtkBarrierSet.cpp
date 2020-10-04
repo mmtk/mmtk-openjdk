@@ -69,6 +69,6 @@ address MMTkBarrierSet::slow_path_call() {
     return CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow);
 }
 
-JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(oop src, oop* slot, oop new_val))
-    *slot = new_val;
+JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(void* src, void* slot, void* new_val))
+    object_reference_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) new_val);
 JRT_END

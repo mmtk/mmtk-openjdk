@@ -32,9 +32,14 @@
 #include "oops/accessBackend.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
+#include "mmtk.h"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#if MMTK_GC_GENCOPY
+#define MMTK_ENABLE_WRITE_BARRIER true
+#else
 #define MMTK_ENABLE_WRITE_BARRIER false
+#endif
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
@@ -49,7 +54,7 @@ protected:
 
 public:
   MMTkBarrierSet(MemRegion whole_heap);
-    
+
   // Inform the BarrierSet that the the covered heap region that starts
   // with "base" has been changed to have the given size (possibly from 0,
   // for initialization.)
@@ -96,7 +101,7 @@ public:
 
 struct MMTkBarrierRuntime: AllStatic {
 public:
-  static void write_barrier_slow(oop src, oop* offset, oop new_val);
+  static void write_barrier_slow(void* src, void* offset, void* new_val);
 };
 
 template<>
