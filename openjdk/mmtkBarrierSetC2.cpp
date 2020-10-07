@@ -36,6 +36,8 @@
 #include "utilities/macros.hpp"
 #include "mmtkBarrierSetC2.hpp"
 #include "mmtkBarrierSet.hpp"
+#include "mmtk.h"
+#include "mmtkMutator.hpp"
 
 
 void MMTkBarrierSetC2::expand_allocate(
@@ -52,6 +54,16 @@ void MMTkBarrierSetC2::expand_allocate(
   Node* size_in_bytes     = alloc->in(AllocateNode::AllocSize);
   Node* klass_node        = alloc->in(AllocateNode::KlassNode);
   Node* initial_slow_test = alloc->in(AllocateNode::InitialTest);
+
+  // printf("generate allocate sequence\n");
+  // printf("klass_node:\n");
+  // TypeNode* klass_type_node = (TypeNode*) klass_node;
+  // klass_type_node->dump_comp("\n");
+  // const Type* klass_type = klass_type_node->type();
+  // klass_type->dump(); printf("\n");
+  
+  // printf("size node:\n");
+  // size_in_bytes->dump_comp("\n");
 
   assert(ctrl != NULL, "must have control");
   // We need a Region and corresponding Phi's to merge the slow-path and fast-path results.
@@ -118,9 +130,24 @@ void MMTkBarrierSetC2::expand_allocate(
     Node* eden_end_adr;
 
     {
+      // We always use the default allocator.
+      // But we need to figure out which allocator we are using by querying MMTk.
+      AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+
+      // Only bump pointer allocator is implemented.
+      if (selector.tag != TAG_BUMP_POINTER) {
+        fatal("unimplemented allocator fastpath\n");
+      }
+
+      // Calculat offsets of top and end. We now assume we are using bump pointer.
+      int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        + in_bytes(byte_offset_of(Allocators, bump_pointer))
+        + selector.index * sizeof(BumpAllocator);
+
       Node* thread = x->transform_later(new ThreadLocalNode());
-      int tlab_top_offset = in_bytes(JavaThread::third_party_heap_mutator_offset()) + 8;
-      int tlab_end_offset = in_bytes(JavaThread::third_party_heap_mutator_offset()) + 16;
+      int tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+      int tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
       eden_top_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_top_offset);
       eden_end_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_end_offset);
     }

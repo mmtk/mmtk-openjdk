@@ -7,42 +7,44 @@
 
 enum Allocator {
     AllocatorDefault = 0,
-    AllocatorNonReference = 1,
-    AllocatorNonMoving = 2,
-    AllocatorImmortal = 3,
-    AllocatorLos = 4,
-    AllocatorPrimitiveLos = 5,
-    AllocatorGcSpy = 6,
-    AllocatorCode = 7,
-    AllocatorLargeCode = 8,
-    AllocatorAllocators = 9,
-    AllocatorDefaultSite = -1,
+    AllocatorImmortal = 1,
+    AllocatorLos = 2,
+    AllocatorCode = 3,
+    AllocatorReadOnly = 4,
+};
+
+struct RustDynPtr {
+    void* data;
+    void* vtable;
+};
+
+struct BumpAllocator {
+    void* tls;
+    void* cursor;
+    void* limit;
+    RustDynPtr space;
+    void* plan;
+};
+
+struct LargeObjectAllocator {
+    void* tls;
+    void* space;
+    void* plan;
+};
+
+const int MAX_BUMP_ALLOCATORS = 5;
+const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+
+struct Allocators {
+    BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];
+    LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
 };
 
 struct MMTkMutatorContext {
-    // ss
-    void* ss_tls;
-    void* ss_cursor;
-    void* ss_limit;
-    // The `space` field in mmtk's mutator struct is a fat pointer,
-    // which takes up 2 words.
-    void* ss_space;
-    void* ss_space_fat;
-    void* ss_plan;
-    // vs
-    void* vs_tls;
-    void* vs_cursor;
-    void* vs_limit;
-    void* vs_space;
-    void* vs_space_fat;
-    void* vs_plan;
-    // los
-    void* los_tls;
-    void* los_space;
-    void* los_space_fat;
-    void* los_plan;
-    //,
+    Allocators allocators;
+    void* mutator_tls;
     void* plan;
+    void* config;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
