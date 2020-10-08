@@ -40,11 +40,17 @@ struct Allocators {
     LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
 };
 
+struct MutatorConfig {
+    void* allocator_mapping;
+    void* space_mapping;
+    RustDynPtr collection_phase_func;
+};
+
 struct MMTkMutatorContext {
     Allocators allocators;
     void* mutator_tls;
     void* plan;
-    void* config;
+    MutatorConfig config;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
