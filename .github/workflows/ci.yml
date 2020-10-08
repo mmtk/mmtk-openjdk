@@ -18,8 +18,8 @@ jobs:
       - name: Set credential for cargo dependency
         run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/qinsoon:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
       - name: Setup Environments
-        run: RUSTUP_TOOLCHAIN=nightly-2019-08-26 ./.github/scripts/ci-setup.sh
+        run: RUSTUP_TOOLCHAIN=nightly-2020-07-08 ./.github/scripts/ci-setup.sh
 
       # Run the tests
       - name: Dacapo Tests
-        run: RUSTUP_TOOLCHAIN=nightly-2019-08-26 ./.github/scripts/ci-test.sh
+        run: RUSTUP_TOOLCHAIN=nightly-2020-07-08 ./.github/scripts/ci-test.sh
