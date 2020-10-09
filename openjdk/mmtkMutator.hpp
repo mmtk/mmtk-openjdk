@@ -43,8 +43,11 @@ struct MMTkMutatorContext {
     void* los_plan;
     //,
     void* plan;
+    void* modbuf;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
+
+    void deinit();
 
     static MMTkMutatorContext bind(::Thread* current);
 };

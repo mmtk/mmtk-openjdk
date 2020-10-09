@@ -28,6 +28,7 @@ typedef void* MMTk_TraceLocal;
  */
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
+extern void deinit_mutator(MMTk_Mutator mutator);
 
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);

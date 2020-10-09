@@ -24,3 +24,7 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
     #error "GC is not specified"
 #endif
 }
+
+void MMTkMutatorContext::deinit() {
+    ::deinit_mutator((MMTk_Mutator) this);
+}

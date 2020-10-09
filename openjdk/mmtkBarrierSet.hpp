@@ -44,6 +44,13 @@
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
 
+
+struct MMTkBarrierRuntime: AllStatic {
+public:
+  static void write_barrier_slow(void* src, void* offset, void* new_val);
+  static void write_barrier_slow_unchecked(void* src, void* offset, void* new_val);
+};
+
 class MMTkBarrierSet : public BarrierSet {
   friend class VMStructs;
 private:
@@ -92,16 +99,12 @@ public:
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       // printf("oop_store_in_heap_at(base=%p, offset=%ld, value=%p)\n", base, offset, value);
+      MMTkBarrierRuntime::write_barrier_slow_unchecked((void*) base, (void*) offset, (void*) value);
       Raw::oop_store_at(base, offset, value);
     }
   };
 
   static address slow_path_call();
-};
-
-struct MMTkBarrierRuntime: AllStatic {
-public:
-  static void write_barrier_slow(void* src, void* offset, void* new_val);
 };
 
 template<>

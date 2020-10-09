@@ -113,6 +113,13 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
   write_barrier(masm /*masm*/, tmp2, tmp1, val);
 }
 
+void MMTkBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
+                                                 Register src, Register dst, Register count) {
+  __ push(c_rarg0);
+  __ movptr(c_rarg0, dst);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow_unchecked), 3);
+  __ pop(c_rarg0);
+}
 
 void MMTkBarrierSetAssembler::write_barrier(MacroAssembler* masm, Register obj, Register slot, Register val) {
   Label done;
