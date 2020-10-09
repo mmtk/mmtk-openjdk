@@ -39,6 +39,10 @@ pub extern "C" fn destroy_mutator(mutator: *mut Mutator<OpenJDK, SelectedPlan<Op
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
+pub extern "C" fn deinit_mutator(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>) {
+    memory_manager::deinit_mutator(unsafe { &mut *mutator })
+}
+
 #[no_mangle]
 pub extern "C" fn alloc(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>, size: usize,
                     align: usize, offset: isize, allocator: Allocator) -> Address {

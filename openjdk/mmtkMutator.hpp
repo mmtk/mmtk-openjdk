@@ -54,8 +54,11 @@ struct MMTkMutatorContext {
     void* mutator_tls;
     void* plan;
     MutatorConfig config;
+    void* modbuf;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
+
+    void deinit();
 
     static MMTkMutatorContext bind(::Thread* current);
 };
