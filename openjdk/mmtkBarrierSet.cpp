@@ -53,6 +53,20 @@ void MMTkBarrierSet::resize_covered_region(MemRegion new_region) {
     guarantee(false, "NoBarrier::resize_covered_region not supported");
 }
 
+
+void MMTkBarrierSet::on_thread_destroy(Thread* thread) {
+    thread->third_party_heap_mutator.flush();
+}
+
+void MMTkBarrierSet::on_thread_attach(JavaThread* thread) {
+    thread->third_party_heap_mutator.flush();
+}
+
+void MMTkBarrierSet::on_thread_detach(JavaThread* thread) {
+    thread->third_party_heap_mutator.flush();
+}
+
+
 // If the barrier set imposes any alignment restrictions on boundaries
 // within the heap, this function tells whether they are met.
 bool MMTkBarrierSet::is_aligned(HeapWord* addr) {
@@ -65,14 +79,14 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 }
 
 
-address MMTkBarrierSet::slow_path_call() {
-    return CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow);
+bool MMTkBarrierSet::is_slow_path_call(address call) {
+    return call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node)
+        || call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge);
 }
 
-JRT_LEAF(void, MMTkBarrierRuntime::write_barrier_slow(void* src, void* slot, void* new_val))
-    write_barrier_slow_unchecked(src, slot, new_val);
-JRT_END
-
-void MMTkBarrierRuntime::write_barrier_slow_unchecked(void* src, void* slot, void* new_val) {
-    object_reference_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) new_val);
+void MMTkBarrierRuntime::record_modified_node(void* obj) {
+    ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+}
+void MMTkBarrierRuntime::record_modified_edge(void* slot) {
+    ::record_modified_edge((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) slot);
 }

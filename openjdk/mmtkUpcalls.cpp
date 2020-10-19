@@ -106,21 +106,37 @@ static bool mmtk_is_mutator(void* tls) {
     return ((Thread*) tls)->third_party_heap_collector == NULL;
 }
 
-static JavaThread* _thread_cursor = NULL;
+template <class T>
+struct MaybeUninit {
+    MaybeUninit() {}
+    T* operator->() {
+        return (T*) &_data;
+    }
+    T& operator*() {
+        return *((T*) &_data);
+    }
+private:
+    char _data[sizeof(T)];
+};
+
+static MaybeUninit<JavaThreadIteratorWithHandle> jtiwh;
+static bool mutator_iteration_start = true;
 
 static void* mmtk_get_next_mutator() {
-    if (_thread_cursor == NULL) {
-        _thread_cursor = Threads::get_thread_list();
-    } else {
-        _thread_cursor = _thread_cursor->next();
+    if (mutator_iteration_start) {
+        *jtiwh = JavaThreadIteratorWithHandle();
+        mutator_iteration_start = false;
     }
-    // printf("_thread_cursor %p -> %p\n", _thread_cursor, _thread_cursor == NULL ? NULL : _thread_cursor->mmtk_mutator());
-    if (_thread_cursor == NULL) return NULL;
-    return (void*) &_thread_cursor->third_party_heap_mutator;
+    JavaThread *thr = jtiwh->next();
+    if (thr == NULL) {
+        mutator_iteration_start = true;
+        return NULL;
+    }
+    return (void*) &thr->third_party_heap_mutator;
 }
 
 static void mmtk_reset_mutator_iterator() {
-    _thread_cursor = NULL;
+    mutator_iteration_start = true;
 }
 
 

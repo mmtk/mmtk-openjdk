@@ -494,53 +494,102 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
   bool in_heap = (decorators & IN_HEAP) != 0;
   bool use_precise = is_array || anonymous;
 
-  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop() || (!in_heap && !anonymous)) {
+  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
     return BarrierSetC2::store_at_resolved(access, val);
   }
 
-  uint adr_idx = kit->C->get_alias_index(adr_type);
-  assert(adr_idx != Compile::AliasIdxTop, "use other store_to_memory factory" );
-  
   Node* store = BarrierSetC2::store_at_resolved(access, val);
-  write_barrier(kit, true /* do_load */, kit->control(), access.base(), adr, adr_idx, val.node(),
-              static_cast<const TypeOopPtr*>(val.type()), NULL /* pre_val */, access.type());
+
+  record_modified_node(kit, access.base());
+
   return store;
 }
 
+Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,
+                                                         Node* new_val, const Type* value_type) const {
+  DecoratorSet decorators = access.decorators();
+  GraphKit* kit = access.kit();
+  bool in_heap = (decorators & IN_HEAP) != 0;
 
-const TypeFunc* write_barrier_slow_entry_Type() {
-  const Type **fields = TypeTuple::fields(3);
-  // fields[TypeFunc::Parms+0] = TypeRawPtr::NOTNULL; // JavaThread* thread
-  fields[TypeFunc::Parms+0] = TypeOopPtr::NOTNULL; // oop src
-  fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop new_val
-  fields[TypeFunc::Parms+2] = TypeOopPtr::BOTTOM; // oop new_val
-  // fields[TypeFunc::Parms+2] = TypeOopPtr::BOTTOM; // oop* slot
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+3, fields);
+  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+    return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+  }
 
-  // create result type (range)
+  Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+
+  record_modified_node(kit, access.base());
+
+  return result;
+}
+
+Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val,
+                                                          Node* new_val, const Type* value_type) const {
+  DecoratorSet decorators = access.decorators();
+  GraphKit* kit = access.kit();
+  bool in_heap = (decorators & IN_HEAP) != 0;
+
+  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+    return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+  }
+
+  Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+
+  record_modified_node(kit, access.base());
+
+  return load_store;
+}
+
+Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
+  DecoratorSet decorators = access.decorators();
+  GraphKit* kit = access.kit();
+
+  Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+
+  bool in_heap = (decorators & IN_HEAP) != 0;
+
+  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+    return result;
+  }
+
+  record_modified_node(kit, access.base());
+
+  return result;
+}
+
+void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
+  BarrierSetC2::clone(kit, src, dst, size, is_array);
+  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node(kit, dst);
+}
+
+const TypeFunc* record_modified_node_entry_Type() {
+  const Type **fields = TypeTuple::fields(1);
+  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
+  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
   fields = TypeTuple::fields(0);
   const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-
   return TypeFunc::make(domain, range);
 }
 
-void MMTkBarrierSetC2::write_barrier(GraphKit* kit,
-                                 bool do_load,
-                                 Node* ctl,
-                                 Node* obj,
-                                 Node* adr,
-                                 uint alias_idx,
-                                 Node* val,
-                                 const TypeOopPtr* val_type,
-                                 Node* pre_val,
-                                 BasicType bt) const {
+const TypeFunc* record_modified_edge_entry_Type() {
+  const Type **fields = TypeTuple::fields(1);
+  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
+  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+  fields = TypeTuple::fields(0);
+  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+  return TypeFunc::make(domain, range);
+}
+
+void MMTkBarrierSetC2::record_modified_edge(GraphKit* kit, Node* slot) const {
   IdealKit ideal(kit, true);
+  const TypeFunc *tf = record_modified_edge_entry_Type();
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge), "record_modified_edge", slot);
+  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+}
 
-  // Node* tls = __ thread(); // ThreadLocalStorage
-
-  const TypeFunc *tf = write_barrier_slow_entry_Type();
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), "write_barrier_slow", obj, adr, val);
-  
+void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* node) const {
+  IdealKit ideal(kit, true);
+  const TypeFunc *tf = record_modified_node_entry_Type();
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", node);
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
 
@@ -553,6 +602,6 @@ bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
     return false;
   }
 
-  return strcmp(call->_name, "write_barrier_slow") == 0;// || strcmp(call->_name, "write_ref_field_post_entry") == 0;
+  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0;
 }
 

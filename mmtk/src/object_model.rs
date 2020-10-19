@@ -53,8 +53,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unimplemented!()
     }
 
-    fn get_current_size(_object: ObjectReference) -> usize {
-        unimplemented!()
+    fn get_current_size(object: ObjectReference) -> usize {
+        unsafe { ((*UPCALLS).get_object_size)(object) }
     }
 
     fn get_next_object(_object: ObjectReference) -> ObjectReference {

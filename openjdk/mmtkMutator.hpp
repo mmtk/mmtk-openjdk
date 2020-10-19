@@ -58,7 +58,7 @@ struct MMTkMutatorContext {
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
-    void deinit();
+    void flush();
 
     static MMTkMutatorContext bind(::Thread* current);
 };

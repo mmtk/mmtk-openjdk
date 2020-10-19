@@ -42,24 +42,9 @@ void MMTkWriteBarrierStub::emit_code(LIR_Assembler* ce) {
 }
 
 void MMTkBarrierSetC1::store_at_resolved(LIRAccess& access, LIR_Opr value) {
-    // printf("c1 store_at_resolved\n");
-  // DecoratorSet decorators = access.decorators();
-  // bool is_array = (decorators & IS_ARRAY) != 0;
-  // bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
-
-  // if (access.is_oop()) {
-  //   pre_barrier(access, access.resolved_addr(),
-  //               LIR_OprFact::illegalOpr /* pre_val */, access.patch_emit_info());
-  // }
-
   BarrierSetC1::store_at_resolved(access, value);
 
   if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
-    // bool precise = is_array || on_anonymous;
-    // LIR_Opr offset = access.offset().opr();// : access.base().opr();
-    // LIR_Opr adr = access.resolved_addr();
-    // printf("dump \n");
-    // access.resolved_addr()->print();
     write_barrier(access, access.base().opr(), access.resolved_addr(), value);
   }
 }
@@ -70,7 +55,7 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
   DecoratorSet decorators = access.decorators();
 
   if ((decorators & IN_HEAP) == 0) return;
-  
+
   if (!src->is_register()) {
     LIR_Opr reg = gen->new_pointer_register();
     if (src->is_constant()) {
@@ -103,7 +88,6 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  
 
   CodeStub* slow = new MMTkWriteBarrierStub(src, slot, new_val);
   __ jump(slow);
@@ -122,4 +106,34 @@ class C1MMTkWriteBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
 void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
   C1MMTkWriteBarrierCodeGenClosure write_code_gen_cl;
   _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
+}
+
+LIR_Opr MMTkBarrierSetC1::atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
+  LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
+  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
+    write_barrier(access, access.base().opr(), access.resolved_addr(), new_value.result());
+  }
+  return result;
+}
+
+LIR_Opr MMTkBarrierSetC1::atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
+  LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
+  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
+    write_barrier(access, access.base().opr(), access.resolved_addr(), value.result());
+  }
+  return result;
+}
+
+// This overrides the default to resolve the address into a register,
+// assuming it will be used by a write barrier anyway.
+LIR_Opr MMTkBarrierSetC1::resolve_address(LIRAccess& access, bool resolve_in_register) {
+  if (!MMTK_ENABLE_WRITE_BARRIER) return BarrierSetC1::resolve_address(access, resolve_in_register);
+  DecoratorSet decorators = access.decorators();
+  bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
+  bool is_write = (decorators & C1_WRITE_ACCESS) != 0;
+  bool is_array = (decorators & IS_ARRAY) != 0;
+  bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+  bool precise = is_array || on_anonymous;
+  resolve_in_register |= !needs_patching && is_write && access.is_oop() && precise;
+  return BarrierSetC1::resolve_address(access, resolve_in_register);
 }
