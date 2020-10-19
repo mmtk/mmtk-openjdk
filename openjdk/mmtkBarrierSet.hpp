@@ -25,6 +25,7 @@
 #ifndef SHARE_VM_GC_MMTK_NOBARRIER_HPP
 #define SHARE_VM_GC_MMTK_NOBARRIER_HPP
 
+#include "gc/shared/accessBarrierSupport.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/barrierSetConfig.hpp"
 #include "memory/memRegion.hpp"
@@ -47,8 +48,8 @@
 
 struct MMTkBarrierRuntime: AllStatic {
 public:
-  static void write_barrier_slow(void* src, void* offset, void* new_val);
-  static void write_barrier_slow_unchecked(void* src, void* offset, void* new_val);
+  static void record_modified_node(void* src);
+  static void record_modified_edge(void* slot);
 };
 
 class MMTkBarrierSet : public BarrierSet {
@@ -61,6 +62,10 @@ protected:
 
 public:
   MMTkBarrierSet(MemRegion whole_heap);
+
+  virtual void on_thread_destroy(Thread* thread);
+  virtual void on_thread_attach(JavaThread* thread);
+  virtual void on_thread_detach(JavaThread* thread);
 
   // Inform the BarrierSet that the the covered heap region that starts
   // with "base" has been changed to have the given size (possibly from 0,
@@ -89,22 +94,77 @@ public:
   template <DecoratorSet decorators, typename BarrierSetT = MMTkBarrierSet>
   class AccessBarrier: public BarrierSet::AccessBarrier<decorators, BarrierSetT> {
   private:
-    typedef RawAccessBarrier<decorators> Raw;
+    typedef BarrierSet::AccessBarrier<decorators, BarrierSetT> Raw;
   public:
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
-      // printf("oop_store_in_heap(addr=%p, value=%p)\n", addr, value);
       Raw::oop_store(addr, value);
+      MMTkBarrierRuntime::record_modified_edge((void*) addr);
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
-      // printf("oop_store_in_heap_at(base=%p, offset=%ld, value=%p)\n", base, offset, value);
-      MMTkBarrierRuntime::write_barrier_slow_unchecked((void*) base, (void*) offset, (void*) value);
       Raw::oop_store_at(base, offset, value);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_node((void*) base);
+#endif
+    }
+
+    template <typename T>
+    static oop oop_atomic_cmpxchg_in_heap(oop new_value, T* addr, oop compare_value) {
+      oop result = Raw::oop_atomic_cmpxchg(new_value, addr, compare_value);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_edge((void*) addr);
+#endif
+      return result;
+    }
+
+    static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
+      oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_node((void*) base);
+#endif
+      return result;
+    }
+
+    template <typename T>
+    static oop oop_atomic_xchg_in_heap(oop new_value, T* addr) {
+      oop result = Raw::oop_atomic_xchg(new_value, addr);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_edge((void*) addr);
+#endif
+      return result;;
+    }
+
+    static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
+      oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_node((void*) base);
+#endif
+      return result;
+    }
+
+    template <typename T>
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
+                                      size_t length) {
+      bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
+                                dst_obj, dst_offset_in_bytes, dst_raw,
+                                length);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_node((void*) dst_obj);
+#endif
+      return result;
+    }
+
+    static void clone_in_heap(oop src, oop dst, size_t size) {
+      Raw::clone(src, dst, size);
+#if MMTK_ENABLE_WRITE_BARRIER
+      MMTkBarrierRuntime::record_modified_node((void*) dst);
+#endif
     }
   };
 
-  static address slow_path_call();
+  static bool is_slow_path_call(address call);
 };
 
 template<>

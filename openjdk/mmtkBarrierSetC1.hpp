@@ -24,9 +24,9 @@ public:
   virtual void visit(LIR_OpVisitState* visitor) {
     // don't pass in the code emit info since it's processed in the fast path
     visitor->do_slow_case();
-    visitor->do_input(_src);
-    visitor->do_input(_slot);
-    visitor->do_input(_new_val);
+    if (_src != NULL) visitor->do_input(_src);
+    if (_slot != NULL) visitor->do_input(_slot);
+    if (_new_val != NULL) visitor->do_input(_new_val);
   }
 #ifndef PRODUCT
   virtual void print_name(outputStream* out) const { out->print("MMTkWriteBarrierStub"); }
@@ -49,6 +49,12 @@ public:
   CodeBlob* write_barrier_c1_runtime_code_blob() { return _write_barrier_c1_runtime_code_blob; }
 
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob);
+
+  virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register);
+
+  virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value);
+
+  virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value);
 };
 
 #endif // MMTK_MMTKBARRIERSETC1_HPP

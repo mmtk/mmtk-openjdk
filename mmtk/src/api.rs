@@ -39,8 +39,8 @@ pub extern "C" fn destroy_mutator(mutator: *mut SelectedMutator<OpenJDK>) {
 }
 
 #[no_mangle]
-pub extern "C" fn deinit_mutator(mutator: *mut SelectedMutator<OpenJDK>) {
-    memory_manager::deinit_mutator(unsafe { &mut *mutator })
+pub extern "C" fn flush_mutator(mutator: *mut SelectedMutator<OpenJDK>) {
+    memory_manager::flush_mutator(unsafe { &mut *mutator })
 }
 
 #[no_mangle]
@@ -206,6 +206,11 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn object_reference_write(mutator: &'static mut SelectedMutator<OpenJDK>, src: ObjectReference, slot: Address, value: ObjectReference) {
-    mutator.object_reference_write(src, slot, value);
+pub extern "C" fn record_modified_node(mutator: &'static mut SelectedMutator<OpenJDK>, obj: ObjectReference) {
+    mutator.record_modified_node(obj);
+}
+
+#[no_mangle]
+pub extern "C" fn record_modified_edge(mutator: &'static mut SelectedMutator<OpenJDK>, slot: Address) {
+    mutator.record_modified_edge(slot);
 }

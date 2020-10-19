@@ -28,7 +28,7 @@ typedef void* MMTk_TraceLocal;
  */
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
-extern void deinit_mutator(MMTk_Mutator mutator);
+extern void flush_mutator(MMTk_Mutator mutator);
 
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
@@ -43,7 +43,8 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
     int bytes, int allocator);
 
-extern void object_reference_write(MMTk_Mutator mutator, void* src, void* slot, void* value);
+extern void record_modified_node(MMTk_Mutator mutator, void* obj);
+extern void record_modified_edge(MMTk_Mutator mutator, void* slot);
 
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);

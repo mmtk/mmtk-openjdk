@@ -393,6 +393,7 @@ void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
    CodeBlobToOopClosure cb_cl(&cl, true);
    {
       MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::scavenge_root_nmethods_do(&cb_cl);
       CodeCache::blobs_do(&cb_cl);
    }
 }
