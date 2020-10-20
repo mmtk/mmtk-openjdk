@@ -18,6 +18,12 @@ struct RustDynPtr {
     void* vtable;
 };
 
+// These constants should match the constants defind in mmtk::util::alloc::allocators
+const int MAX_BUMP_ALLOCATORS = 5;
+const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+
+// The following types should have the same layout as the types with the same name in MMTk core (Rust)
+
 struct BumpAllocator {
     void* tls;
     void* cursor;
@@ -31,9 +37,6 @@ struct LargeObjectAllocator {
     void* space;
     void* plan;
 };
-
-const int MAX_BUMP_ALLOCATORS = 5;
-const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
 
 struct Allocators {
     BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];

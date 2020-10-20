@@ -55,16 +55,6 @@ void MMTkBarrierSetC2::expand_allocate(
   Node* klass_node        = alloc->in(AllocateNode::KlassNode);
   Node* initial_slow_test = alloc->in(AllocateNode::InitialTest);
 
-  // printf("generate allocate sequence\n");
-  // printf("klass_node:\n");
-  // TypeNode* klass_type_node = (TypeNode*) klass_node;
-  // klass_type_node->dump_comp("\n");
-  // const Type* klass_type = klass_type_node->type();
-  // klass_type->dump(); printf("\n");
-  
-  // printf("size node:\n");
-  // size_in_bytes->dump_comp("\n");
-
   assert(ctrl != NULL, "must have control");
   // We need a Region and corresponding Phi's to merge the slow-path and fast-path results.
   // they will not be used if "always_slow" is set
