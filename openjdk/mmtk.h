@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,6 +34,16 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
+
+// This type declaration needs to match AllocatorSelector in mmtk-core
+struct AllocatorSelector {
+    uint8_t tag;
+    uint8_t index;
+};
+#define TAG_BUMP_POINTER 0
+#define TAG_LARGE_OBJECT 1
+
+extern AllocatorSelector get_allocator_mapping(int allocator);
 
 /**
  * Tracing

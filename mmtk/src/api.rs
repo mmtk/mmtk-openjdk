@@ -7,7 +7,8 @@ use mmtk::Allocator;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
 use mmtk::Plan;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::{SelectedMutator, SelectedTraceLocal, SelectedCollector};
+use mmtk::{Mutator, SelectedPlan, SelectedTraceLocal, SelectedCollector};
+use mmtk::util::alloc::allocators::AllocatorSelector;
 
 use crate::OpenJDK;
 use crate::UPCALLS;
@@ -27,19 +28,24 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut SelectedMutator<OpenJDK> {
+pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut SelectedMutator<OpenJDK>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut SelectedMutator<OpenJDK>, size: usize,
+pub extern "C" fn alloc(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>, size: usize,
                     align: usize, offset: isize, allocator: Allocator) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
+}
+
+#[no_mangle]
+pub extern "C" fn get_allocator_mapping(allocator: Allocator) -> AllocatorSelector {
+    memory_manager::get_allocator_mapping(&SINGLETON, allocator)
 }
 
 // Allocation slow path
@@ -75,7 +81,7 @@ pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, al
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<OpenJDK>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>, refer: ObjectReference, type_refer: ObjectReference,
                                         bytes: usize, allocator: Allocator) {
     memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
 }

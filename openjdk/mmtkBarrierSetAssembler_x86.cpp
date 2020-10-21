@@ -29,6 +29,7 @@
 #include "interpreter/interp_masm.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
+#include "mmtkMutator.hpp"
 #ifdef COMPILER1
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
@@ -44,8 +45,23 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
-    Address cursor = Address(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()) + 8 * 1);
-    Address limit = Address(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()) + 8 * 2);
+    // We always use the default allocator.
+    // But we need to figure out which allocator we are using by querying MMTk.
+    AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+
+    // Only bump pointer allocator is implemented.
+    if (selector.tag != TAG_BUMP_POINTER) {
+      fatal("unimplemented allocator fastpath\n");
+    }
+
+    // Calculat offsets of top and end. We now assume we are using bump pointer.
+    int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+      + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+      + in_bytes(byte_offset_of(Allocators, bump_pointer))
+      + selector.index * sizeof(BumpAllocator);
+
+    Address cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
+    Address limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
     // obj = load lab.cursor
     __ movptr(obj, cursor);
     // end = obj + size
