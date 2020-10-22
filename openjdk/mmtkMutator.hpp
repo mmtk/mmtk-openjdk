@@ -52,6 +52,7 @@ struct MutatorConfig {
 
 struct MMTkMutatorContext {
     Allocators allocators;
+    RustDynPtr barrier;
     void* mutator_tls;
     void* plan;
     MutatorConfig config;
