@@ -46,7 +46,8 @@ struct Allocators {
 struct MutatorConfig {
     void* allocator_mapping;
     void* space_mapping;
-    RustDynPtr collection_phase_func;
+    RustDynPtr prepare_func;
+    RustDynPtr release_func;
 };
 
 struct MMTkMutatorContext {

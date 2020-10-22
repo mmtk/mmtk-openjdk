@@ -13,7 +13,7 @@ use mmtk::vm::VMBinding;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::{Plan, SelectedPlan, SelectedMutator};
+use mmtk::{Plan, SelectedPlan, Mutator};
 use mmtk::scheduler::GCWorker;
 use libc::{c_void, c_char};
 pub mod scanning;
@@ -28,7 +28,7 @@ mod gc_works;
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
-    pub stop_all_mutators: extern "C" fn(tls: OpaquePointer, create_stack_scan_work: *const extern "C" fn(&'static mut SelectedMutator<OpenJDK>)),
+    pub stop_all_mutators: extern "C" fn(tls: OpaquePointer, create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<SelectedPlan<OpenJDK>>)),
     pub resume_mutators: extern "C" fn(tls: OpaquePointer),
     pub spawn_worker_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut GCWorker<OpenJDK>),
     pub block_for_gc: extern "C" fn(),

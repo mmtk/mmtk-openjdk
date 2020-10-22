@@ -30,21 +30,22 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>> {
+pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<SelectedPlan<OpenJDK>> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
-pub extern "C" fn flush_mutator(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>) {
+#[no_mangle]
+pub extern "C" fn flush_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
     memory_manager::flush_mutator(unsafe { &mut *mutator })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>, size: usize,
+pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, size: usize,
                     align: usize, offset: isize, allocator: Allocator) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
@@ -87,7 +88,7 @@ pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, al
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<OpenJDK, SelectedPlan<OpenJDK>>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, refer: ObjectReference, type_refer: ObjectReference,
                                         bytes: usize, allocator: Allocator) {
     memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
 }
@@ -211,11 +212,11 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(mutator: &'static mut SelectedMutator<OpenJDK>, obj: ObjectReference) {
+pub extern "C" fn record_modified_node(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>, obj: ObjectReference) {
     mutator.record_modified_node(obj);
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_edge(mutator: &'static mut SelectedMutator<OpenJDK>, slot: Address) {
+pub extern "C" fn record_modified_edge(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>, slot: Address) {
     mutator.record_modified_edge(slot);
 }

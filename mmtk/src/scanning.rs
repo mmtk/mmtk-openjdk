@@ -1,6 +1,6 @@
 
 use mmtk::vm::Scanning;
-use mmtk::{TransitiveClosure, TraceLocal, SelectedMutator};
+use mmtk::{TransitiveClosure, TraceLocal, Mutator, SelectedPlan};
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
@@ -51,7 +51,7 @@ impl Scanning<OpenJDK> for VMScanning {
         }
     }
 
-    fn scan_thread_root<W: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut SelectedMutator<OpenJDK>) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>) {
         let tls = mutator.get_tls();
         let process_edges = create_process_edges_work::<W>;
         unsafe {
