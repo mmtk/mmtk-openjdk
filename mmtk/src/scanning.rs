@@ -78,32 +78,6 @@ impl Scanning<OpenJDK> for VMScanning {
         }
     }
 
-    fn compute_static_roots<T: TransitiveClosure>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_static_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_global_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_global_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_thread_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_thread_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_new_thread_roots<T: TraceLocal>(_trace: &mut T, _tls: OpaquePointer) {
-        unimplemented!()
-    }
-
-    fn compute_bootimage_roots<T: TraceLocal>(_trace: &mut T, _tls: OpaquePointer) {
-        // Do nothing
-    }
-
     fn supports_return_barrier() -> bool {
         unimplemented!()
     }
