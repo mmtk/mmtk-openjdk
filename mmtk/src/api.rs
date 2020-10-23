@@ -5,7 +5,7 @@ use std::ffi::CStr;
 use mmtk::memory_manager;
 use mmtk::Allocator;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
-use mmtk::Plan;
+use mmtk::{Plan, MMTK};
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::{Mutator, SelectedPlan};
 use mmtk::util::alloc::allocators::AllocatorSelector;
@@ -21,7 +21,8 @@ use crate::SINGLETON;
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
-    memory_manager::gc_init(&SINGLETON, heap_size);
+    let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
+    memory_manager::gc_init(singleton_mut, heap_size);
 }
 
 #[no_mangle]

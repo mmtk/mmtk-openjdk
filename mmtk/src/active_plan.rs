@@ -15,10 +15,12 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
-        let c = ((*UPCALLS).active_collector)(tls);
-        assert!(!c.is_null());
-        &mut *c
+    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
+        unsafe {
+            let c = ((*UPCALLS).active_collector)(tls);
+            assert!(!c.is_null());
+            &mut *c
+        }
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
