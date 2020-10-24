@@ -99,7 +99,9 @@ public:
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
       Raw::oop_store(addr, value);
+#if MMTK_ENABLE_WRITE_BARRIER
       MMTkBarrierRuntime::record_modified_edge((void*) addr);
+#endif
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
