@@ -5,7 +5,7 @@ use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use crate::OpenJDK;
-use super::{UPCALLS, SINGLETON};
+use super::{UPCALLS, SINGLETON, NewBuffer};
 use std::mem;
 use super::gc_works::*;
 use mmtk::MutatorContext;
@@ -15,12 +15,15 @@ static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 
 pub struct VMScanning {}
 
-pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *const Address, len: usize) {
-    let mut buf = Vec::with_capacity(len);
-    for i in 0..len {
-        buf.push(unsafe { *ptr.add(i) });
+pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=OpenJDK>>(ptr: *mut Address, length: usize, capacity: usize) -> NewBuffer {
+    if !ptr.is_null() {
+        let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
+        SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
     }
-    SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
+    let (ptr, _, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    NewBuffer {
+        ptr, capacity
+    }
 }
 
 impl Scanning<OpenJDK> for VMScanning {

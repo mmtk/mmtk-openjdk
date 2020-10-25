@@ -155,12 +155,12 @@ static void mmtk_compute_thread_roots(void* trace, void* tls) {
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_root(void (*process_edges)(void** buf, size_t len), void* tls) {
+static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
     ResourceMark rm;
     JavaThread* thread = (JavaThread*) tls;
     MMTkRootsClosure2 cl(process_edges);
@@ -168,12 +168,12 @@ static void mmtk_scan_thread_root(void (*process_edges)(void** buf, size_t len),
     thread->oops_do(&cl, &cb_cl);
 }
 
-static void mmtk_scan_static_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+static void mmtk_scan_static_roots(ProcessEdgesFn process_edges, void* tls) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_static_roots(cl);
 }
 
-static void mmtk_scan_global_roots(void (*process_edges)(void** buf, size_t len), void* tls) {
+static void mmtk_scan_global_roots(ProcessEdgesFn process_edges, void* tls) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_global_roots(cl);
 }
@@ -258,18 +258,18 @@ static char* dump_object_string(void* object) {
     return o->print_value_string();
 }
 
-static void mmtk_scan_universe_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
-static void mmtk_scan_jni_handle_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
-static void mmtk_scan_object_synchronizer_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
-static void mmtk_scan_management_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_management_roots(cl); }
-static void mmtk_scan_jvmti_export_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
-static void mmtk_scan_aot_loader_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
-static void mmtk_scan_system_dictionary_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
-static void mmtk_scan_code_cache_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_string_table_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
-static void mmtk_scan_class_loader_data_graph_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
-static void mmtk_scan_weak_processor_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
-static void mmtk_scan_vm_thread_roots(void (*process_edges)(void** buf, size_t len)) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
+static void mmtk_scan_universe_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
+static void mmtk_scan_jni_handle_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
+static void mmtk_scan_object_synchronizer_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
+static void mmtk_scan_management_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_management_roots(cl); }
+static void mmtk_scan_jvmti_export_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
+static void mmtk_scan_aot_loader_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
+static void mmtk_scan_system_dictionary_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
+static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_string_table_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_weak_processor_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 static size_t mmtk_number_of_mutators() {
     return Threads::number_of_threads();

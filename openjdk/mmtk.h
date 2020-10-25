@@ -47,6 +47,8 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
 extern void record_modified_node(MMTk_Mutator mutator, void* obj);
 extern void record_modified_edge(MMTk_Mutator mutator, void* slot);
 
+extern void release_buffer(void** buffer, size_t len, size_t cap);
+
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
@@ -80,6 +82,13 @@ extern void start_worker(void *tls, void* worker);
 extern size_t free_bytes();
 extern size_t total_bytes();
 
+typedef struct {
+    void** buf;
+    size_t cap;
+} NewBuffer;
+
+typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
+
 /**
  * OpenJDK-specific
  */
@@ -107,20 +116,20 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_thread_roots)(void (*process_edges)(void** buf, size_t len), void* tls);
-    void (*scan_thread_root)(void (*process_edges)(void** buf, size_t len), void* tls);
-    void (*scan_universe_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_jni_handle_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_object_synchronizer_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_management_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_jvmti_export_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_aot_loader_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_system_dictionary_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_code_cache_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_string_table_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_class_loader_data_graph_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_weak_processor_roots) (void (*process_edges)(void** buf, size_t len));
-    void (*scan_vm_thread_roots) (void (*process_edges)(void** buf, size_t len));
+    void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_universe_roots) (ProcessEdgesFn process_edges);
+    void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
+    void (*scan_object_synchronizer_roots) (ProcessEdgesFn process_edges);
+    void (*scan_management_roots) (ProcessEdgesFn process_edges);
+    void (*scan_jvmti_export_roots) (ProcessEdgesFn process_edges);
+    void (*scan_aot_loader_roots) (ProcessEdgesFn process_edges);
+    void (*scan_system_dictionary_roots) (ProcessEdgesFn process_edges);
+    void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
+    void (*scan_string_table_roots) (ProcessEdgesFn process_edges);
+    void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
+    void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
+    void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
     size_t (*number_of_mutators)();
 } OpenJDK_Upcalls;
 

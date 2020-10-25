@@ -18,6 +18,11 @@ use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 
 #[no_mangle]
+pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
+    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
+}
+
+#[no_mangle]
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();

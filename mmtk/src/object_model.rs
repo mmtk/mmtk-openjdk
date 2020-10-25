@@ -20,6 +20,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
             &*(o.to_address() + Self::GC_BYTE_OFFSET / 8).to_ptr::<AtomicU8>()
         }
     }
+    #[inline]
     fn copy(from: ObjectReference, allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);

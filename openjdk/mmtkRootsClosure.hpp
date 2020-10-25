@@ -45,8 +45,9 @@ public:
 };
 
 class MMTkRootsClosure2 : public OopClosure {
-  void (*_process_edges)(void** buf, size_t len);
-  void* _buffer[ROOTS_BUFFER_SIZE];
+  ProcessEdgesFn _process_edges;
+  void** _buffer;
+  size_t _cap;
   size_t _cursor;
 
   template <class T>
@@ -58,21 +59,32 @@ class MMTkRootsClosure2 : public OopClosure {
     //   RawAccess<>::oop_store(p, fwd);
     // }
     _buffer[_cursor++] = (void*) p;
-    if (_cursor >= ROOTS_BUFFER_SIZE) {
+    if (_cursor >= _cap) {
       flush();
     }
   }
 
-  NOINLINE void flush() {
-    _process_edges(_buffer, _cursor);
-    _cursor = 0;
+  void flush() {
+    if (_cursor > 0) {
+      NewBuffer buf = _process_edges(_buffer, _cursor, _cap);
+      _buffer = buf.buf;
+      _cap = buf.cap;
+      _cursor = 0;
+    }
   }
 
 public:
-  MMTkRootsClosure2(void (*process_edges)(void** buf, size_t len)): _process_edges(process_edges), _cursor(0) {}
+  MMTkRootsClosure2(ProcessEdgesFn process_edges): _process_edges(process_edges), _cursor(0) {
+    NewBuffer buf = process_edges(NULL, 0, 0);
+    _buffer = buf.buf;
+    _cap = buf.cap;
+  }
 
   ~MMTkRootsClosure2() {
     if (_cursor > 0) flush();
+    if (_buffer != NULL) {
+      release_buffer(_buffer, _cursor, _cap);
+    }
   }
 
   virtual void do_oop(oop* p)       { do_oop_work(p); }

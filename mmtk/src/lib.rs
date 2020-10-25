@@ -1,6 +1,7 @@
 #![feature(specialization)]
 #![feature(const_fn)]
 #![feature(box_syntax)]
+#![feature(vec_into_raw_parts)]
 
 extern crate mmtk;
 extern crate libc;
@@ -27,6 +28,14 @@ mod object_scanning;
 mod gc_works;
 
 #[repr(C)]
+pub struct NewBuffer {
+    pub ptr: *mut Address,
+    pub capacity: usize
+}
+
+type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
+
+#[repr(C)]
 pub struct OpenJDK_Upcalls {
     pub stop_all_mutators: extern "C" fn(tls: OpaquePointer, create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<SelectedPlan<OpenJDK>>)),
     pub resume_mutators: extern "C" fn(tls: OpaquePointer),
@@ -51,20 +60,20 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_thread_roots: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
-    pub scan_thread_root: extern "C" fn(process_edges: *const extern "C" fn(buf: *const Address, size: usize), tls: OpaquePointer),
-    pub scan_universe_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_jni_handle_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_object_synchronizer_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_management_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_jvmti_export_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_aot_loader_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_system_dictionary_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_code_cache_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_string_table_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_weak_processor_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
-    pub scan_vm_thread_roots: extern "C" fn(process_edges: *const extern "C" fn (buf: *const Address, size: usize)),
+    pub scan_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn, tls: OpaquePointer),
+    pub scan_thread_root: extern "C" fn(process_edges: ProcessEdgesFn, tls: OpaquePointer),
+    pub scan_universe_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_jni_handle_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_object_synchronizer_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_management_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_jvmti_export_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_aot_loader_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_system_dictionary_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_code_cache_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_string_table_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
 }
 
