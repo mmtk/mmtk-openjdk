@@ -8,12 +8,12 @@ This repository provides binding between MMTk and OpenJDK.
 
 ## Requirements
 
-We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-docker](https://github.com/mmtk/mmtk-docker) repository.
+We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
 Please make sure your dev machine satifies those prerequisites.
 
 ### Before you continue
 
-If you use the setup explained in [mmtk-docker](https://github.com/mmtk/mmtk-docker), make sure to set the default Rust toolchain to the one specified in [mmtk-docker](https://github.com/mmtk/mmtk-docker), e.g. by running:
+If you use the setup explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
 ```console
 # replace nightly-YYYY-MM-DD with the correct toolchain version
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
