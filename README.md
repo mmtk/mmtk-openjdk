@@ -98,12 +98,17 @@ Hello World!
 
 ### Run DaCapo Benchmarks with MMTk (on a moma machine)
 
-**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+First, fetch DaCapo:
+```console
+$ wget https://sourceforge.net/projects/dacapobench/files/9.12-bach-MR1/dacapo-9.12-MR1-bach.jar/download -O ./dacapo-9.12-MR1-bach.jar
+```
+
+Run a DaCapo benchmark (e.g. `lusearch`):
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
-===== DaCapo 9.12 lusearch starting =====
+===== DaCapo 9.12-MR1 lusearch starting =====
 4 query batches completed
 8 query batches completed
 12 query batches completed
@@ -120,5 +125,7 @@ Using scaled threading model. 24 processors detected, 24 threads used to drive t
 56 query batches completed
 60 query batches completed
 64 query batches completed
-===== DaCapo 9.12 lusearch PASSED in 1618 msec =====
+===== DaCapo 9.12-MR1 lusearch PASSED in 822 msec =====
 ```
+
+**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
