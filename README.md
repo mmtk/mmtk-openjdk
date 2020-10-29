@@ -1,7 +1,9 @@
-# mmtk-openjdk
+# MMTk-OpenJDK
+
 This repository provides binding between MMTk and OpenJDK.
 
-## Table of Content
+## Contents
+
 * [Requirements](#requirements)
 * [Build](#build)
 * [Test](#test)
@@ -9,17 +11,18 @@ This repository provides binding between MMTk and OpenJDK.
 ## Requirements
 
 We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
-Please make sure your dev machine satifies those prerequisites.
+Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-If you use the setup explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
+If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
+
 ```console
 # replace nightly-YYYY-MM-DD with the correct toolchain version
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
-You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):_
+You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
 ```console
 $ eval `ssh-agent`
