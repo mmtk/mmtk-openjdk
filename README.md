@@ -96,7 +96,7 @@ $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
 Hello World!
 ```
 
-### Run DaCapo Benchmarks with MMTk (on a moma machine)
+### Run DaCapo Benchmarks with MMTk
 
 First, fetch DaCapo:
 ```console
