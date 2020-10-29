@@ -8,22 +8,23 @@ This repository provides binding between MMTk and OpenJDK.
 
 ## Requirements
 
-This sections describes prerequisite for building OpenJDK with MMTk.
+We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-docker](https://github.com/mmtk/mmtk-docker) repository.
+Please make sure your dev machine satifies those prerequisites.
 
-### Before You Start
+### Before you continue
 
-#### Software Dependencies
+If you use the setup explained in [mmtk-docker](https://github.com/mmtk/mmtk-docker), make sure to set the default Rust toolchain to the one specified in [mmtk-docker](https://github.com/mmtk/mmtk-docker), e.g. by running:
+```console
+# replace nightly-YYYY-MM-DD with the correct toolchain version
+$ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
+```
 
-* git, make, jdk and the gcc toolchain
-  * You can install them simply via `sudo apt install git build-essential default-jdk`.
-* Rustup nightly toolchain
-  * Please visit [rustup.rs](https://rustup.rs/) for installation instructions.
+You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):_
 
-#### Supported Hardware
-
-MMTk/OpenJDK only supports `linux-x86_64`.
-
-_Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Linux kernel version 4.15.0-21-generic)._
+```console
+$ eval `ssh-agent`
+$ ssh-add
+```
 
 ### Getting Sources (for MMTk and VM)
 
