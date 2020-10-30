@@ -18,7 +18,7 @@ Please make sure your dev machine satisfies those prerequisites.
 If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
 
 ```console
-# replace nightly-YYYY-MM-DD with the correct toolchain version
+# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
