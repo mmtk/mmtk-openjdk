@@ -1,29 +1,33 @@
-# mmtk-openjdk
+# MMTk-OpenJDK
+
 This repository provides binding between MMTk and OpenJDK.
 
-## Table of Content
+## Contents
+
 * [Requirements](#requirements)
 * [Build](#build)
 * [Test](#test)
 
 ## Requirements
 
-This sections describes prerequisite for building OpenJDK with MMTk.
+We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env) repository.
+Please make sure your dev machine satisfies those prerequisites.
 
-### Before You Start
+### Before you continue
 
-#### Software Dependencies
+If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
 
-* git, make, jdk and the gcc toolchain
-  * You can install them simply via `sudo apt install git build-essential default-jdk`.
-* Rustup nightly toolchain
-  * Please visit [rustup.rs](https://rustup.rs/) for installation instructions.
+```console
+# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev-env
+$ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
+```
 
-#### Supported Hardware
+You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
-MMTk/OpenJDK only supports `linux-x86_64`.
-
-_Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Linux kernel version 4.15.0-21-generic)._
+```console
+$ eval `ssh-agent`
+$ ssh-add
+```
 
 ### Getting Sources (for MMTk and VM)
 
@@ -95,14 +99,19 @@ $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
 Hello World!
 ```
 
-### Run DaCapo Benchmarks with MMTk (on a moma machine)
+### Run DaCapo Benchmarks with MMTk
 
-**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+First, fetch DaCapo:
+```console
+$ wget https://sourceforge.net/projects/dacapobench/files/9.12-bach-MR1/dacapo-9.12-MR1-bach.jar/download -O ./dacapo-9.12-MR1-bach.jar
+```
+
+Run a DaCapo benchmark (e.g. `lusearch`):
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar /usr/share/benchmarks/dacapo/dacapo-9.12-bach.jar lusearch
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
-===== DaCapo 9.12 lusearch starting =====
+===== DaCapo 9.12-MR1 lusearch starting =====
 4 query batches completed
 8 query batches completed
 12 query batches completed
@@ -119,5 +128,7 @@ Using scaled threading model. 24 processors detected, 24 threads used to drive t
 56 query batches completed
 60 query batches completed
 64 query batches completed
-===== DaCapo 9.12 lusearch PASSED in 1618 msec =====
+===== DaCapo 9.12-MR1 lusearch PASSED in 822 msec =====
 ```
+
+**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
