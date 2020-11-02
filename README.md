@@ -10,15 +10,15 @@ This repository provides binding between MMTk and OpenJDK.
 
 ## Requirements
 
-We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
+We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env) repository.
 Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
+If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
 
 ```console
-# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev
+# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev-env
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
