@@ -40,18 +40,21 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
+#include "memory/resourceArea.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
 
 static bool gcInProgress = false;
 
-static void mmtk_stop_all_mutators(void *tls) {
+static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
     gcInProgress = true;
+    MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
     SafepointSynchronize::begin();
 }
 
 static void mmtk_resume_mutators(void *tls) {
+    MMTkHeap::_create_stack_scan_work = NULL;
     SafepointSynchronize::end();
     MMTkHeap::heap()->gc_lock()->lock_without_safepoint_check();
     gcInProgress = false;
@@ -99,24 +102,41 @@ static void* mmtk_get_mmtk_mutator(void* tls) {
 }
 
 static bool mmtk_is_mutator(void* tls) {
+    if (tls == NULL) return false;
     return ((Thread*) tls)->third_party_heap_collector == NULL;
 }
 
-static JavaThread* _thread_cursor = NULL;
+template <class T>
+struct MaybeUninit {
+    MaybeUninit() {}
+    T* operator->() {
+        return (T*) &_data;
+    }
+    T& operator*() {
+        return *((T*) &_data);
+    }
+private:
+    char _data[sizeof(T)];
+};
+
+static MaybeUninit<JavaThreadIteratorWithHandle> jtiwh;
+static bool mutator_iteration_start = true;
 
 static void* mmtk_get_next_mutator() {
-    if (_thread_cursor == NULL) {
-        _thread_cursor = Threads::get_thread_list();
-    } else {
-        _thread_cursor = _thread_cursor->next();
+    if (mutator_iteration_start) {
+        *jtiwh = JavaThreadIteratorWithHandle();
+        mutator_iteration_start = false;
     }
-    // printf("_thread_cursor %p -> %p\n", _thread_cursor, _thread_cursor == NULL ? NULL : _thread_cursor->mmtk_mutator());
-    if (_thread_cursor == NULL) return NULL;
-    return (void*) &_thread_cursor->third_party_heap_mutator;
+    JavaThread *thr = jtiwh->next();
+    if (thr == NULL) {
+        mutator_iteration_start = true;
+        return NULL;
+    }
+    return (void*) &thr->third_party_heap_mutator;
 }
 
 static void mmtk_reset_mutator_iterator() {
-    _thread_cursor = NULL;
+    mutator_iteration_start = true;
 }
 
 
@@ -133,6 +153,29 @@ static void mmtk_compute_static_roots(void* trace, void* tls) {
 static void mmtk_compute_thread_roots(void* trace, void* tls) {
     MMTkRootsClosure cl(trace);
     MMTkHeap::heap()->scan_thread_roots(cl);
+}
+
+static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_thread_roots(cl);
+}
+
+static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
+    ResourceMark rm;
+    JavaThread* thread = (JavaThread*) tls;
+    MMTkRootsClosure2 cl(process_edges);
+    CodeBlobToOopClosure cb_cl(&cl, false);
+    thread->oops_do(&cl, &cb_cl);
+}
+
+static void mmtk_scan_static_roots(ProcessEdgesFn process_edges, void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_static_roots(cl);
+}
+
+static void mmtk_scan_global_roots(ProcessEdgesFn process_edges, void* tls) {
+    MMTkRootsClosure2 cl(process_edges);
+    MMTkHeap::heap()->scan_global_roots(cl);
 }
 
 // static void mmtk_start_computing_roots() {
@@ -215,6 +258,23 @@ static char* dump_object_string(void* object) {
     return o->print_value_string();
 }
 
+static void mmtk_scan_universe_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
+static void mmtk_scan_jni_handle_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
+static void mmtk_scan_object_synchronizer_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
+static void mmtk_scan_management_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_management_roots(cl); }
+static void mmtk_scan_jvmti_export_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
+static void mmtk_scan_aot_loader_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
+static void mmtk_scan_system_dictionary_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
+static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_string_table_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_weak_processor_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
+
+static size_t mmtk_number_of_mutators() {
+    return Threads::number_of_threads();
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_stop_all_mutators,
     mmtk_resume_mutators,
@@ -239,4 +299,19 @@ OpenJDK_Upcalls mmtk_upcalls = {
     referent_offset,
     discovered_offset,
     dump_object_string,
+    mmtk_scan_thread_roots,
+    mmtk_scan_thread_root,
+    mmtk_scan_universe_roots,
+    mmtk_scan_jni_handle_roots,
+    mmtk_scan_object_synchronizer_roots,
+    mmtk_scan_management_roots,
+    mmtk_scan_jvmti_export_roots,
+    mmtk_scan_aot_loader_roots,
+    mmtk_scan_system_dictionary_roots,
+    mmtk_scan_code_cache_roots,
+    mmtk_scan_string_table_roots,
+    mmtk_scan_class_loader_data_graph_roots,
+    mmtk_scan_weak_processor_roots,
+    mmtk_scan_vm_thread_roots,
+    mmtk_number_of_mutators,
 };

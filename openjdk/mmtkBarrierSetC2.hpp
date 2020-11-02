@@ -35,20 +35,21 @@ class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
-  virtual void write_barrier(GraphKit* kit,
-                           bool do_load,
-                           Node* ctl,
-                           Node* obj,
-                           Node* adr,
-                           uint adr_idx,
-                           Node* val,
-                           const TypeOopPtr* val_type,
-                           Node* pre_val,
-                           BasicType bt) const;
+  virtual void record_modified_edge(GraphKit* kit, Node* slot) const;
+  virtual void record_modified_node(GraphKit* kit, Node* node) const;
 
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const;
 
+  virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,
+                                               Node* new_val, const Type* value_type) const;
+  virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val,
+                                                Node* new_val, const Type* value_type) const;
+  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const;
+
 public:
+  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const;
+  virtual bool array_copy_requires_gc_barriers(BasicType type) const { return true; }
+
   virtual bool is_gc_barrier_node(Node* node) const;
   static void expand_allocate(
             PhaseMacroExpand* x,

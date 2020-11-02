@@ -52,59 +52,38 @@ class MMTkHeap : public CollectedHeap {
     HeapWord* _start;
     HeapWord* _end;
     static MMTkHeap* _heap;
-    SubTasksDone* _root_tasks;
     size_t _n_workers;
     Monitor* _gc_lock;
     ContiguousSpace* _space;
-
-  enum mmtk_strong_roots_tasks {
-    MMTk_Universe_oops_do,
-    MMTk_JNIHandles_oops_do,
-    MMTk_ObjectSynchronizer_oops_do,
-    MMTk_Management_oops_do,
-    MMTk_SystemDictionary_oops_do,
-    MMTk_ClassLoaderDataGraph_oops_do,
-    MMTk_jvmti_oops_do,
-    MMTk_CodeCache_oops_do,
-    MMTk_aot_oops_do,
-    MMTk_WeakProcessor_oops_do,
-    // Leave this one last.
-    MMTk_NumElements
-  };
-    
-private:
-   // static mmtkGCTaskManager* _mmtk_gc_task_manager;
-  //  OopStorage::ParState<false, false> _par_state_string;
-    
-
+    int _num_root_scan_tasks;
 public:
-     
+
   MMTkHeap(MMTkCollectorPolicy* policy);
 
   inline static MMTkHeap* heap() {
     return _heap;
   }
-     
+
   static HeapWord* allocate_from_tlab(Klass* klass, Thread* thread, size_t size);
- 
+
   jint initialize();
   void enable_collection();
-  
+
   virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
   HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);
-  
-  
-  
+
+
+
   Name kind() const {
     return CollectedHeap::ThirdPartyHeap;
   }
   const char* name() const {
     return "MMTk";
   }
-  
+
   size_t capacity() const;
   size_t used() const;
-  
+
   bool is_maximal_no_gc() const;
 
   size_t max_capacity() const;
@@ -117,7 +96,7 @@ public:
 
   // The amount of used space for thread-local allocation buffers for the given thread.
   size_t tlab_used(Thread *thr) const;
-  
+
   void new_collector_thread() {
     _n_workers += 1;
   }
@@ -125,12 +104,12 @@ public:
   Monitor* gc_lock() {
     return _gc_lock;
   }
-  
+
   bool can_elide_tlab_store_barriers() const;
 
 
   bool can_elide_initializing_store_barrier(oop new_obj);
-  
+
   // mark to be thus strictly sequenced after the stores.
   bool card_mark_must_follow_store() const;
 
@@ -171,7 +150,7 @@ public:
   void initialize_serviceability() ;
 
  public:
-  
+
   // Print heap information on the given outputStream.
   void print_on(outputStream* st) const ;
 
@@ -204,6 +183,23 @@ public:
   void scan_static_roots(OopClosure& cl);
   void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
+
+  void scan_universe_roots(OopClosure& cl);
+  void scan_jni_handle_roots(OopClosure& cl);
+  void scan_object_synchronizer_roots(OopClosure& cl);
+  void scan_management_roots(OopClosure& cl);
+  void scan_jvmti_export_roots(OopClosure& cl);
+  void scan_aot_loader_roots(OopClosure& cl);
+  void scan_system_dictionary_roots(OopClosure& cl);
+  void scan_code_cache_roots(OopClosure& cl);
+  void scan_string_table_roots(OopClosure& cl);
+  void scan_class_loader_data_graph_roots(OopClosure& cl);
+  void scan_weak_processor_roots(OopClosure& cl);
+  void scan_vm_thread_roots(OopClosure& cl);
+
+  virtual void report_java_thread_yield(JavaThread* thread);
+
+  static void (*_create_stack_scan_work)(void* mutator);
 
   jlong _last_gc_time;
 };

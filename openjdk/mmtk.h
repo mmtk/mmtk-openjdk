@@ -9,6 +9,18 @@
 extern "C" {
 #endif
 
+#ifndef MMTK_GC_NOGC
+#define MMTK_GC_NOGC 0
+#endif
+
+#ifndef MMTK_GC_SEMISPACE
+#define MMTK_GC_SEMISPACE 0
+#endif
+
+#ifndef MMTK_GC_GENCOPY
+#define MMTK_GC_GENCOPY 0
+#endif
+
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
@@ -17,6 +29,7 @@ typedef void* MMTk_TraceLocal;
  */
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
+extern void flush_mutator(MMTk_Mutator mutator);
 
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
@@ -31,6 +44,11 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
     int bytes, int allocator);
 
+extern void record_modified_node(MMTk_Mutator mutator, void* obj);
+extern void record_modified_edge(MMTk_Mutator mutator, void* slot);
+
+extern void release_buffer(void** buffer, size_t len, size_t cap);
+
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
@@ -44,31 +62,6 @@ struct AllocatorSelector {
 #define TAG_LARGE_OBJECT 1
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
-
-/**
- * Tracing
- */
-extern void report_delayed_root_edge(MMTk_TraceLocal trace_local,
-                                     void* addr);
-
-extern void bulk_report_delayed_root_edge(MMTk_TraceLocal trace_local,
-                                          void** buffer, size_t length);
-
-extern bool will_not_move_in_current_collection(MMTk_TraceLocal trace_local,
-                                                void* obj);
-
-extern void process_interior_edge(MMTk_TraceLocal trace_local, void* target,
-                                  void* slot, bool root);
-
-extern void* trace_get_forwarded_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_get_forwarded_reference(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_retain_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_root_object(MMTk_TraceLocal trace_local, void* obj);
-
-extern void process_edge(MMTk_TraceLocal trace, void* obj);
 
 /**
  * Misc
@@ -89,11 +82,18 @@ extern void start_worker(void *tls, void* worker);
 extern size_t free_bytes();
 extern size_t total_bytes();
 
+typedef struct {
+    void** buf;
+    size_t cap;
+} NewBuffer;
+
+typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
+
 /**
  * OpenJDK-specific
  */
 typedef struct {
-    void (*stop_all_mutators) (void *tls);
+    void (*stop_all_mutators) (void *tls, void (*create_stack_scan_work)(void* mutator));
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
@@ -116,6 +116,21 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
+    void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_universe_roots) (ProcessEdgesFn process_edges);
+    void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
+    void (*scan_object_synchronizer_roots) (ProcessEdgesFn process_edges);
+    void (*scan_management_roots) (ProcessEdgesFn process_edges);
+    void (*scan_jvmti_export_roots) (ProcessEdgesFn process_edges);
+    void (*scan_aot_loader_roots) (ProcessEdgesFn process_edges);
+    void (*scan_system_dictionary_roots) (ProcessEdgesFn process_edges);
+    void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
+    void (*scan_string_table_roots) (ProcessEdgesFn process_edges);
+    void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
+    void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
+    void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
+    size_t (*number_of_mutators)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

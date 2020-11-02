@@ -6,7 +6,7 @@ use mmtk::util::OpaquePointer;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use super::UPCALLS;
 use crate::OpenJDK;
-use mmtk::CollectorContext;
+use mmtk::CopyContext;
 
 pub struct VMObjectModel {}
 
@@ -20,17 +20,17 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
             &*(o.to_address() + Self::GC_BYTE_OFFSET / 8).to_ptr::<AtomicU8>()
         }
     }
-    fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+    #[inline]
+    fn copy(from: ObjectReference, allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
-        let context = unsafe { <OpenJDK as VMBinding>::VMActivePlan::collector(tls) };
-        let dst = context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy
         let src = from.to_address();
         for i in 0..bytes {
             unsafe { (dst + i).store((src + i).load::<u8>()) };
         }
         let to_obj = unsafe { dst.to_object_reference() };
-        context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
+        copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
         to_obj
     }
 
@@ -54,8 +54,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unimplemented!()
     }
 
-    fn get_current_size(_object: ObjectReference) -> usize {
-        unimplemented!()
+    fn get_current_size(object: ObjectReference) -> usize {
+        unsafe { ((*UPCALLS).get_object_size)(object) }
     }
 
     fn get_next_object(_object: ObjectReference) -> ObjectReference {

@@ -46,16 +46,21 @@ struct Allocators {
 struct MutatorConfig {
     void* allocator_mapping;
     void* space_mapping;
-    RustDynPtr collection_phase_func;
+    RustDynPtr prepare_func;
+    RustDynPtr release_func;
 };
 
 struct MMTkMutatorContext {
     Allocators allocators;
+    RustDynPtr barrier;
     void* mutator_tls;
     void* plan;
     MutatorConfig config;
+    void* modbuf;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
+
+    void flush();
 
     static MMTkMutatorContext bind(::Thread* current);
 };

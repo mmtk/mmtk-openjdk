@@ -107,7 +107,13 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     return;
   }
-  
+
+  assert_different_registers(tmp1, noreg);
+  assert_different_registers(tmp2, noreg);
+  assert_different_registers(tmp1, tmp2);
+
+  __ push(dst.base());
+
   if (dst.index() == noreg && dst.disp() == 0) {
     if (dst.base() != tmp1) {
       __ movptr(tmp1, dst.base());
@@ -115,34 +121,19 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
   } else {
     __ lea(tmp1, dst);
   }
-  
+
   BarrierSetAssembler::store_at(masm, decorators, type, Address(tmp1, 0), val, noreg, noreg);
 
-  write_barrier(masm /*masm*/, dst.base(), tmp1, val);
+  __ pop(tmp2);
+
+  record_modified_node(masm, tmp2);
 }
 
-
-void MMTkBarrierSetAssembler::write_barrier(MacroAssembler* masm, Register obj, Register slot, Register val) {
-  Label done;
-  Label runtime;
-
-  __ bind(runtime);
-  
-  __ mov(c_rarg0, obj);
-  __ mov(c_rarg1, slot);
-  __ mov(c_rarg2, val);
-
-  __ push(obj);
-  __ push(slot);
-  __ push(val);
-
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), 3);
-
-  __ pop(val);
-  __ pop(slot);
-  __ pop(obj);
-
-  __ bind(done);
+void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj) {
+  __ pusha();
+  __ movptr(c_rarg0, obj);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+  __ popa();
 }
 
 
@@ -158,8 +149,8 @@ void MMTkBarrierSetAssembler::gen_write_barrier_stub(LIR_Assembler* ce, MMTkWrit
   __ bind(*stub->entry());
 
   ce->store_parameter(stub->src()->as_pointer_register(), 0);
-  ce->store_parameter(stub->slot()->as_pointer_register(), 1);
-  ce->store_parameter(stub->new_val()->as_pointer_register(), 2);
+  // ce->store_parameter(stub->slot()->as_pointer_register(), 1);
+  // ce->store_parameter(stub->new_val()->as_pointer_register(), 2);
 
   __ call(RuntimeAddress(bs->write_barrier_c1_runtime_code_blob()->code_begin()));
   __ jmp(*stub->continuation());
@@ -180,26 +171,26 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
   Label runtime;
 
   __ push(c_rarg0);
-  __ push(c_rarg1);
-  __ push(c_rarg2);
+  // __ push(c_rarg1);
+  // __ push(c_rarg2);
   __ push(rax);
 
   __ load_parameter(0, c_rarg0);
-  __ load_parameter(1, c_rarg1);
-  __ load_parameter(2, c_rarg2);
+  // __ load_parameter(1, c_rarg1);
+  // __ load_parameter(2, c_rarg2);
 
   __ bind(runtime);
 
   __ save_live_registers_no_oop_map(true);
 
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::write_barrier_slow), 3);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
 
   __ restore_live_registers(true);
 
   __ bind(done);
   __ pop(rax);
-  __ pop(c_rarg2);
-  __ pop(c_rarg1);
+  // __ pop(c_rarg2);
+  // __ pop(c_rarg1);
   __ pop(c_rarg0);
 
   __ epilogue();
