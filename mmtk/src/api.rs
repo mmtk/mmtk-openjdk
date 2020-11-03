@@ -3,7 +3,7 @@ use libc::{c_char, c_void};
 use std::ffi::CStr;
 
 use mmtk::memory_manager;
-use mmtk::Allocator;
+use mmtk::AllocationSemantic;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
 use mmtk::{Plan, MMTK};
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
@@ -52,12 +52,12 @@ pub extern "C" fn flush_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
 
 #[no_mangle]
 pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, size: usize,
-                    align: usize, offset: isize, allocator: Allocator) -> Address {
+                    align: usize, offset: isize, allocator: AllocationSemantic) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
-pub extern "C" fn get_allocator_mapping(allocator: Allocator) -> AllocatorSelector {
+pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantic) -> AllocatorSelector {
     memory_manager::get_allocator_mapping(&SINGLETON, allocator)
 }
 
@@ -95,7 +95,7 @@ pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, al
 
 #[no_mangle]
 pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, refer: ObjectReference, type_refer: ObjectReference,
-                                        bytes: usize, allocator: Allocator) {
+                                        bytes: usize, allocator: AllocationSemantic) {
     memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
 }
 
