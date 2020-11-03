@@ -1,6 +1,6 @@
 
 use mmtk::vm::*;
-use mmtk::AllocationSemantic;
+use mmtk::AllocationSemantics;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::util::OpaquePointer;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
@@ -21,7 +21,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         }
     }
     #[inline]
-    fn copy(from: ObjectReference, allocator: AllocationSemantic, copy_context: &mut impl CopyContext) -> ObjectReference {
+    fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy
