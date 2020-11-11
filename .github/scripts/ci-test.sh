@@ -44,8 +44,8 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 # Fail non-deterministically
 # build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar hsqldb
 
-# These two run quite slow - consider not including them in the CI
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
+# Fail with OOM (code 137)
+# build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar eclipse
 
 # --- NoGC ---
