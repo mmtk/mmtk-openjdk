@@ -14,9 +14,9 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     const HAS_GC_BYTE: bool = true;
 
     #[cfg(target_pointer_width = "64")]
-    const GC_BYTE_OFFSET: usize = 56;
+    const GC_BYTE_OFFSET: isize = 56;
     #[cfg(target_pointer_width = "32")]
-    const GC_BYTE_OFFSET: usize = 0;
+    const GC_BYTE_OFFSET: isize = 0;
     
     #[inline]
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
