@@ -11,15 +11,13 @@ use mmtk::CopyContext;
 pub struct VMObjectModel {}
 
 impl ObjectModel<OpenJDK> for VMObjectModel {
+    const HAS_GC_BYTE: bool = true;
+
     #[cfg(target_pointer_width = "64")]
     const GC_BYTE_OFFSET: usize = 56;
     #[cfg(target_pointer_width = "32")]
     const GC_BYTE_OFFSET: usize = 0;
-    fn get_gc_byte(o: ObjectReference) -> &'static AtomicU8 {
-        unsafe {
-            &*(o.to_address() + Self::GC_BYTE_OFFSET / 8).to_ptr::<AtomicU8>()
-        }
-    }
+    
     #[inline]
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
