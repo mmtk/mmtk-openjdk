@@ -1,26 +1,31 @@
-
-use mmtk::vm::{Collection, Scanning, VMBinding};
-use mmtk::util::OpaquePointer;
-use mmtk::{MutatorContext, Mutator, SelectedPlan};
+use mmtk::scheduler::gc_works::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::scheduler::GCWorker;
-use mmtk::scheduler::gc_works::{ScanStackRoot, ProcessEdgesWork};
+use mmtk::util::OpaquePointer;
+use mmtk::vm::{Collection, Scanning, VMBinding};
+use mmtk::{Mutator, MutatorContext, SelectedPlan};
 
 use crate::OpenJDK;
-use crate::{UPCALLS, SINGLETON};
+use crate::{SINGLETON, UPCALLS};
 
 pub struct VMCollection {}
 
-extern fn create_mutator_scan_work<E: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>) {
-    SINGLETON.scheduler.prepare_stage.add(ScanStackRoot::<E>(mutator));
+extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
+    mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+) {
+    SINGLETON
+        .scheduler
+        .prepare_stage
+        .add(ScanStackRoot::<E>(mutator));
 }
 
 impl Collection<OpenJDK> for VMCollection {
-    fn stop_all_mutators<E: ProcessEdgesWork<VM=OpenJDK>>(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: OpaquePointer) {
         let f = {
             if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
                 0usize as _
             } else {
-                create_mutator_scan_work::<E> as *const extern "C" fn(&'static mut Mutator<SelectedPlan<OpenJDK>>)
+                create_mutator_scan_work::<E>
+                    as *const extern "C" fn(&'static mut Mutator<SelectedPlan<OpenJDK>>)
             }
         };
         unsafe {

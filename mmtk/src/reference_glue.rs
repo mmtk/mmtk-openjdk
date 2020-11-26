@@ -1,9 +1,8 @@
-
-use mmtk::vm::ReferenceGlue;
-use mmtk::util::ObjectReference;
-use mmtk::TraceLocal;
-use mmtk::util::OpaquePointer;
 use crate::OpenJDK;
+use mmtk::util::ObjectReference;
+use mmtk::util::OpaquePointer;
+use mmtk::vm::ReferenceGlue;
+use mmtk::TraceLocal;
 
 pub struct VMReferenceGlue {}
 
@@ -14,7 +13,11 @@ impl ReferenceGlue<OpenJDK> for VMReferenceGlue {
     fn get_referent(_object: ObjectReference) -> ObjectReference {
         unimplemented!()
     }
-    fn process_reference<T: TraceLocal>(_trace: &mut T, _reference: ObjectReference, _tls: OpaquePointer) -> ObjectReference {
+    fn process_reference<T: TraceLocal>(
+        _trace: &mut T,
+        _reference: ObjectReference,
+        _tls: OpaquePointer,
+    ) -> ObjectReference {
         unimplemented!()
     }
 }

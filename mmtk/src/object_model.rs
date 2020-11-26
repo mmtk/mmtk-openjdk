@@ -1,12 +1,11 @@
-
-use mmtk::vm::*;
-use mmtk::AllocationSemantics;
-use mmtk::util::{Address, ObjectReference};
-use mmtk::util::OpaquePointer;
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use super::UPCALLS;
 use crate::OpenJDK;
+use mmtk::util::OpaquePointer;
+use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::*;
+use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
+use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 
 pub struct VMObjectModel {}
 
@@ -17,11 +16,16 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     const GC_BYTE_OFFSET: isize = 7;
     #[cfg(target_pointer_width = "32")]
     const GC_BYTE_OFFSET: isize = 0;
-    
+
     #[inline]
-    fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
+    fn copy(
+        from: ObjectReference,
+        allocator: AllocationSemantics,
+        copy_context: &mut impl CopyContext,
+    ) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
-        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
+        let dst =
+            copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy
         let src = from.to_address();
         for i in 0..bytes {
@@ -86,7 +90,10 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
 
     fn attempt_available_bits(object: ObjectReference, old: usize, new: usize) -> bool {
         unsafe {
-            object.to_address().compare_exchange::<AtomicUsize>(old, new, Ordering::SeqCst, Ordering::SeqCst).is_ok()
+            object
+                .to_address()
+                .compare_exchange::<AtomicUsize>(old, new, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
         }
     }
 
@@ -103,11 +110,19 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     }
 
     fn write_available_bits_word(object: ObjectReference, val: usize) {
-        unsafe { object.to_address().atomic_store::<AtomicUsize>(val, Ordering::SeqCst) }
+        unsafe {
+            object
+                .to_address()
+                .atomic_store::<AtomicUsize>(val, Ordering::SeqCst)
+        }
     }
 
     fn read_available_bits_word(object: ObjectReference) -> usize {
-        unsafe { object.to_address().atomic_load::<AtomicUsize>(Ordering::SeqCst) }
+        unsafe {
+            object
+                .to_address()
+                .atomic_load::<AtomicUsize>(Ordering::SeqCst)
+        }
     }
 
     fn gc_header_offset() -> isize {
