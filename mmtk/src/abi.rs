@@ -1,21 +1,21 @@
-use mmtk::util::{OpaquePointer, Address};
+use super::UPCALLS;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
-use std::{mem, slice};
-use std::marker::PhantomData;
-use super::UPCALLS;
-use std::fmt;
+use mmtk::util::{Address, OpaquePointer};
 use std::ffi::CStr;
+use std::fmt;
+use std::marker::PhantomData;
+use std::{mem, slice};
 
 trait EqualTo<T> {
     const VALUE: bool;
 }
 
-impl <T, U> EqualTo<U> for T {
+impl<T, U> EqualTo<U> for T {
     default const VALUE: bool = false;
 }
 
-impl <T> EqualTo<T> for T {
+impl<T> EqualTo<T> for T {
     const VALUE: bool = true;
 }
 
@@ -47,7 +47,7 @@ pub struct Klass {
     pub secondary_super_cache: &'static Klass,
     pub secondary_supers: OpaquePointer, // Array<Klass*>*
     pub primary_supers: [&'static Klass; 8],
-    pub java_mirror:  &'static Oop, // OopHandle
+    pub java_mirror: &'static Oop, // OopHandle
     pub super_: &'static Klass,
     pub subklass: &'static Klass,
     pub next_sibling: &'static Klass,
@@ -55,7 +55,7 @@ pub struct Klass {
     pub class_loader_data: OpaquePointer, // ClassLoaderData*
     pub modifier_flags: i32,
     pub access_flags: i32, // AccessFlags
-    pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
+    pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
     pub last_biased_lock_bulk_revocation_time: i64,
     pub prototype_header: Oop, // markOop,
     pub biased_lock_revocation_count: i32,
@@ -72,16 +72,16 @@ impl Klass {
 #[repr(C)]
 pub struct InstanceKlass {
     pub klass: Klass,
-    pub annotations: OpaquePointer, // Annotations*
+    pub annotations: OpaquePointer,   // Annotations*
     pub package_entry: OpaquePointer, // PackageEntry*
     pub array_klasses: &'static Klass,
-    pub constants: OpaquePointer, // ConstantPool*
+    pub constants: OpaquePointer,     // ConstantPool*
     pub inner_classes: OpaquePointer, // Array<jushort>*
-    pub nest_members: OpaquePointer, // Array<jushort>*
+    pub nest_members: OpaquePointer,  // Array<jushort>*
     pub nest_host_index: u16,
     pub nest_host: &'static InstanceKlass,
     pub source_debug_extension: OpaquePointer, // const char*
-    pub array_name: OpaquePointer, // Symbol*
+    pub array_name: OpaquePointer,             // Symbol*
     pub nonstatic_field_size: i32,
     pub static_field_size: i32,
     pub generic_signature_index: u16,
@@ -91,37 +91,37 @@ pub struct InstanceKlass {
     pub nonstatic_oop_map_size: i32,
     pub itable_len: i32,
     pub is_marked_dependent: bool, // bool
-    pub is_being_redefined: bool, // bool
+    pub is_being_redefined: bool,  // bool
     pub misc_flags: u16,
     pub minor_version: u16,
     pub major_version: u16,
-    pub init_thread: OpaquePointer, // Thread*
-    pub oop_map_cache: OpaquePointer, // OopMapCache*
-    pub jni_ids: OpaquePointer, // JNIid*
+    pub init_thread: OpaquePointer,         // Thread*
+    pub oop_map_cache: OpaquePointer,       // OopMapCache*
+    pub jni_ids: OpaquePointer,             // JNIid*
     pub methods_jmethod_ids: OpaquePointer, // jmethodID*
-    pub dep_context: usize, // intptr_t
-    pub osr_nmethods_head: OpaquePointer, // nmethod*
-// #if INCLUDE_JVMTI
-    pub breakpoints: OpaquePointer, // BreakpointInfo*
+    pub dep_context: usize,                 // intptr_t
+    pub osr_nmethods_head: OpaquePointer,   // nmethod*
+    // #if INCLUDE_JVMTI
+    pub breakpoints: OpaquePointer,       // BreakpointInfo*
     pub previous_versions: OpaquePointer, // InstanceKlass*
     pub cached_class_file: OpaquePointer, // JvmtiCachedClassFileData*
-// #endif
+    // #endif
     pub idnum_allocated_count: u16,
     pub init_state: u8,
     pub reference_type: u8,
     pub this_class_index: u16,
-// #if INCLUDE_JVMTI
+    // #if INCLUDE_JVMTI
     pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
-// #endif
+    // #endif
     #[cfg(debug_assertions)]
     verify_count: i32,
-    pub methods: OpaquePointer, // Array<Method*>*
-    pub default_methods: OpaquePointer, // Array<Method*>*
-    pub local_interfaces: OpaquePointer, // Array<Klass*>*
-    pub transitive_interfaces: OpaquePointer, // Array<Klass*>*
-    pub method_ordering: OpaquePointer, // Array<int>*
+    pub methods: OpaquePointer,                // Array<Method*>*
+    pub default_methods: OpaquePointer,        // Array<Method*>*
+    pub local_interfaces: OpaquePointer,       // Array<Klass*>*
+    pub transitive_interfaces: OpaquePointer,  // Array<Klass*>*
+    pub method_ordering: OpaquePointer,        // Array<int>*
     pub default_vtable_indices: OpaquePointer, // Array<int>*
-    pub fields: OpaquePointer, // Array<u2>*
+    pub fields: OpaquePointer,                 // Array<u2>*
 }
 
 impl InstanceKlass {
@@ -138,7 +138,8 @@ impl InstanceKlass {
 
     fn nonstatic_oop_map_count(&self) -> usize {
         let oop_map_block_size = mem::size_of::<OopMapBlock>();
-        let oop_map_block_size_up = mmtk::util::conversions::raw_align_up(oop_map_block_size, BYTES_IN_WORD);
+        let oop_map_block_size_up =
+            mmtk::util::conversions::raw_align_up(oop_map_block_size, BYTES_IN_WORD);
         self.nonstatic_oop_map_size as usize / (oop_map_block_size_up >> LOG_BYTES_IN_WORD)
     }
 
@@ -158,17 +159,15 @@ pub struct InstanceMirrorKlass {
 impl InstanceMirrorKlass {
     fn offset_of_static_fields() -> usize {
         lazy_static! {
-            pub static ref OFFSET_OF_STATIC_FIELDS: usize = unsafe {
-                ((*UPCALLS).offset_of_static_fields)() as usize
-            };
+            pub static ref OFFSET_OF_STATIC_FIELDS: usize =
+                unsafe { ((*UPCALLS).offset_of_static_fields)() as usize };
         }
         *OFFSET_OF_STATIC_FIELDS
     }
     fn static_oop_field_count_offset() -> i32 {
         lazy_static! {
-            pub static ref STATIC_OOP_FIELD_COUNT_OFFSET: i32 = unsafe {
-                ((*UPCALLS).static_oop_field_count_offset)()
-            };
+            pub static ref STATIC_OOP_FIELD_COUNT_OFFSET: i32 =
+                unsafe { ((*UPCALLS).static_oop_field_count_offset)() };
         }
         *STATIC_OOP_FIELD_COUNT_OFFSET
     }
@@ -215,17 +214,13 @@ pub struct InstanceRefKlass {
 impl InstanceRefKlass {
     fn referent_offset() -> i32 {
         lazy_static! {
-            pub static ref REFERENT_OFFSET: i32 = unsafe {
-                ((*UPCALLS).referent_offset)()
-            };
+            pub static ref REFERENT_OFFSET: i32 = unsafe { ((*UPCALLS).referent_offset)() };
         }
         *REFERENT_OFFSET
     }
     fn discovered_offset() -> i32 {
         lazy_static! {
-            pub static ref DISCOVERED_OFFSET: i32 = unsafe {
-                ((*UPCALLS).discovered_offset)()
-            };
+            pub static ref DISCOVERED_OFFSET: i32 = unsafe { ((*UPCALLS).discovered_offset)() };
         }
         *DISCOVERED_OFFSET
     }
@@ -245,9 +240,7 @@ pub struct OopDesc {
 
 impl fmt::Debug for OopDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let c_string = unsafe {
-            ((*UPCALLS).dump_object_string)(mem::transmute(self))
-        };
+        let c_string = unsafe { ((*UPCALLS).dump_object_string)(mem::transmute(self)) };
         let c_str: &CStr = unsafe { CStr::from_ptr(c_string) };
         let s: &str = c_str.to_str().unwrap();
         write!(f, "{}", s)
@@ -271,11 +264,12 @@ pub struct ArrayOopDesc<T>(OopDesc, PhantomData<T>);
 
 pub type ArrayOop<T> = &'static ArrayOopDesc<T>;
 
-impl <T> ArrayOopDesc<T> {
+impl<T> ArrayOopDesc<T> {
     const ELEMENT_TYPE_SHOULD_BE_ALIGNED: bool = type_equal::<T, f64>() || type_equal::<T, i64>();
     const LENGTH_OFFSET: usize = mem::size_of::<Self>();
     fn header_size() -> usize {
-        let typesize_in_bytes = conversions::raw_align_up(Self::LENGTH_OFFSET + BYTES_IN_INT, BYTES_IN_LONG);
+        let typesize_in_bytes =
+            conversions::raw_align_up(Self::LENGTH_OFFSET + BYTES_IN_INT, BYTES_IN_LONG);
         if Self::ELEMENT_TYPE_SHOULD_BE_ALIGNED {
             conversions::raw_align_up(typesize_in_bytes / BYTES_IN_WORD, BYTES_IN_LONG)
         } else {
@@ -301,20 +295,16 @@ pub struct OopMapBlock {
     pub count: u32,
 }
 
-
-
 pub fn validate_memory_layouts() {
-    let vm_checksum = unsafe {
-        ((*UPCALLS).compute_klass_mem_layout_checksum)()
-    };
+    let vm_checksum = unsafe { ((*UPCALLS).compute_klass_mem_layout_checksum)() };
     let binding_checksum = {
         mem::size_of::<Klass>()
-        ^ mem::size_of::<InstanceKlass>()
-        ^ mem::size_of::<InstanceRefKlass>()
-        ^ mem::size_of::<InstanceMirrorKlass>()
-        ^ mem::size_of::<InstanceClassLoaderKlass>()
-        ^ mem::size_of::<TypeArrayKlass>()
-        ^ mem::size_of::<ObjArrayKlass>()
+            ^ mem::size_of::<InstanceKlass>()
+            ^ mem::size_of::<InstanceRefKlass>()
+            ^ mem::size_of::<InstanceMirrorKlass>()
+            ^ mem::size_of::<InstanceClassLoaderKlass>()
+            ^ mem::size_of::<TypeArrayKlass>()
+            ^ mem::size_of::<ObjArrayKlass>()
     };
     assert_eq!(vm_checksum, binding_checksum);
 }

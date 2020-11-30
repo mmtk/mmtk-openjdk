@@ -1,14 +1,13 @@
-
-use mmtk::{Plan, SelectedPlan};
-use mmtk::vm::ActivePlan;
-use mmtk::util::OpaquePointer;
-use mmtk::scheduler::GCWorker;
+use super::UPCALLS;
 use crate::OpenJDK;
 use crate::SINGLETON;
-use super::UPCALLS;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::OpaquePointer;
+use mmtk::vm::ActivePlan;
+use mmtk::{Plan, SelectedPlan};
 use std::sync::Mutex;
 
-pub struct VMActivePlan<> {}
+pub struct VMActivePlan {}
 
 impl ActivePlan<OpenJDK> for VMActivePlan {
     fn global() -> &'static SelectedPlan<OpenJDK> {
@@ -55,9 +54,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
     }
 
     fn number_of_mutators() -> usize {
-        unsafe {
-            ((*UPCALLS).number_of_mutators)()
-        }
+        unsafe { ((*UPCALLS).number_of_mutators)() }
     }
 }
 
