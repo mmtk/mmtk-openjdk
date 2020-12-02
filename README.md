@@ -19,7 +19,7 @@ If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-d
 
 ```console
 # replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev-env
-$ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
+$ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
