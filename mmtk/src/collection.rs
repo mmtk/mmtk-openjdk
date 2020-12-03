@@ -2,7 +2,7 @@
 use mmtk::vm::{Collection, Scanning, VMBinding};
 use mmtk::util::OpaquePointer;
 use mmtk::{MutatorContext, Mutator, SelectedPlan};
-use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::{GCWorker, WorkBucketId};
 use mmtk::scheduler::gc_works::{ScanStackRoot, ProcessEdgesWork};
 
 use crate::OpenJDK;
@@ -11,7 +11,7 @@ use crate::{UPCALLS, SINGLETON};
 pub struct VMCollection {}
 
 extern fn create_mutator_scan_work<E: ProcessEdgesWork<VM=OpenJDK>>(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>) {
-    SINGLETON.scheduler.prepare_stage.add(ScanStackRoot::<E>(mutator));
+    SINGLETON.scheduler.work_buckets[WorkBucketId::Prepare].add(ScanStackRoot::<E>(mutator));
 }
 
 impl Collection<OpenJDK> for VMCollection {

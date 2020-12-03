@@ -5,6 +5,7 @@ use std::{mem, slice};
 use super::UPCALLS;
 use super::abi::*;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::WorkBucketId;
 use crate::{OpenJDK, SINGLETON};
 use std::marker::PhantomData;
 
@@ -181,7 +182,7 @@ impl <E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<E> {
         if self.0.len() >= E::CAPACITY {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
-            SINGLETON.scheduler.closure_stage.add(E::new(new_edges, false));
+            SINGLETON.scheduler.work_buckets[WorkBucketId::Closure].add(E::new(new_edges, false));
         }
     }
     fn process_node(&mut self, _object: ObjectReference) { unreachable!() }
@@ -192,7 +193,7 @@ impl <E: ProcessEdgesWork<VM=OpenJDK>> Drop for ObjectsClosure<E> {
     fn drop(&mut self) {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
-        SINGLETON.scheduler.closure_stage.add(E::new(new_edges, false));
+        SINGLETON.scheduler.work_buckets[WorkBucketId::Closure].add(E::new(new_edges, false));
     }
 }
 
