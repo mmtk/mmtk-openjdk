@@ -1,13 +1,13 @@
-use mmtk::vm::Scanning;
-use mmtk::{TransitiveClosure, TraceLocal, Mutator, SelectedPlan};
-use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
-use mmtk::util::OpaquePointer;
-use mmtk::scheduler::{WorkBucketId, GCWorker};
-use crate::OpenJDK;
-use super::{UPCALLS, SINGLETON, NewBuffer};
-use mmtk::MutatorContext;
 use super::gc_works::*;
+use super::{NewBuffer, SINGLETON, UPCALLS};
+use crate::OpenJDK;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::{GCWorker, WorkBucketId};
+use mmtk::util::OpaquePointer;
+use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
+use mmtk::vm::Scanning;
+use mmtk::MutatorContext;
+use mmtk::{Mutator, SelectedPlan, TraceLocal, TransitiveClosure};
 use std::mem;
 
 static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
@@ -48,7 +48,10 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_objects<W: ProcessEdgesWork<VM = OpenJDK>>(objects: &[ObjectReference], worker: &mut GCWorker<OpenJDK>) {
+    fn scan_objects<W: ProcessEdgesWork<VM = OpenJDK>>(
+        objects: &[ObjectReference],
+        worker: &mut GCWorker<OpenJDK>,
+    ) {
         crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects, worker);
     }
 
@@ -88,9 +91,7 @@ impl Scanning<OpenJDK> for VMScanning {
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
-            SINGLETON
-                .scheduler
-                .work_buckets[WorkBucketId::Prepare]
+            SINGLETON.scheduler.work_buckets[WorkBucketId::Prepare]
                 .add(ScanVMThreadRoots::<W>::new());
         }
     }

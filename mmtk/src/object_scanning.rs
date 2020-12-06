@@ -1,8 +1,8 @@
 use super::abi::*;
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
-use mmtk::scheduler::{WorkBucketId, GCWorker};
 use super::UPCALLS;
 use crate::{OpenJDK, SINGLETON};
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::{GCWorker, WorkBucketId};
 use mmtk::util::constants::*;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::TransitiveClosure;
@@ -159,8 +159,7 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePoint
         KlassID::InstanceRef => {
             let instance_klass = unsafe { oop.klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate(oop, closure);
-        }
-        // _ => oop_iterate_slow(oop, closure, tls),
+        } // _ => oop_iterate_slow(oop, closure, tls),
     }
 }
 
@@ -178,9 +177,13 @@ pub fn scan_object(
     unsafe { oop_iterate(mem::transmute(object), closure, tls) }
 }
 
-pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM=OpenJDK>>(Vec<Address>, &'a mut GCWorker<OpenJDK>, PhantomData<E>);
+pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
+    Vec<Address>,
+    &'a mut GCWorker<OpenJDK>,
+    PhantomData<E>,
+);
 
-impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
+impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
         if self.0.len() == 0 {
@@ -190,7 +193,8 @@ impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<
         if self.0.len() >= E::CAPACITY {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
-            self.1.add_work(WorkBucketId::Closure, E::new(new_edges, false));
+            self.1
+                .add_work(WorkBucketId::Closure, E::new(new_edges, false));
         }
     }
     fn process_node(&mut self, _object: ObjectReference) {
@@ -198,16 +202,20 @@ impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<
     }
 }
 
-impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> Drop for ObjectsClosure<'a, E> {
+impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> Drop for ObjectsClosure<'a, E> {
     #[inline]
     fn drop(&mut self) {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
-        self.1.add_work(WorkBucketId::Closure, E::new(new_edges, false));
+        self.1
+            .add_work(WorkBucketId::Closure, E::new(new_edges, false));
     }
 }
 
-pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM=OpenJDK>>(objects: &[ObjectReference], worker: &mut GCWorker<OpenJDK>) {
+pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM = OpenJDK>>(
+    objects: &[ObjectReference],
+    worker: &mut GCWorker<OpenJDK>,
+) {
     let mut closure = ObjectsClosure::<E>(Vec::new(), worker, PhantomData);
     for object in objects {
         scan_object(*object, &mut closure, OpaquePointer::UNINITIALIZED);
