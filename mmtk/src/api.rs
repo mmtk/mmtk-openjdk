@@ -1,21 +1,20 @@
-
 use libc::{c_char, c_void};
 use std::ffi::CStr;
 
 use mmtk::memory_manager;
-use mmtk::AllocationSemantics;
-use mmtk::util::{ObjectReference, OpaquePointer, Address};
-use mmtk::{Plan, MMTK};
-use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::{Mutator, SelectedPlan};
-use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::scheduler::GCWorker;
+use mmtk::util::alloc::allocators::AllocatorSelector;
+use mmtk::util::constants::LOG_BYTES_IN_PAGE;
+use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
+use mmtk::{Mutator, SelectedPlan};
+use mmtk::{Plan, MMTK};
 
 use crate::OpenJDK;
-use crate::UPCALLS;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
+use crate::UPCALLS;
 
 #[no_mangle]
 pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
@@ -26,7 +25,8 @@ pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usi
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
-    let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
+    let singleton_mut =
+        unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
 }
 
@@ -51,8 +51,13 @@ pub extern "C" fn flush_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, size: usize,
-                    align: usize, offset: isize, allocator: AllocationSemantics) -> Address {
+pub extern "C" fn alloc(
+    mutator: *mut Mutator<SelectedPlan<OpenJDK>>,
+    size: usize,
+    align: usize,
+    offset: isize,
+    allocator: AllocationSemantics,
+) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
@@ -63,12 +68,17 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 
 // Allocation slow path
 
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
 use mmtk::util::alloc::Allocator as IAllocator;
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
 use mmtk::util::heap::MonotonePageResource;
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_immortal(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     use mmtk::policy::immortalspace::ImmortalSpace;
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
@@ -78,25 +88,52 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size
 
 #[no_mangle]
 #[cfg(any(feature = "semispace", feature = "gencopy"))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     use mmtk::policy::copyspace::CopySpace;
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
 #[cfg(not(any(feature = "semispace", feature = "gencopy")))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     unimplemented!()
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
-    unsafe { &mut *(allocator as *mut LargeObjectAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
+pub extern "C" fn alloc_slow_largeobject(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
+    unsafe { &mut *(allocator as *mut LargeObjectAllocator<OpenJDK>) }
+        .alloc_slow(size, align, offset)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<OpenJDK>>, refer: ObjectReference, type_refer: ObjectReference,
-                                        bytes: usize, allocator: AllocationSemantics) {
-    memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
+pub extern "C" fn post_alloc(
+    mutator: *mut Mutator<SelectedPlan<OpenJDK>>,
+    refer: ObjectReference,
+    type_refer: ObjectReference,
+    bytes: usize,
+    allocator: AllocationSemantics,
+) {
+    memory_manager::post_alloc::<OpenJDK>(
+        unsafe { &mut *mutator },
+        refer,
+        type_refer,
+        bytes,
+        allocator,
+    )
 }
 
 #[no_mangle]
@@ -194,7 +231,11 @@ pub extern "C" fn harness_end(_id: usize) {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
-    memory_manager::process(&SINGLETON, name_str.to_str().unwrap(), value_str.to_str().unwrap())
+    memory_manager::process(
+        &SINGLETON,
+        name_str.to_str().unwrap(),
+        value_str.to_str().unwrap(),
+    )
 }
 
 #[no_mangle]
@@ -218,11 +259,17 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>, obj: ObjectReference) {
+pub extern "C" fn record_modified_node(
+    mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+    obj: ObjectReference,
+) {
     mutator.record_modified_node(obj);
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_edge(mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>, slot: Address) {
+pub extern "C" fn record_modified_edge(
+    mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+    slot: Address,
+) {
     mutator.record_modified_edge(slot);
 }

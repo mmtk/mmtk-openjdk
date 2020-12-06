@@ -1,16 +1,13 @@
-use mmtk::util::{OpaquePointer, Address, ObjectReference};
-use mmtk::TransitiveClosure;
-use mmtk::util::constants::*;
-use std::{mem, slice};
-use super::UPCALLS;
 use super::abi::*;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use mmtk::scheduler::{WorkBucketId, GCWorker};
+use super::UPCALLS;
 use crate::{OpenJDK, SINGLETON};
+use mmtk::util::constants::*;
+use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::TransitiveClosure;
 use std::marker::PhantomData;
-
-
-
+use std::{mem, slice};
 
 trait OopIterate: Sized {
     #[inline]
@@ -122,7 +119,6 @@ impl OopIterate for InstanceRefKlass {
     }
 }
 
-
 #[allow(unused)]
 fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
     unsafe {
@@ -133,41 +129,53 @@ fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaqueP
 #[inline]
 fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePointer) {
     let klass_id = oop.klass.id;
-    debug_assert!(klass_id as i32 >= 0 && (klass_id as i32) < 6, "Invalid klass-id: {:?}", klass_id as i32);
+    debug_assert!(
+        klass_id as i32 >= 0 && (klass_id as i32) < 6,
+        "Invalid klass-id: {:x} for oop: {:x}",
+        klass_id as i32,
+        unsafe { mem::transmute::<Oop, ObjectReference>(oop) }
+    );
     match klass_id {
         KlassID::Instance => {
             let instance_klass = unsafe { oop.klass.cast::<InstanceKlass>() };
             instance_klass.oop_iterate(oop, closure);
-        },
+        }
         KlassID::InstanceClassLoader => {
             let instance_klass = unsafe { oop.klass.cast::<InstanceClassLoaderKlass>() };
             instance_klass.oop_iterate(oop, closure);
-        },
+        }
         KlassID::InstanceMirror => {
             let instance_klass = unsafe { oop.klass.cast::<InstanceMirrorKlass>() };
             instance_klass.oop_iterate(oop, closure);
-        },
+        }
         KlassID::ObjArray => {
             let array_klass = unsafe { oop.klass.cast::<ObjArrayKlass>() };
             array_klass.oop_iterate(oop, closure);
-        },
+        }
         KlassID::TypeArray => {
             let array_klass = unsafe { oop.klass.cast::<TypeArrayKlass>() };
             array_klass.oop_iterate(oop, closure);
-        },
+        }
         KlassID::InstanceRef => {
             let instance_klass = unsafe { oop.klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate(oop, closure);
-        },
+        }
         // _ => oop_iterate_slow(oop, closure, tls),
     }
 }
 
 #[inline]
-pub fn scan_object(object: ObjectReference, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
-    unsafe {
-        oop_iterate(mem::transmute(object), closure, tls)
-    }
+pub fn scan_object(
+    object: ObjectReference,
+    closure: &mut impl TransitiveClosure,
+    tls: OpaquePointer,
+) {
+    // println!("*****scan_object(0x{:x}) -> \n 0x{:x}, 0x{:x} \n",
+    //     object,
+    //     unsafe { *(object.value() as *const usize) },
+    //     unsafe { *((object.value() + 8) as *const usize) }
+    // );
+    unsafe { oop_iterate(mem::transmute(object), closure, tls) }
 }
 
 pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM=OpenJDK>>(Vec<Address>, &'a mut GCWorker<OpenJDK>, PhantomData<E>);
@@ -185,7 +193,9 @@ impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> TransitiveClosure for ObjectsClosure<
             self.1.add_work(WorkBucketId::Closure, E::new(new_edges, false));
         }
     }
-    fn process_node(&mut self, _object: ObjectReference) { unreachable!() }
+    fn process_node(&mut self, _object: ObjectReference) {
+        unreachable!()
+    }
 }
 
 impl <'a, E: ProcessEdgesWork<VM=OpenJDK>> Drop for ObjectsClosure<'a, E> {
