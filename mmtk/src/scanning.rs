@@ -4,7 +4,7 @@ use mmtk::{TransitiveClosure, TraceLocal, Mutator, SelectedPlan};
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
-use mmtk::scheduler::WorkBucketId;
+use mmtk::scheduler::{WorkBucketId, GCWorker};
 use crate::OpenJDK;
 use super::{UPCALLS, SINGLETON, NewBuffer};
 use std::mem;
@@ -44,8 +44,8 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_objects<W: ProcessEdgesWork<VM=OpenJDK>>(objects: &[ObjectReference]) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects);
+    fn scan_objects<W: ProcessEdgesWork<VM=OpenJDK>>(objects: &[ObjectReference], worker: &mut GCWorker<OpenJDK>) {
+        crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM=OpenJDK>>() {
