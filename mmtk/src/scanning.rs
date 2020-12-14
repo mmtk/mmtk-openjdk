@@ -9,8 +9,6 @@ use mmtk::MutatorContext;
 use mmtk::{Mutator, SelectedPlan, TraceLocal, TransitiveClosure};
 use std::mem;
 
-static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
-
 pub struct VMScanning {}
 
 pub extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
@@ -36,10 +34,6 @@ impl Scanning<OpenJDK> for VMScanning {
         tls: OpaquePointer,
     ) {
         crate::object_scanning::scan_object(object, trace, tls)
-    }
-
-    fn reset_thread_counter() {
-        COUNTER.reset();
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
