@@ -515,7 +515,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
     }
 
     IdealKit ideal(kit, true);
-    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "record_modified_node", src, adr);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "x_record_modified_node", src, adr);
     kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
   }
 
@@ -621,6 +621,6 @@ bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
     return false;
   }
 
-  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0;
+  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0 || strcmp(call->_name, "x_record_modified_node") == 0;
 }
 

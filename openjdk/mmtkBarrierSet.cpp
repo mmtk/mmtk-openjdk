@@ -81,6 +81,7 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 
 bool MMTkBarrierSet::is_slow_path_call(address call) {
     return call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node)
+        || call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2)
         || call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge);
 }
 
