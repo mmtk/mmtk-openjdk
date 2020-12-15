@@ -87,6 +87,10 @@ bool MMTkBarrierSet::is_slow_path_call(address call) {
 void MMTkBarrierRuntime::record_modified_node(void* obj) {
     ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
 }
+void MMTkBarrierRuntime::record_modified_node2(void* obj, void** slot) {
+    // printf("record_modified_node2 %p, %p \n", obj, slot);
+    ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+}
 void MMTkBarrierRuntime::record_modified_edge(void* slot) {
     ::record_modified_edge((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) slot);
 }

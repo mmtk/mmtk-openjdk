@@ -36,11 +36,17 @@
 #include "mmtk.h"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
+
 #if MMTK_GC_GENCOPY
 #define MMTK_ENABLE_WRITE_BARRIER true
+#define MMTK_ENABLE_WRITE_BARRIER_FASTPATH true
 #else
 #define MMTK_ENABLE_WRITE_BARRIER false
 #endif
+
+#define MMTK_HEAP_END 0x0000_2000_0000_0000ULL
+#define MMTK_NURSERY_START ((void*) 0x20000000000ULL)
+#define MMTK_NURSERY_END   ((void*) 0x40000000000ULL)
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
@@ -49,6 +55,16 @@
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
+  static void record_modified_node2(void* src, void** slot);
+  inline static void post_write_barrier(void* src, void** slot) {
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+    // if () {
+      record_modified_node(src);
+    // }
+#else
+    record_modified_node(src);
+#endif
+  }
   static void record_modified_edge(void* slot);
 };
 
@@ -98,10 +114,7 @@ public:
   public:
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
-      Raw::oop_store(addr, value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
+      guarantee(false, "unreachable");
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {

@@ -500,7 +500,26 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
 
   Node* store = BarrierSetC2::store_at_resolved(access, val);
 
-  record_modified_node(kit, access.base());
+  {
+    Node* src = access.base();
+    Node* adr = access.addr().node();
+    const TypeFunc* tf;
+    {
+      const Type **fields = TypeTuple::fields(2);
+      fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
+      fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
+      const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+2, fields);
+      fields = TypeTuple::fields(0);
+      const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+      tf = TypeFunc::make(domain, range);
+    }
+
+    IdealKit ideal(kit, true);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "record_modified_node", src, adr);
+    kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+  }
+
+  // record_modified_node(kit, access.base());
 
   return store;
 }
