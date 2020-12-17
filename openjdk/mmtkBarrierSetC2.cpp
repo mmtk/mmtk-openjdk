@@ -508,45 +508,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
 
   Node* store = BarrierSetC2::store_at_resolved(access, val);
 
-  {
-    MMTkIdealKit ideal(kit, true);
-
-    Node* src = access.base();
-
-    Node* no_base = __ top();
-    Node* zero  = __ ConX(0);
-    float unlikely  = PROB_UNLIKELY(0.999);
-
-    Node* src_long = __ CastPX(__ ctrl(), src);
-    Node* chunk_index = __ URShiftX(src_long, __ ConI(MMTK_LOG_CHUNK_SIZE));
-    Node* chunk_offset = __ LShiftX(chunk_index, __ ConI(MMTK_LOG_PER_CHUNK_METADATA_SIZE));
-    Node* bit_index = __ URShiftX(__ AndX(src_long, __ ConX(MMTK_CHUNK_MASK)), __ ConI(3));
-    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
-    Node* per_chunk_metadata_start = __ AddP(no_base, heap_end, chunk_offset);
-    Node* word_offset = __ LShiftX(__ URShiftX(bit_index, __ ConI(6)), __ ConI(3));
-    Node* metadata_word_ptr = __ AddP(no_base, per_chunk_metadata_start, word_offset);
-    Node* word = __ load(__ ctrl(), metadata_word_ptr, TypeLong::LONG, T_LONG, Compile::AliasIdxRaw);
-
-    Node* bit_offset = __ AndX(bit_index, __ ConX(63));
-    Node* mask = __ LShiftX(__ ConX(1), __ ConvL2I(bit_offset));
-    Node* result = __ AndX(word, mask);
-
-    __ if_then(result, BoolTest::eq, zero, unlikely); {
-        const TypeFunc* tf;
-        {
-          const Type **fields = TypeTuple::fields(2);
-          fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-          fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
-          const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+2, fields);
-          fields = TypeTuple::fields(0);
-          const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-          tf = TypeFunc::make(domain, range);
-        }
-        Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "x_record_modified_node", src, adr);
-    } __ end_if();
-
-    kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
-  }
+  record_modified_node2(kit, access.base());
 
   return store;
 }
@@ -563,7 +525,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, N
 
   Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node(kit, access.base());
+  record_modified_node2(kit, access.base());
 
   return result;
 }
@@ -580,7 +542,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, 
 
   Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node(kit, access.base());
+  record_modified_node2(kit, access.base());
 
   return load_store;
 }
@@ -597,14 +559,14 @@ Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* ne
     return result;
   }
 
-  record_modified_node(kit, access.base());
+  record_modified_node2(kit, access.base());
 
   return result;
 }
 
 void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
   BarrierSetC2::clone(kit, src, dst, size, is_array);
-  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node(kit, dst);
+  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node2(kit, dst);
 }
 
 const TypeFunc* record_modified_node_entry_Type() {
@@ -637,6 +599,48 @@ void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* node) const {
   const TypeFunc *tf = record_modified_node_entry_Type();
   Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", node);
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+}
+
+void MMTkBarrierSetC2::record_modified_node2(GraphKit* kit, Node* src) const {
+  {
+    MMTkIdealKit ideal(kit, true);
+
+    // Node* src = access.base();
+
+    Node* no_base = __ top();
+    Node* zero  = __ ConX(0);
+    float unlikely  = PROB_UNLIKELY(0.999);
+
+    Node* src_long = __ CastPX(__ ctrl(), src);
+    Node* chunk_index = __ URShiftX(src_long, __ ConI(MMTK_LOG_CHUNK_SIZE));
+    Node* chunk_offset = __ LShiftX(chunk_index, __ ConI(MMTK_LOG_PER_CHUNK_METADATA_SIZE));
+    Node* bit_index = __ URShiftX(__ AndX(src_long, __ ConX(MMTK_CHUNK_MASK)), __ ConI(3));
+    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
+    Node* per_chunk_metadata_start = __ AddP(no_base, heap_end, chunk_offset);
+    Node* word_offset = __ LShiftX(__ URShiftX(bit_index, __ ConI(6)), __ ConI(3));
+    Node* metadata_word_ptr = __ AddP(no_base, per_chunk_metadata_start, word_offset);
+    Node* word = __ load(__ ctrl(), metadata_word_ptr, TypeLong::LONG, T_LONG, Compile::AliasIdxRaw);
+
+    Node* bit_offset = __ AndX(bit_index, __ ConX(63));
+    Node* mask = __ LShiftX(__ ConX(1), __ ConvL2I(bit_offset));
+    Node* result = __ AndX(word, mask);
+
+    __ if_then(result, BoolTest::eq, zero, unlikely); {
+        const TypeFunc* tf;
+        {
+          const Type **fields = TypeTuple::fields(1);
+          fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
+          // fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
+          const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+          fields = TypeTuple::fields(0);
+          const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+          tf = TypeFunc::make(domain, range);
+        }
+        Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
+    } __ end_if();
+
+    kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+  }
 }
 
 bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
