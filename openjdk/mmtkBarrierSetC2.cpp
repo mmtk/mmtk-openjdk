@@ -479,14 +479,14 @@ void MMTkBarrierSetC2::expand_allocate(
   // This completes all paths into the result merge point
 }
 
-// class MMTkIdealKit: public IdealKit {
-// public:
-//   using IdealKit::IdealKit;
-//   Node* LShiftX(Node* l, Node* r) { return transform(new LShiftXNode(l, r)); }
-//   Node* AndX(Node* l, Node* r) { return transform(new AndXNode(l, r)); }
-//   Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
-//   Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
-// };
+class MMTkIdealKit: public IdealKit {
+public:
+  using IdealKit::IdealKit;
+  Node* LShiftX(Node* l, Node* r) { return transform(new LShiftXNode(l, r)); }
+  Node* AndX(Node* l, Node* r) { return transform(new AndXNode(l, r)); }
+  Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
+  Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
+};
 
 #define __ ideal.
 
@@ -509,7 +509,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
   Node* store = BarrierSetC2::store_at_resolved(access, val);
 
   {
-    IdealKit ideal(kit, true);
+    MMTkIdealKit ideal(kit, true);
 
     Node* src = access.base();
 
