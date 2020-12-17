@@ -108,32 +108,67 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
     return;
   }
 
-  assert_different_registers(tmp1, noreg);
-  assert_different_registers(tmp2, noreg);
-  assert_different_registers(tmp1, tmp2);
+  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 
-  __ push(dst.base());
-
-  if (dst.index() == noreg && dst.disp() == 0) {
-    if (dst.base() != tmp1) {
-      __ movptr(tmp1, dst.base());
-    }
-  } else {
-    __ lea(tmp1, dst);
-  }
-
-  BarrierSetAssembler::store_at(masm, decorators, type, Address(tmp1, 0), val, noreg, noreg);
-
-  __ pop(tmp2);
-
-  record_modified_node(masm, tmp2);
+  record_modified_node(masm, dst.base(), tmp1, tmp2);
 }
 
-void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj) {
-  __ pusha();
+void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
+  Label done;
+  Register reg = r9;
+
+  assert_different_registers(obj, tmp2);
+  assert_different_registers(obj, tmp2, rax);
+  assert_different_registers(obj, tmp2, reg);
+
+  __ push(rax);
+  __ push(reg);
+  __ push(rcx);
+
+  // const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
+  // const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+  __ movptr(tmp2, obj);
+  __ shrptr(tmp2, MMTK_LOG_CHUNK_SIZE);
+  __ shlptr(tmp2, MMTK_LOG_PER_CHUNK_METADATA_SIZE);
+
+  // const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
+  // const size_t word_offset = ((bit_index >> 6) << 3);
+  Register tmp3 = rax;
+  __ movptr(tmp3, obj);
+  __ andptr(tmp3, MMTK_CHUNK_MASK);
+  __ shrptr(tmp3, 3);
+  __ movptr(reg, tmp3);
+  __ shrptr(tmp3, 6);
+  __ shlptr(tmp3, 3);
+
+  // const size_t word = *((size_t*) (MMTK_HEAP_END + chunk_offset + word_offset));
+  __ addptr(tmp2, tmp3);
+  __ push(reg);
+  __ movptr(reg, (intptr_t) MMTK_HEAP_END);
+  __ movptr(tmp2, Address(reg, tmp2));
+  __ pop(reg);
+
+  // const size_t bit_offset = bit_index & 63;
+  // if ((word & (1ULL << bit_offset)) == 0) { ... }
+  __ andptr(reg, 63);
+  __ movptr(tmp3, 1);
+  __ push(rcx);
+  __ movl(rcx, reg);
+  __ shlptr(tmp3);
+  __ pop(rcx);
+  __ andptr(tmp2, tmp3);
+  __ cmpptr(tmp2, (int32_t) NULL_WORD);
+  __ jcc(Assembler::notEqual, done);
+
+  assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
-  __ popa();
+
+  __ bind(done);
+
+  __ pop(rcx);
+  __ pop(reg);
+  __ pop(rax);
 }
 
 
