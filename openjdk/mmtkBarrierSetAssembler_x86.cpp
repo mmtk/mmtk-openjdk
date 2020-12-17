@@ -114,16 +114,16 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
 }
 
 void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
   Label done;
-  Register reg = r9;
+
+  Register tmp3 = rscratch2;
+  Register tmp4 = rscratch1;
 
   assert_different_registers(obj, tmp2);
   assert_different_registers(obj, tmp2, rax);
-  assert_different_registers(obj, tmp2, reg);
-
-  __ push(rax);
-  __ push(reg);
-  __ push(rcx);
+  assert_different_registers(obj, tmp2, tmp4);
+  assert_different_registers(tmp3, tmp4);
 
   // const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
   // const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
@@ -133,27 +133,24 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
 
   // const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
   // const size_t word_offset = ((bit_index >> 6) << 3);
-  Register tmp3 = rax;
   __ movptr(tmp3, obj);
   __ andptr(tmp3, MMTK_CHUNK_MASK);
   __ shrptr(tmp3, 3);
-  __ movptr(reg, tmp3);
+  __ movptr(tmp4, tmp3);
   __ shrptr(tmp3, 6);
   __ shlptr(tmp3, 3);
 
   // const size_t word = *((size_t*) (MMTK_HEAP_END + chunk_offset + word_offset));
   __ addptr(tmp2, tmp3);
-  __ push(reg);
-  __ movptr(reg, (intptr_t) MMTK_HEAP_END);
-  __ movptr(tmp2, Address(reg, tmp2));
-  __ pop(reg);
+  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
+  __ movptr(tmp2, Address(tmp3, tmp2));
 
   // const size_t bit_offset = bit_index & 63;
   // if ((word & (1ULL << bit_offset)) == 0) { ... }
-  __ andptr(reg, 63);
+  __ andptr(tmp4, 63);
   __ movptr(tmp3, 1);
   __ push(rcx);
-  __ movl(rcx, reg);
+  __ movl(rcx, tmp4);
   __ shlptr(tmp3);
   __ pop(rcx);
   __ andptr(tmp2, tmp3);
@@ -165,10 +162,11 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
 
   __ bind(done);
-
-  __ pop(rcx);
-  __ pop(reg);
-  __ pop(rax);
+#else
+  assert_different_registers(c_rarg0, obj);
+  __ movptr(c_rarg0, obj);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+#endif
 }
 
 
