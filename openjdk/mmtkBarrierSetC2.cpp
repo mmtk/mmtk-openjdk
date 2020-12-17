@@ -479,6 +479,14 @@ void MMTkBarrierSetC2::expand_allocate(
   // This completes all paths into the result merge point
 }
 
+// class MMTkIdealKit: public IdealKit {
+// public:
+//   using IdealKit::IdealKit;
+//   Node* LShiftX(Node* l, Node* r) { return transform(new LShiftXNode(l, r)); }
+//   Node* AndX(Node* l, Node* r) { return transform(new AndXNode(l, r)); }
+//   Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
+//   Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
+// };
 
 #define __ ideal.
 
@@ -501,25 +509,44 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
   Node* store = BarrierSetC2::store_at_resolved(access, val);
 
   {
-    Node* src = access.base();
-    Node* adr = access.addr().node();
-    const TypeFunc* tf;
-    {
-      const Type **fields = TypeTuple::fields(2);
-      fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-      fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
-      const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+2, fields);
-      fields = TypeTuple::fields(0);
-      const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-      tf = TypeFunc::make(domain, range);
-    }
-
     IdealKit ideal(kit, true);
-    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "x_record_modified_node", src, adr);
+
+    Node* src = access.base();
+
+    Node* no_base = __ top();
+    Node* zero  = __ ConX(0);
+    float unlikely  = PROB_UNLIKELY(0.999);
+
+    Node* src_long = __ CastPX(__ ctrl(), src);
+    Node* chunk_index = __ URShiftX(src_long, __ ConI(MMTK_LOG_CHUNK_SIZE));
+    Node* chunk_offset = __ LShiftX(chunk_index, __ ConI(MMTK_LOG_PER_CHUNK_METADATA_SIZE));
+    Node* bit_index = __ URShiftX(__ AndX(src_long, __ ConX(MMTK_CHUNK_MASK)), __ ConI(3));
+    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
+    Node* per_chunk_metadata_start = __ AddP(no_base, heap_end, chunk_offset);
+    Node* word_offset = __ LShiftX(__ URShiftX(bit_index, __ ConI(6)), __ ConI(3));
+    Node* metadata_word_ptr = __ AddP(no_base, per_chunk_metadata_start, word_offset);
+    Node* word = __ load(__ ctrl(), metadata_word_ptr, TypeLong::LONG, T_LONG, Compile::AliasIdxRaw);
+
+    Node* bit_offset = __ AndX(bit_index, __ ConX(63));
+    Node* mask = __ LShiftX(__ ConX(1), __ ConvL2I(bit_offset));
+    Node* result = __ AndX(word, mask);
+
+    __ if_then(result, BoolTest::eq, zero, unlikely); {
+        const TypeFunc* tf;
+        {
+          const Type **fields = TypeTuple::fields(2);
+          fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
+          fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
+          const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+2, fields);
+          fields = TypeTuple::fields(0);
+          const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+          tf = TypeFunc::make(domain, range);
+        }
+        Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node2), "x_record_modified_node", src, adr);
+    } __ end_if();
+
     kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
   }
-
-  // record_modified_node(kit, access.base());
 
   return store;
 }
