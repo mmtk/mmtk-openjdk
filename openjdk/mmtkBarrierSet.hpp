@@ -58,14 +58,19 @@
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
-  static void record_modified_node2(void* src, void** slot);
-  inline static void post_write_barrier(void* src, void** slot) {
+  inline static void record_modified_node_fast(void* obj) {
 #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-    // if () {
-      record_modified_node(src);
-    // }
+    const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
+    const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+    const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
+    const size_t word_offset = ((bit_index >> 6) << 3);
+    const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
+    const size_t bit_offset = bit_index & 63;
+    if (((*word) & (1ULL << bit_offset)) == 0) {
+      record_modified_node(obj);
+    }
 #else
-    record_modified_node(src);
+    record_modified_node(obj);
 #endif
   }
   static void record_modified_edge(void* slot);
@@ -123,40 +128,34 @@ public:
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       Raw::oop_store_at(base, offset, value);
 #if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
+      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
 #endif
     }
 
     template <typename T>
     static oop oop_atomic_cmpxchg_in_heap(oop new_value, T* addr, oop compare_value) {
-      oop result = Raw::oop_atomic_cmpxchg(new_value, addr, compare_value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
-      return result;
+      guarantee(false, "unreachable");
+      return NULL;
     }
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
 #if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
+      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
 #endif
       return result;
     }
 
     template <typename T>
     static oop oop_atomic_xchg_in_heap(oop new_value, T* addr) {
-      oop result = Raw::oop_atomic_xchg(new_value, addr);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
-      return result;;
+      guarantee(false, "unreachable");
+      return NULL;
     }
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
 #if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
+      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
 #endif
       return result;
     }
@@ -169,7 +168,7 @@ public:
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
 #if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) dst_obj);
+      MMTkBarrierRuntime::record_modified_node_fast((void*) dst_obj);
 #endif
       return result;
     }
@@ -177,7 +176,7 @@ public:
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
 #if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) dst);
+      MMTkBarrierRuntime::record_modified_node_fast((void*) dst);
 #endif
     }
   };

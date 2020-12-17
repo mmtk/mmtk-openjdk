@@ -39,6 +39,23 @@
 #include "mmtk.h"
 #include "mmtkMutator.hpp"
 
+void build_type_func_helper(const Type** fields) {}
+
+template<class T, class... Types>
+void build_type_func_helper(const Type** fields, T t, Types... ts) {
+  fields[0] = t;
+  build_type_func_helper(fields + 1);
+}
+
+template<class... Types>
+const TypeFunc* build_type_func(Types... types) {
+  const Type** fields = TypeTuple::fields(sizeof...(types));
+  build_type_func_helper(fields + TypeFunc::Parms, types...);
+  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+  fields = TypeTuple::fields(0);
+  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+  return TypeFunc::make(domain, range);
+}
 
 void MMTkBarrierSetC2::expand_allocate(
             PhaseMacroExpand* x,
@@ -508,7 +525,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
 
   Node* store = BarrierSetC2::store_at_resolved(access, val);
 
-  record_modified_node2(kit, access.base());
+  record_modified_node(kit, access.base());
 
   return store;
 }
@@ -525,7 +542,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, N
 
   Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node2(kit, access.base());
+  record_modified_node(kit, access.base());
 
   return result;
 }
@@ -542,7 +559,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, 
 
   Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node2(kit, access.base());
+  record_modified_node(kit, access.base());
 
   return load_store;
 }
@@ -559,54 +576,20 @@ Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* ne
     return result;
   }
 
-  record_modified_node2(kit, access.base());
+  record_modified_node(kit, access.base());
 
   return result;
 }
 
 void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
   BarrierSetC2::clone(kit, src, dst, size, is_array);
-  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node2(kit, dst);
+  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node(kit, dst);
 }
 
-const TypeFunc* record_modified_node_entry_Type() {
-  const Type **fields = TypeTuple::fields(1);
-  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-  fields = TypeTuple::fields(0);
-  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-  return TypeFunc::make(domain, range);
-}
+void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
+  MMTkIdealKit ideal(kit, true);
 
-const TypeFunc* record_modified_edge_entry_Type() {
-  const Type **fields = TypeTuple::fields(1);
-  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-  fields = TypeTuple::fields(0);
-  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-  return TypeFunc::make(domain, range);
-}
-
-void MMTkBarrierSetC2::record_modified_edge(GraphKit* kit, Node* slot) const {
-  IdealKit ideal(kit, true);
-  const TypeFunc *tf = record_modified_edge_entry_Type();
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge), "record_modified_edge", slot);
-  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
-}
-
-void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* node) const {
-  IdealKit ideal(kit, true);
-  const TypeFunc *tf = record_modified_node_entry_Type();
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", node);
-  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
-}
-
-void MMTkBarrierSetC2::record_modified_node2(GraphKit* kit, Node* src) const {
-  {
-    MMTkIdealKit ideal(kit, true);
-
-    // Node* src = access.base();
-
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
     Node* no_base = __ top();
     Node* zero  = __ ConX(0);
     float unlikely  = PROB_UNLIKELY(0.999);
@@ -626,21 +609,15 @@ void MMTkBarrierSetC2::record_modified_node2(GraphKit* kit, Node* src) const {
     Node* result = __ AndX(word, mask);
 
     __ if_then(result, BoolTest::eq, zero, unlikely); {
-        const TypeFunc* tf;
-        {
-          const Type **fields = TypeTuple::fields(1);
-          fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-          // fields[TypeFunc::Parms+1] = TypeOopPtr::BOTTOM; // oop* slot
-          const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-          fields = TypeTuple::fields(0);
-          const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-          tf = TypeFunc::make(domain, range);
-        }
+        const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
         Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
     } __ end_if();
+#else
+    const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
+#endif
 
-    kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
-  }
+  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
 
 bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
@@ -652,6 +629,6 @@ bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
     return false;
   }
 
-  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0 || strcmp(call->_name, "x_record_modified_node") == 0;
+  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0;
 }
 
