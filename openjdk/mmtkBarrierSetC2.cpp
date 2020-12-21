@@ -503,6 +503,7 @@ public:
   Node* AndX(Node* l, Node* r) { return transform(new AndXNode(l, r)); }
   Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
   Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
+  Node* URShiftI(Node* l, Node* r) { return transform(new URShiftINode(l, r)); }
 };
 
 #define __ ideal.
@@ -591,22 +592,17 @@ void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
 
 #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
     Node* no_base = __ top();
-    Node* zero  = __ ConX(0);
     float unlikely  = PROB_UNLIKELY(0.999);
 
+    Node* zero  = __ ConI(0);
     Node* src_long = __ CastPX(__ ctrl(), src);
-    Node* chunk_index = __ URShiftX(src_long, __ ConI(MMTK_LOG_CHUNK_SIZE));
-    Node* chunk_offset = __ LShiftX(chunk_index, __ ConI(MMTK_LOG_PER_CHUNK_METADATA_SIZE));
-    Node* bit_index = __ URShiftX(__ AndX(src_long, __ ConX(MMTK_CHUNK_MASK)), __ ConI(3));
+    Node* word_index = __ URShiftX(src_long, __ ConI(3));
+    Node* byte_offset = __ URShiftX(word_index, __ ConI(3));
     Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
-    Node* per_chunk_metadata_start = __ AddP(no_base, heap_end, chunk_offset);
-    Node* word_offset = __ LShiftX(__ URShiftX(bit_index, __ ConI(6)), __ ConI(3));
-    Node* metadata_word_ptr = __ AddP(no_base, per_chunk_metadata_start, word_offset);
-    Node* word = __ load(__ ctrl(), metadata_word_ptr, TypeLong::LONG, T_LONG, Compile::AliasIdxRaw);
-
-    Node* bit_offset = __ AndX(bit_index, __ ConX(63));
-    Node* mask = __ LShiftX(__ ConX(1), __ ConvL2I(bit_offset));
-    Node* result = __ AndX(word, mask);
+    Node* byte_ptr = __ AddP(no_base, heap_end, byte_offset);
+    Node* byte = __ load(__ ctrl(), byte_ptr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+    Node* bit_offset = __ ConvL2I(__ AndX(word_index, __ ConX(7)));
+    Node* result = __ AndI(__ URShiftI(byte, bit_offset), __ ConI(1));
 
     __ if_then(result, BoolTest::eq, zero, unlikely); {
         const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);

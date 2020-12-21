@@ -117,43 +117,27 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
 #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
   Label done;
 
-  Register tmp3 = rscratch2;
-  Register tmp4 = rscratch1;
+  Register tmp3 = rscratch1;
+  Register tmp4 = rscratch2;
+  assert_different_registers(obj, tmp2, tmp3);
+  assert_different_registers(tmp4, rcx);
 
-  assert_different_registers(obj, tmp2);
-  assert_different_registers(obj, tmp2, rax);
-  assert_different_registers(obj, tmp2, tmp4);
-  assert_different_registers(tmp3, tmp4);
-
-  // const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
-  // const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+  // tmp2 = * (char*) ((obj >> 6) + MMTK_HEAP_END)
   __ movptr(tmp2, obj);
-  __ shrptr(tmp2, MMTK_LOG_CHUNK_SIZE);
-  __ shlptr(tmp2, MMTK_LOG_PER_CHUNK_METADATA_SIZE);
-
-  // const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
-  // const size_t word_offset = ((bit_index >> 6) << 3);
-  __ movptr(tmp3, obj);
-  __ andptr(tmp3, MMTK_CHUNK_MASK);
-  __ shrptr(tmp3, 3);
-  __ movptr(tmp4, tmp3);
-  __ shrptr(tmp3, 6);
-  __ shlptr(tmp3, 3);
-
-  // const size_t word = *((size_t*) (MMTK_HEAP_END + chunk_offset + word_offset));
-  __ addptr(tmp2, tmp3);
+  __ shrptr(tmp2, 6);
   __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
-  __ movptr(tmp2, Address(tmp3, tmp2));
-
-  // const size_t bit_offset = bit_index & 63;
-  // if ((word & (1ULL << bit_offset)) == 0) { ... }
-  __ andptr(tmp4, 63);
-  __ movptr(tmp3, 1);
-  __ push(rcx);
-  __ movl(rcx, tmp4);
-  __ shlptr(tmp3);
-  __ pop(rcx);
-  __ andptr(tmp2, tmp3);
+  __ movl(tmp2, Address(tmp3, tmp2));
+  // tmp3 = (obj >> 3) & 7
+  // tmp2 = tmp2 >> tmp3
+  __ movptr(tmp3, obj);
+  __ shrptr(tmp3, 3);
+  __ andptr(tmp3, 7);
+  __ movptr(tmp4, rcx);
+  __ movl(rcx, tmp3);
+  __ shrptr(tmp2);
+  __ movptr(rcx, tmp4);
+  // if ((tmp2 & 1) == 0) goto slowpath;
+  __ andptr(tmp2, 1);
   __ cmpptr(tmp2, (int32_t) NULL_WORD);
   __ jcc(Assembler::notEqual, done);
 
