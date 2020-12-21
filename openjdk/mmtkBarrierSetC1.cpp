@@ -90,7 +90,34 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
   assert(new_val->is_register(), "must be a register at this point");
 
   CodeStub* slow = new MMTkWriteBarrierStub(src, slot, new_val);
+
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+  LIR_Opr byte_offset = gen->new_pointer_register();
+  __ move(src, byte_offset);
+  __ shift_right(byte_offset, 6, byte_offset);
+  LIR_Opr byte = gen->new_register(T_INT);
+  LIR_Opr heap_end = gen->new_pointer_register();
+  __ move(LIR_OprFact::intptrConst(MMTK_HEAP_END), heap_end);
+  LIR_Address* addr = new LIR_Address(byte_offset, heap_end, T_BYTE);
+  __ move(addr, byte);
+  LIR_Opr bit_offset = gen->new_register(T_LONG);
+  __ move(src, bit_offset);
+  __ shift_right(bit_offset, 3, bit_offset);
+  __ logical_and(bit_offset, LIR_OprFact::longConst(7), bit_offset);
+  LIR_Opr bit_offset_int = gen->new_register(T_INT);
+  __ convert(Bytecodes::_l2i, bit_offset, bit_offset_int);
+  LIR_Opr bit_offset_reg = LIRGenerator::shiftCountOpr();
+  __ move(bit_offset_int, bit_offset_reg);
+  LIR_Opr result = byte;
+  __ shift_right(result, bit_offset_reg, result, LIR_OprFact::illegalOpr);
+  __ logical_and(result, LIR_OprFact::intConst(1), result);
+  __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(0));
+
+  __ branch(lir_cond_equal, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
+#else
   __ jump(slow);
+#endif
+
   __ branch_destination(slow->continuation());
 }
 
