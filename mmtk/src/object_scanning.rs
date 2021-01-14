@@ -192,7 +192,7 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<E> 
             SINGLETON
                 .scheduler
                 .closure_stage
-                .add(E::new(new_edges, false));
+                .add(E::new(new_edges, false, &SINGLETON));
         }
     }
     fn process_node(&mut self, _object: ObjectReference) {
@@ -208,7 +208,7 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> Drop for ObjectsClosure<E> {
         SINGLETON
             .scheduler
             .closure_stage
-            .add(E::new(new_edges, false));
+            .add(E::new(new_edges, false, &SINGLETON));
     }
 }
 
