@@ -115,6 +115,66 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
 
 void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
 #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+
+#if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
+  Label done;
+
+  Register tmp3 = rscratch1;
+  Register tmp4 = rscratch2;
+  assert_different_registers(obj, tmp2, tmp3);
+  assert_different_registers(tmp4, rcx);
+
+  // tmp2 = *MMTK_HEAP_END
+  __ movptr(tmp2, (intptr_t) 0);
+  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
+  __ movl(tmp2, Address(tmp3, tmp2));
+  // if ((tmp2 & 1) != 0) goto slowpath;
+  __ andptr(tmp2, 1);
+  __ cmpptr(tmp2, (int32_t) NULL_WORD);
+  __ jcc(Assembler::equal, done);
+
+  assert_different_registers(c_rarg0, obj);
+  __ movptr(c_rarg0, obj);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+
+  __ bind(done);
+#elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
+
+  Label done;
+
+  Register tmp3 = rscratch1;
+  Register tmp4 = rscratch2;
+  assert_different_registers(obj, tmp2, tmp3);
+  assert_different_registers(tmp4, rcx);
+
+__ movptr(tmp4, obj);
+     __ andptr(tmp4, (1 << 22) - 1);
+  // tmp2 = * (char*) ((obj >> 6) + MMTK_HEAP_END)
+  __ movptr(tmp2, tmp4);
+     // tmp2 = tmp2 & CHUNK_MASK
+  __ shrptr(tmp2, 6);
+  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
+  __ movl(tmp2, Address(tmp3, tmp2));
+  // tmp3 = (obj >> 3) & 7
+  // tmp2 = tmp2 >> tmp3
+  __ movptr(tmp3, tmp4);
+  __ shrptr(tmp3, 3);
+  __ andptr(tmp3, 7);
+  __ movptr(tmp4, rcx);
+  __ movl(rcx, tmp3);
+  __ shrptr(tmp2);
+  __ movptr(rcx, tmp4);
+  // if ((tmp2 & 1) == 0) goto slowpath;
+  __ andptr(tmp2, 1);
+  __ cmpptr(tmp2, (int32_t) NULL_WORD);
+  __ jcc(Assembler::equal, done);
+
+  assert_different_registers(c_rarg0, obj);
+  __ movptr(c_rarg0, obj);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+
+  __ bind(done);
+#else
   Label done;
 
   Register tmp3 = rscratch1;
@@ -146,6 +206,8 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
 
   __ bind(done);
+#endif
+
 #else
   assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);

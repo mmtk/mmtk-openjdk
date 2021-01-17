@@ -37,7 +37,13 @@
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
-#if MMTK_GC_GENCOPY
+#define BARRIER_NORMAL 0
+#define BARRIER_TEST_GLOBAL 1
+#define BARRIER_SINGLE_PAGE_METADATA 2
+#define BARRIER_VARIENT BARRIER_NORMAL
+
+
+#if MMTK_GC_GENCOPY || MMTK_GC_NOGC
 #define MMTK_ENABLE_WRITE_BARRIER true
 #define MMTK_ENABLE_WRITE_BARRIER_FASTPATH true
 #else
@@ -61,6 +67,24 @@ public:
   static void record_modified_node(void* src);
   inline static void record_modified_node_fast(void* obj) {
 #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+
+#if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
+    const char* byte = (char*) (MMTK_HEAP_END);
+    if (((*byte) & 1) != 0) {
+      record_modified_node(obj);
+    }
+#elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
+    obj = (void*) (((size_t) obj) & ((1 << 22) - 1));
+    const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
+    const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+    const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
+    const size_t word_offset = ((bit_index >> 6) << 3);
+    const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
+    const size_t bit_offset = bit_index & 63;
+    if (((*word) & (1ULL << bit_offset)) != 0) {
+      record_modified_node(obj);
+    }
+#else
     const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
     const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
     const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
@@ -70,6 +94,8 @@ public:
     if (((*word) & (1ULL << bit_offset)) == 0) {
       record_modified_node(obj);
     }
+#endif
+
 #else
     record_modified_node(obj);
 #endif
