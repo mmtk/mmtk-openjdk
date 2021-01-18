@@ -36,16 +36,9 @@
 #include "mmtk.h"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
-// #if MMTK_GC_GENCOPY
-// #define MMTK_ENABLE_WRITE_BARRIER true
-// #else
-// #define MMTK_ENABLE_WRITE_BARRIER false
-// #endif
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
-
-
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
@@ -61,6 +54,8 @@ protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
 public:
+  // FIXME: We should remove this field, and use different BarrierSet implementations
+  // for GC plans that use barrier and do not use barrier. This would improve performance.
   static bool enable_write_barrier;
   MMTkBarrierSet(MemRegion whole_heap);
 

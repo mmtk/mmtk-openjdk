@@ -26,9 +26,6 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "df246b4ce14f00a
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-# default = []
-# nogc = ["mmtk/nogc"]
-# nogc_lock_free = ["mmtk/nogc_lock_free"]
-# nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
-# semispace = ["mmtk/semispace"]
-# gencopy = ["mmtk/gencopy"]
+default = []
+nogc_lock_free = ["mmtk/nogc_lock_free"]
+nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]

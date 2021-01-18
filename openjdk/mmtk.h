@@ -9,18 +9,6 @@
 extern "C" {
 #endif
 
-// #ifndef MMTK_GC_NOGC
-// #define MMTK_GC_NOGC 0
-// #endif
-
-// #ifndef MMTK_GC_SEMISPACE
-// #define MMTK_GC_SEMISPACE 0
-// #endif
-
-// #ifndef MMTK_GC_GENCOPY
-// #define MMTK_GC_GENCOPY 0
-// #endif
-
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
