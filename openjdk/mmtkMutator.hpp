@@ -56,7 +56,6 @@ struct MMTkMutatorContext {
     void* mutator_tls;
     RustDynPtr plan;
     MutatorConfig config;
-    void* modbuf;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
