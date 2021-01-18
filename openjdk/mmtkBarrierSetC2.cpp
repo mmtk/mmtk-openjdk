@@ -494,7 +494,7 @@ Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) 
   bool in_heap = (decorators & IN_HEAP) != 0;
   bool use_precise = is_array || anonymous;
 
-  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
     return BarrierSetC2::store_at_resolved(access, val);
   }
 
@@ -511,7 +511,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, N
   GraphKit* kit = access.kit();
   bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
     return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
   }
 
@@ -528,7 +528,7 @@ Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, 
   GraphKit* kit = access.kit();
   bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
     return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
   }
 
@@ -547,7 +547,7 @@ Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* ne
 
   bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTK_ENABLE_WRITE_BARRIER || !access.is_oop()) {
+  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
     return result;
   }
 
@@ -558,7 +558,7 @@ Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* ne
 
 void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
   BarrierSetC2::clone(kit, src, dst, size, is_array);
-  if (MMTK_ENABLE_WRITE_BARRIER) record_modified_node(kit, dst);
+  if (MMTkBarrierSet::enable_write_barrier) record_modified_node(kit, dst);
 }
 
 const TypeFunc* record_modified_node_entry_Type() {

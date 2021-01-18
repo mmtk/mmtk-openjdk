@@ -2,12 +2,6 @@
 MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
-ifndef MMTK_PLAN
-  GC=semispace
-else
-  GC=$(MMTK_PLAN)
-endif
-
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)
@@ -35,13 +29,5 @@ FORCE:
 TARGETS += $(LIB_MMTK)
 JVM_SRC_DIRS += $(MMTK_CPP_ROOT)
 JVM_CFLAGS += -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
-
-ifeq ($(GC), nogc)
-  JVM_CFLAGS += -DMMTK_GC_NOGC=1
-else ifeq ($(GC), semispace)
-  JVM_CFLAGS += -DMMTK_GC_SEMISPACE=1
-else
-  JVM_CFLAGS += -DMMTK_GC_GENCOPY=1
-endif
 
 $(BUILD_LIBJVM): $(LIB_MMTK)

@@ -31,6 +31,11 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
 }
 
 #[no_mangle]
+pub extern "C" fn openjdk_needs_write_barrier() -> bool {
+    SINGLETON.plan.constraints().needs_write_barrier
+}
+
+#[no_mangle]
 pub extern "C" fn start_control_collector(tls: OpaquePointer) {
     memory_manager::start_control_collector(&SINGLETON, tls);
 }

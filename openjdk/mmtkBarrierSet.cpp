@@ -34,6 +34,8 @@
 
 #include "runtime/interfaceSupport.inline.hpp"
 
+bool MMTkBarrierSet::enable_write_barrier = false;
+
 MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
       make_barrier_set_assembler<MMTkBarrierSetAssembler>(),
       make_barrier_set_c1<MMTkBarrierSetC1>(),
