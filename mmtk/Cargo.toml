@@ -29,3 +29,11 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "0fc3a168a0f97ba
 default = []
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+
+# We can select plan at runtime. So no need to use any of these features.
+# However, if any of these is provided during build-time, we will ignore any runtime flag and 
+# always run this plan. Performance-wise there is no difference. The main reason for these features
+# is to temporarily allow running performance tests without changing performance scripts.
+nogc = []
+semispace = []
+gencopy = []

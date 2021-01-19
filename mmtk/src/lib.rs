@@ -95,5 +95,14 @@ impl VMBinding for OpenJDK {
 }
 
 lazy_static! {
-    pub static ref SINGLETON: MMTK<OpenJDK> = MMTK::new();
+    pub static ref SINGLETON: MMTK<OpenJDK> = {
+        #[cfg(feature = "nogc")]
+        std::env::set_var("MMTK_PLAN", "NoGC");
+        #[cfg(feature = "semispace")]
+        std::env::set_var("MMTK_PLAN", "SemiSpace");
+        #[cfg(feature = "gencopy")]
+        std::env::set_var("MMTK_PLAN", "GenCopy");
+
+        MMTK::new()
+    };
 }
