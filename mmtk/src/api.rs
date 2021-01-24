@@ -123,14 +123,12 @@ pub extern "C" fn alloc_slow_largeobject(
 pub extern "C" fn post_alloc(
     mutator: *mut Mutator<SelectedPlan<OpenJDK>>,
     refer: ObjectReference,
-    type_refer: ObjectReference,
     bytes: usize,
     allocator: AllocationSemantics,
 ) {
     memory_manager::post_alloc::<OpenJDK>(
         unsafe { &mut *mutator },
         refer,
-        type_refer,
         bytes,
         allocator,
     )
