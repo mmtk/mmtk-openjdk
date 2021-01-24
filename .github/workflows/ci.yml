@@ -18,9 +18,11 @@ jobs:
           submodules: true
       - name: Set credential for cargo dependency
         run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/qinsoon:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
+      - name: Setup Rust Toolchain
+        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
       - name: Setup Environments
-        run: RUSTUP_TOOLCHAIN=nightly-2020-07-08 ./.github/scripts/ci-setup.sh
+        run: ./.github/scripts/ci-setup.sh
 
       # Run the tests
       - name: Dacapo Tests
-        run: RUSTUP_TOOLCHAIN=nightly-2020-07-08 ./.github/scripts/ci-test.sh
+        run: ./.github/scripts/ci-test.sh
