@@ -41,7 +41,7 @@ extern void* alloc_slow_bump_monotone_copy(MMTk_Mutator mutator, size_t size,
 extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset);
 
-extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
+extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
 extern void record_modified_node(MMTk_Mutator mutator, void* obj);

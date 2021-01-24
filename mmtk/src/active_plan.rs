@@ -14,12 +14,10 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
-        unsafe {
-            let c = ((*UPCALLS).active_collector)(tls);
-            assert!(!c.is_null());
-            &mut *c
-        }
+    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
+        let c = ((*UPCALLS).active_collector)(tls);
+        assert!(!c.is_null());
+        &mut *c
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
@@ -29,10 +27,6 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
     unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::Mutator {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
-    }
-
-    fn collector_count() -> usize {
-        unimplemented!()
     }
 
     fn reset_mutator_iterator() {
