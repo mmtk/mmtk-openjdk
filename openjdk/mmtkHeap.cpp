@@ -163,7 +163,7 @@ bool MMTkHeap::is_in(const void* p) const {
    //return cp >= committed_low_addr() && cp < committed_high_addr();
 
    //guarantee(false, "is in not supported");
-    return p >= (void*) _start && p < (void*) _end;
+    return p > (void*) _start && p < (void*) _end || is_malloced(p) == 1;
 }
 
 bool MMTkHeap::is_in_reserved(const void* p) const {
@@ -178,7 +178,7 @@ bool MMTkHeap::is_in_reserved(const void* p) const {
     //guarantee(false, "is in not supported");
 
     //printf("calling MMTkHeap::is_in_reserved\n");
-    return p >= (void*) _start && p < (void*) _end;
+    return (p >= (void*) _start && p < (void*) _end) || is_malloced(p) == 1;
 }
 
 bool MMTkHeap::supports_tlab_allocation() const {

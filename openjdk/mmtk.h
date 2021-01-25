@@ -147,6 +147,7 @@ extern size_t openjdk_max_capacity();
 extern size_t _noaccess_prefix();  // ???
 extern size_t _alignment();        // ???
 extern bool   executable();
+extern size_t is_malloced(const void* ref);
 
 /**
  * Reference Processing

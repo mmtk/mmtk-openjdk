@@ -35,7 +35,7 @@
 #include "utilities/fakeRttiSupport.hpp"
 #include "mmtk.h"
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#define MMTK_ENABLE_ALLOCATION_FASTPATH false
 #if MMTK_GC_GENCOPY
 #define MMTK_ENABLE_WRITE_BARRIER true
 #else
