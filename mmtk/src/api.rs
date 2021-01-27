@@ -10,7 +10,8 @@ use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
 use mmtk::{Mutator, SelectedPlan};
 use mmtk::{Plan, MMTK};
-use mmtk::policy::{space, malloc};
+#[cfg(feature = "mallocms")]
+use mmtk::util::alloc::is_malloced as malloced;
 
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
@@ -70,18 +71,28 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 // Allocation slow path
 
 use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::alloc::{BumpAllocator, FreeListAllocator};
-#[cfg(not(feature="mallocms"))]
+use mmtk::util::alloc::BumpAllocator;
+#[cfg(feature = "mallocms")]
+use mmtk::util::alloc::FreeListAllocator;
+#[cfg(not(feature = "mallocms"))]
 use mmtk::util::alloc::LargeObjectAllocator;
 use mmtk::util::heap::MonotonePageResource;
 
+#[cfg(feature = "mallocms")]
 #[no_mangle]
 pub extern "C" fn is_malloced(obj: ObjectReference) -> usize {
-    if malloc::is_malloced(obj) {
+    if malloced(obj) {
         1
     } else {
         0
     }
+}
+
+
+#[cfg(not(feature="mallocms"))]
+#[no_mangle]
+pub extern "C" fn is_malloced(obj: ObjectReference) -> usize {
+    0
 }
 
 #[cfg(not(feature="mallocms"))]

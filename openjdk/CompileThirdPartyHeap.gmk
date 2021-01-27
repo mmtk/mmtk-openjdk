@@ -8,6 +8,14 @@ else
   GC=$(MMTK_PLAN)
 endif
 
+ifeq ($(MMTK_PLAN), mallocms)
+  ifndef MALLOC_VERSION
+    MALLOC=malloc_libc
+  else
+    MALLOC=$(MALLOC_VERSION)
+  endif
+endif
+
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)
@@ -24,7 +32,7 @@ else
 endif
 
 $(LIB_MMTK): FORCE
-	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features $(GC)
+	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features $(GC),$(MALLOC)
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
