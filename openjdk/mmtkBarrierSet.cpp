@@ -86,13 +86,13 @@ bool MMTkBarrierSet::is_slow_path_call(address call) {
 
 void MMTkBarrierRuntime::record_modified_node(void* obj) {
     ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
-#ifdef ASSERT
-    size_t word_index = ((size_t) obj) >> 3;
-    size_t byte_offset = word_index >> 3;
-    char* byte = (char*) (MMTK_HEAP_END + byte_offset);
-    size_t bit_offset = word_index & 7;
-    guarantee((((*byte) >> bit_offset) & 1) != 0, "");
-#endif
+// #ifdef ASSERT
+//     size_t word_index = ((size_t) obj) >> 3;
+//     size_t byte_offset = word_index >> 3;
+//     char* byte = (char*) (MMTK_HEAP_END + byte_offset);
+//     size_t bit_offset = word_index & 7;
+//     guarantee((((*byte) >> bit_offset) & 1) != 0, "");
+// #endif
 }
 
 void MMTkBarrierRuntime::record_modified_edge(void* slot) {

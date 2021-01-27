@@ -199,7 +199,11 @@ __ movptr(tmp4, obj);
   // if ((tmp2 & 1) == 0) goto slowpath;
   __ andptr(tmp2, 1);
   __ cmpptr(tmp2, (int32_t) NULL_WORD);
+#if NORMAL_BARRIER_NO_SLOWPATH
+  __ jcc(Assembler::equal, done);
+#else
   __ jcc(Assembler::notEqual, done);
+#endif
 
   assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);

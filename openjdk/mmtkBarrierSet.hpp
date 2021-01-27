@@ -40,7 +40,9 @@
 #define BARRIER_NORMAL 0
 #define BARRIER_TEST_GLOBAL 1
 #define BARRIER_SINGLE_PAGE_METADATA 2
-#define BARRIER_VARIENT BARRIER_TEST_GLOBAL
+#define BARRIER_VARIENT BARRIER_NORMAL
+
+#define NORMAL_BARRIER_NO_SLOWPATH false
 
 
 #if MMTK_GC_GENCOPY || MMTK_GC_NOGC
@@ -91,7 +93,11 @@ public:
     const size_t word_offset = ((bit_index >> 6) << 3);
     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
     const size_t bit_offset = bit_index & 63;
+  #if NORMAL_BARRIER_NO_SLOWPATH
+    if (((*word) & (1ULL << bit_offset)) != 0) {
+  #else
     if (((*word) & (1ULL << bit_offset)) == 0) {
+  #endif
       record_modified_node(obj);
     }
 #endif

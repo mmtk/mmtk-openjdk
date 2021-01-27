@@ -640,7 +640,11 @@ Node* cmp = __ ConI(0xdead);
     Node* bit_offset = __ ConvL2I(__ AndX(word_index, __ ConX(7)));
     Node* result = __ AndI(__ URShiftI(byte, bit_offset), __ ConI(1));
 
+#if NORMAL_BARRIER_NO_SLOWPATH
+    __ if_then(result, BoolTest::ne, zero, unlikely); {
+#else
     __ if_then(result, BoolTest::eq, zero, unlikely); {
+#endif
         const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
         Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
     } __ end_if();
