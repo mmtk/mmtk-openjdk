@@ -73,7 +73,7 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 use mmtk::util::alloc::Allocator as IAllocator;
 use mmtk::util::alloc::BumpAllocator;
 #[cfg(feature = "mallocms")]
-use mmtk::util::alloc::FreeListAllocator;
+use mmtk::util::alloc::MallocAllocator;
 #[cfg(not(feature = "mallocms"))]
 use mmtk::util::alloc::LargeObjectAllocator;
 use mmtk::util::heap::MonotonePageResource;
