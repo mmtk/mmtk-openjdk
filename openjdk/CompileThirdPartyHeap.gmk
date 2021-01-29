@@ -8,7 +8,7 @@ else
   GC=$(MMTK_PLAN)
 endif
 
-ifeq ($(GC), mallocms)
+ifeq ($(GC), marksweep)
   ifndef MS_MALLOC
     MS=libc
   else
