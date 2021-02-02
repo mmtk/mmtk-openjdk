@@ -641,9 +641,9 @@ Node* cmp = __ ConI(0xdead);
     Node* result = __ AndI(__ URShiftI(byte, bit_offset), __ ConI(1));
 
 #if NORMAL_BARRIER_NO_SLOWPATH
-    __ if_then(result, BoolTest::ne, zero, unlikely); {
+    __ if_then(result, BoolTest::eq, __ ConI(0b11), unlikely); {
 #else
-    __ if_then(result, BoolTest::eq, zero, unlikely); {
+    __ if_then(result, BoolTest::ne, zero, unlikely); {
 #endif
         const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
         Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);

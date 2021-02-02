@@ -111,9 +111,9 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
   LIR_Opr result = byte;
   __ shift_right(result, bit_offset_reg, result, LIR_OprFact::illegalOpr);
   __ logical_and(result, LIR_OprFact::intConst(1), result);
-  __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(0));
+  __ cmp(lir_cond_notEqual, result, LIR_OprFact::intConst(0));
 
-  __ branch(lir_cond_equal, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
+  __ branch(lir_cond_notEqual, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
 #else
   __ jump(slow);
 #endif

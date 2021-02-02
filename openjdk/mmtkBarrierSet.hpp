@@ -94,9 +94,9 @@ public:
     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
     const size_t bit_offset = bit_index & 63;
   #if NORMAL_BARRIER_NO_SLOWPATH
-    if (((*word) & (1ULL << bit_offset)) != 0) {
+    if (((*word) & (1ULL << bit_offset)) == 0b11) {
   #else
-    if (((*word) & (1ULL << bit_offset)) == 0) {
+    if (((*word) & (1ULL << bit_offset)) != 0) {
   #endif
       record_modified_node(obj);
     }
