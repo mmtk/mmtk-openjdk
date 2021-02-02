@@ -90,7 +90,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
 void MMTkBarrierSetAssembler::store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
                                          Address dst, Register val, Register tmp1, Register tmp2) {
-  if (MMTK_ENABLE_WRITE_BARRIER && (type == T_OBJECT || type == T_ARRAY)) {
+  if (MMTkBarrierSet::enable_write_barrier && (type == T_OBJECT || type == T_ARRAY)) {
     oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
   } else {
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);

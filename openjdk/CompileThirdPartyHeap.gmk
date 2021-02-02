@@ -2,10 +2,8 @@
 MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
-ifndef MMTK_PLAN
-  GC=semispace
-else
-  GC=$(MMTK_PLAN)
+ifdef MMTK_PLAN
+  GC_FEATURES=--features $(MMTK_PLAN)
 endif
 
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
@@ -24,7 +22,7 @@ else
 endif
 
 $(LIB_MMTK): FORCE
-	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) --features $(GC)
+	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
@@ -35,13 +33,5 @@ FORCE:
 TARGETS += $(LIB_MMTK)
 JVM_SRC_DIRS += $(MMTK_CPP_ROOT)
 JVM_CFLAGS += -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
-
-ifeq ($(GC), nogc)
-  JVM_CFLAGS += -DMMTK_GC_NOGC=1
-else ifeq ($(GC), semispace)
-  JVM_CFLAGS += -DMMTK_GC_SEMISPACE=1
-else
-  JVM_CFLAGS += -DMMTK_GC_GENCOPY=1
-endif
 
 $(BUILD_LIBJVM): $(LIB_MMTK)

@@ -100,6 +100,7 @@ jint MMTkHeap::initialize() {
 
 
     MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(reserved_region());
+    MMTkBarrierSet::enable_write_barrier = openjdk_needs_write_barrier();
     //barrier_set->initialize();
     BarrierSet::set_barrier_set(barrier_set);
 

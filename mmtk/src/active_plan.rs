@@ -4,14 +4,15 @@ use crate::SINGLETON;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
-use mmtk::{Plan, SelectedPlan};
+use mmtk::Plan;
 use std::sync::Mutex;
+use mmtk::Mutator;
 
 pub struct VMActivePlan {}
 
 impl ActivePlan<OpenJDK> for VMActivePlan {
-    fn global() -> &'static SelectedPlan<OpenJDK> {
-        &SINGLETON.plan
+    fn global() -> &'static dyn Plan<VM=OpenJDK> {
+        &*SINGLETON.plan
     }
 
     unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
@@ -24,7 +25,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         ((*UPCALLS).is_mutator)(tls)
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<OpenJDK> as Plan>::Mutator {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut Mutator<OpenJDK> {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
     }
@@ -35,7 +36,7 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<OpenJDK> as Plan>::Mutator> {
+    fn get_next_mutator() -> Option<&'static mut Mutator<OpenJDK>> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();

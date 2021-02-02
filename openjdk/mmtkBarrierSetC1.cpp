@@ -44,7 +44,7 @@ void MMTkWriteBarrierStub::emit_code(LIR_Assembler* ce) {
 void MMTkBarrierSetC1::store_at_resolved(LIRAccess& access, LIR_Opr value) {
   BarrierSetC1::store_at_resolved(access, value);
 
-  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
+  if (MMTkBarrierSet::enable_write_barrier && access.is_oop()) {
     write_barrier(access, access.base().opr(), access.resolved_addr(), value);
   }
 }
@@ -110,7 +110,7 @@ void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
 
 LIR_Opr MMTkBarrierSetC1::atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
   LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
-  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
+  if (MMTkBarrierSet::enable_write_barrier && access.is_oop()) {
     write_barrier(access, access.base().opr(), access.resolved_addr(), new_value.result());
   }
   return result;
@@ -118,7 +118,7 @@ LIR_Opr MMTkBarrierSetC1::atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem&
 
 LIR_Opr MMTkBarrierSetC1::atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
   LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
-  if (MMTK_ENABLE_WRITE_BARRIER && access.is_oop()) {
+  if (MMTkBarrierSet::enable_write_barrier && access.is_oop()) {
     write_barrier(access, access.base().opr(), access.resolved_addr(), value.result());
   }
   return result;
@@ -127,7 +127,7 @@ LIR_Opr MMTkBarrierSetC1::atomic_xchg_at_resolved(LIRAccess& access, LIRItem& va
 // This overrides the default to resolve the address into a register,
 // assuming it will be used by a write barrier anyway.
 LIR_Opr MMTkBarrierSetC1::resolve_address(LIRAccess& access, bool resolve_in_register) {
-  if (!MMTK_ENABLE_WRITE_BARRIER) return BarrierSetC1::resolve_address(access, resolve_in_register);
+  if (!MMTkBarrierSet::enable_write_barrier) return BarrierSetC1::resolve_address(access, resolve_in_register);
   DecoratorSet decorators = access.decorators();
   bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
   bool is_write = (decorators & C1_WRITE_ACCESS) != 0;

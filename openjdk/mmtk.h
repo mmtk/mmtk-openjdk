@@ -9,18 +9,6 @@
 extern "C" {
 #endif
 
-#ifndef MMTK_GC_NOGC
-#define MMTK_GC_NOGC 0
-#endif
-
-#ifndef MMTK_GC_SEMISPACE
-#define MMTK_GC_SEMISPACE 0
-#endif
-
-#ifndef MMTK_GC_GENCOPY
-#define MMTK_GC_GENCOPY 0
-#endif
-
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
@@ -134,6 +122,7 @@ typedef struct {
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
+extern bool openjdk_needs_write_barrier();
 
 extern size_t used_bytes();
 extern void* starting_heap_address();
