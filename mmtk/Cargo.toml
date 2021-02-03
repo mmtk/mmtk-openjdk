@@ -34,7 +34,6 @@ ms_mimalloc = ["mmtk/ms_mimalloc"]
 ms_jemalloc = ["mmtk/ms_jemalloc"]
 ms_libc = ["mmtk/ms_libc"]
 ms_hoard = ["mmtk/ms_hoard"]    
-ms_scalloc = ["mmtk/ms_scalloc"]
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and 
@@ -43,3 +42,4 @@ ms_scalloc = ["mmtk/ms_scalloc"]
 nogc = []
 semispace = []
 gencopy = []
+marksweep = []

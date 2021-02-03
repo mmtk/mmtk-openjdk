@@ -9,9 +9,8 @@ use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
 use mmtk::Mutator;
-use mmtk::{Plan, MMTK};
-#[cfg(feature = "marksweep")]
-use mmtk::util::alloc::is_malloced as malloced;
+use mmtk::MMTK;
+use mmtk::util::alloc::is_malloced;
 
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
@@ -77,30 +76,19 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 
 use mmtk::util::alloc::Allocator as IAllocator;
 use mmtk::util::alloc::BumpAllocator;
-#[cfg(feature = "marksweep")]
 use mmtk::util::alloc::MallocAllocator;
-#[cfg(not(feature = "marksweep"))]
 use mmtk::util::alloc::LargeObjectAllocator;
 use mmtk::util::heap::MonotonePageResource;
 
-#[cfg(feature = "marksweep")]
 #[no_mangle]
-pub extern "C" fn is_malloced(obj: ObjectReference) -> usize {
-    if malloced(obj) {
+pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> usize {
+    if is_malloced(obj) {
         1
     } else {
         0
     }
 }
 
-
-#[cfg(not(feature="marksweep"))]
-#[no_mangle]
-pub extern "C" fn is_malloced(obj: ObjectReference) -> usize {
-    0
-}
-
-#[cfg(not(feature="marksweep"))]
 #[no_mangle]
 pub extern "C" fn alloc_slow_bump_monotone_immortal(
     allocator: *mut c_void,
@@ -137,7 +125,6 @@ pub extern "C" fn alloc_slow_bump_monotone_copy(
     unimplemented!()
 }
 
-#[cfg(not(feature="marksweep"))]
 #[no_mangle]
 pub extern "C" fn alloc_slow_largeobject(
     allocator: *mut c_void,
