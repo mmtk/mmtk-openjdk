@@ -27,19 +27,19 @@ mmtk = { path = "../../mmtk-core" }
 
 [features]
 default = []
-nogc = ["mmtk/nogc"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
-semispace = ["mmtk/semispace"]
-gencopy = ["mmtk/gencopy"]
-marksweep = ["mmtk/marksweep"]
+
 ms_mimalloc = ["mmtk/ms_mimalloc"]
 ms_jemalloc = ["mmtk/ms_jemalloc"]
 ms_libc = ["mmtk/ms_libc"]
 ms_hoard = ["mmtk/ms_hoard"]    
 ms_scalloc = ["mmtk/ms_scalloc"]
-ga_mimalloc = ["mmtk/ga_mimalloc"]
-ga_jemalloc = ["mmtk/ga_jemalloc"]
-ga_libc = ["mmtk/ga_libc"]
-ga_hoard = ["mmtk/ga_hoard"]    
-ga_scalloc = ["mmtk/ga_scalloc"]
+
+# We can select plan at runtime. So no need to use any of these features.
+# However, if any of these is provided during build-time, we will ignore any runtime flag and 
+# always run this plan. Performance-wise there is no difference. The main reason for these features
+# is to temporarily allow running performance tests without changing performance scripts.
+nogc = []
+semispace = []
+gencopy = []

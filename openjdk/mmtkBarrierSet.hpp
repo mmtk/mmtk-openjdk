@@ -36,16 +36,9 @@
 #include "mmtk.h"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH false
-#if MMTK_GC_GENCOPY
-#define MMTK_ENABLE_WRITE_BARRIER true
-#else
-#define MMTK_ENABLE_WRITE_BARRIER false
-#endif
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
-
-
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
@@ -61,6 +54,9 @@ protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
 public:
+  // FIXME: We should remove this field, and use different BarrierSet implementations
+  // for GC plans that use barrier and do not use barrier. This would improve performance.
+  static bool enable_write_barrier;
   MMTkBarrierSet(MemRegion whole_heap);
 
   virtual void on_thread_destroy(Thread* thread);
@@ -99,49 +95,49 @@ public:
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
       Raw::oop_store(addr, value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_edge((void*) addr);
+      }
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       Raw::oop_store_at(base, offset, value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node((void*) base);
+      }
     }
 
     template <typename T>
     static oop oop_atomic_cmpxchg_in_heap(oop new_value, T* addr, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg(new_value, addr, compare_value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_edge((void*) addr);
+      }
       return result;
     }
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node((void*) base);
+      }
       return result;
     }
 
     template <typename T>
     static oop oop_atomic_xchg_in_heap(oop new_value, T* addr) {
       oop result = Raw::oop_atomic_xchg(new_value, addr);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_edge((void*) addr);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_edge((void*) addr);
+      }
       return result;;
     }
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node((void*) base);
+      }
       return result;
     }
 
@@ -152,17 +148,17 @@ public:
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) dst_obj);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node((void*) dst_obj);
+      }
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node((void*) dst);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node((void*) dst);
+      }
     }
   };
 

@@ -9,12 +9,12 @@ cd repos/openjdk
 export DEBUG_LEVEL=slowdebug
 echo $RUSTUP_TOOLCHAIN
 
-# --- SemiSpace ---
-
 # Build
-export MMTK_PLAN=semispace
 sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+
+# --- SemiSpace ---
+export MMTK_PLAN=SemiSpace
 
 # Test - the benchmarks that are commented out do not work yet
 # Note: the command line options are necessary for now to ensure the benchmarks work. We may later change the options if we do not have these many constraints.
@@ -32,11 +32,7 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar eclipse
 
 # --- GenCopy ---
-
-# Build
-export MMTK_PLAN=gencopy
-sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
-make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+export MMTK_PLAN=GenCopy
 
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar antlr
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar fop
@@ -53,9 +49,7 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 # --- NoGC ---
 
 # Build
-export MMTK_PLAN=nogc
-sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
-make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+export MMTK_PLAN=NoGC
 
 # Test - the benchmarks that are commented out do not work yet
 # Note: We could increase heap size when mmtk core can work for larger heap. We may get more benchmarks running.
