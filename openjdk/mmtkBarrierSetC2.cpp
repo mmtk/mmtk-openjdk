@@ -478,33 +478,3 @@ void MMTkBarrierSetC2::expand_allocate(
   x->transform_later(result_phi_i_o);
   // This completes all paths into the result merge point
 }
-
-
-#define __ ideal.
-
-Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) const {
-  return MMTkBarrierSet::_c2->store_at_resolved(access, val);
-}
-
-Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,
-                                                         Node* new_val, const Type* value_type) const {
-  return MMTkBarrierSet::_c2->atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
-}
-
-Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val,
-                                                          Node* new_val, const Type* value_type) const {
-  return MMTkBarrierSet::_c2->atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
-}
-
-Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-  return MMTkBarrierSet::_c2->atomic_xchg_at_resolved(access, new_val, value_type);
-}
-
-void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
-  MMTkBarrierSet::_c2->clone(kit, src, dst, size, is_array);
-}
-
-bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
-  return MMTkBarrierSet::_c2->is_gc_barrier_node(node);
-}
-

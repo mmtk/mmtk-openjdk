@@ -88,6 +88,3 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   }
 }
 
-void MMTkBarrierSetAssembler::store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
-  MMTkBarrierSet::_assembler->store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-}

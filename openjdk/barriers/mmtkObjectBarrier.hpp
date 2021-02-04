@@ -5,12 +5,13 @@
 #include "opto/idealKit.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
+#include "gc/shared/barrierSet.hpp"
 #include "../mmtkBarrierSet.hpp"
 #include "../mmtkBarrierSetAssembler_x86.hpp"
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
 
-class MMTkObjectBarrierRuntime: public MMTkBarrierRuntime {
+class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
   static void record_modified_node_slow(void* src);
 
@@ -21,10 +22,10 @@ public:
   virtual void record_modified_node(oop src);
 };
 
-class MMTkObjectBarrierC1;
+class MMTkObjectBarrierSetC1;
 class MMTkObjectBarrierStub;
 
-class MMTkObjectBarrierAssembler: public MMTkBarrierAssembler {
+class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
   void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
   void record_modified_node(MacroAssembler* masm, Register obj);
 public:
@@ -58,7 +59,7 @@ public:
 
     __ save_live_registers_no_oop_map(true);
 
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierRuntime::record_modified_node_slow), 1);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
 
     __ restore_live_registers(true);
 
@@ -83,7 +84,7 @@ struct MMTkObjectBarrierStub: CodeStub {
   LIR_Opr _src, _slot, _new_val;
   MMTkObjectBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): _src(src), _slot(slot), _new_val(new_val) {}
   virtual void emit_code(LIR_Assembler* ce) {
-    MMTkObjectBarrierAssembler* bs = (MMTkObjectBarrierAssembler*) ((MMTkBarrierSet*) BarrierSet::barrier_set())->_assembler;
+    MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
     bs->gen_write_barrier_stub(ce, this);
   }
   virtual void visit(LIR_OpVisitState* visitor) {
@@ -95,11 +96,11 @@ struct MMTkObjectBarrierStub: CodeStub {
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkWriteBarrierStub"); });
 };
 
-class MMTkObjectBarrierC1: public MMTkBarrierC1 {
+class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
 public:
   class MMTkObjectBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
     virtual OopMapSet* generate_code(StubAssembler* sasm) {
-      MMTkObjectBarrierAssembler* bs = (MMTkObjectBarrierAssembler*) ((MMTkBarrierSet*) BarrierSet::barrier_set())->_assembler;
+      MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
       bs->generate_c1_write_barrier_runtime_stub(sasm);
       return NULL;
     }
@@ -141,7 +142,7 @@ public:
 
 #define __ ideal.
 
-class MMTkObjectBarrierC2: public MMTkBarrierC2 {
+class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
   void record_modified_node(GraphKit* kit, Node* node) const;
 public:
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
@@ -178,8 +179,8 @@ public:
 #undef __
 
 #define __ ce->masm()->
-inline void MMTkObjectBarrierAssembler::gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub) {
-  MMTkObjectBarrierC1* bs = (MMTkObjectBarrierC1*) ((MMTkBarrierSet*) BarrierSet::barrier_set())->_c1;
+inline void MMTkObjectBarrierSetAssembler::gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub) {
+  MMTkObjectBarrierSetC1* bs = (MMTkObjectBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
   ce->store_parameter(stub->_src->as_pointer_register(), 0);
   __ call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
@@ -187,11 +188,11 @@ inline void MMTkObjectBarrierAssembler::gen_write_barrier_stub(LIR_Assembler* ce
 }
 #undef __
 
-struct MMTkObjectBarrier {
-  typedef MMTkObjectBarrierRuntime Runtime;
-  typedef MMTkObjectBarrierAssembler Assembler;
-  typedef MMTkObjectBarrierC1 C1;
-  typedef MMTkObjectBarrierC2 C2;
-};
+struct MMTkObjectBarrier: MMTkBarrierImpl<
+  MMTkObjectBarrierSetRuntime,
+  MMTkObjectBarrierSetAssembler,
+  MMTkObjectBarrierSetC1,
+  MMTkObjectBarrierSetC2
+> {};
 
 #endif

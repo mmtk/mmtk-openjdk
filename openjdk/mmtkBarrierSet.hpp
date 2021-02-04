@@ -38,9 +38,8 @@
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
-// This class provides the interface between a barrier implementation and
-// the rest of the system.
-class MMTkBarrierRuntime: public CHeapObj<mtGC> {
+
+class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
   virtual void record_modified_node(oop object) {};
   virtual bool is_slow_path_call(address call) {
@@ -53,25 +52,31 @@ class MMTkBarrierSetC1;
 class MMTkBarrierC2;
 class MMTkBarrierSetC2;
 
+struct MMTkBarrierBase: public CHeapObj<mtGC> {
+  virtual MMTkBarrierSetRuntime* create_runtime() const = 0;
+  virtual MMTkBarrierSetAssembler* create_assembler() const = 0;
+  virtual MMTkBarrierSetC1* create_c1() const = 0;
+  virtual MMTkBarrierSetC2* create_c2() const = 0;
+};
+
+template <class Runtime, class Assembler, class C1, class C2>
+struct MMTkBarrierImpl: MMTkBarrierBase {
+  virtual MMTkBarrierSetRuntime* create_runtime() const { return new Runtime(); }
+  virtual MMTkBarrierSetAssembler* create_assembler() const { return new Assembler(); }
+  virtual MMTkBarrierSetC1* create_c1() const { return new C1(); }
+  virtual MMTkBarrierSetC2* create_c2() const { return new C2(); }
+};
+
+// This class provides the interface between a barrier implementation and
+// the rest of the system.
 class MMTkBarrierSet : public BarrierSet {
   friend class VMStructs;
   friend class MMTkBarrierSetAssembler;
   friend class MMTkBarrierSetC1;
   friend class MMTkBarrierSetC2;
-public:
-  MemRegion _whole_heap;
-  static MMTkBarrierRuntime* _runtime;
-  static MMTkBarrierAssembler* _assembler;
-  static MMTkBarrierC1* _c1;
-  static MMTkBarrierC2* _c2;
 
-  template<class BarrierImpl>
-  inline static void register_barrier() {
-    _runtime = new typename BarrierImpl::Runtime();
-    _assembler = new typename BarrierImpl::Assembler();
-    _c1 = new typename BarrierImpl::C1();
-    _c2 = new typename BarrierImpl::C2();
-  }
+  MemRegion _whole_heap;
+  MMTkBarrierSetRuntime* _runtime;
 
 protected:
   virtual void write_ref_array_work(MemRegion mr) ;
@@ -81,6 +86,10 @@ public:
   // for GC plans that use barrier and do not use barrier. This would improve performance.
   static bool enable_write_barrier;
   MMTkBarrierSet(MemRegion whole_heap);
+
+  inline static MMTkBarrierSetRuntime* runtime() {
+    return ((MMTkBarrierSet*) BarrierSet::barrier_set())->_runtime;
+  }
 
   virtual void on_thread_destroy(Thread* thread);
   virtual void on_thread_attach(JavaThread* thread);
@@ -124,7 +133,7 @@ public:
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       Raw::oop_store_at(base, offset, value);
-      MMTkBarrierSet::_runtime->record_modified_node(base);
+      runtime()->record_modified_node(base);
     }
 
     template <typename T>
@@ -135,7 +144,7 @@ public:
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-      MMTkBarrierSet::_runtime->record_modified_node(base);
+      runtime()->record_modified_node(base);
       return result;
     }
 
@@ -147,7 +156,7 @@ public:
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-      MMTkBarrierSet::_runtime->record_modified_node(base);
+      runtime()->record_modified_node(base);
       return result;
     }
 
@@ -158,13 +167,13 @@ public:
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-      MMTkBarrierSet::_runtime->record_modified_node((oop) dst_obj);
+      runtime()->record_modified_node((oop) dst_obj);
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-      MMTkBarrierSet::_runtime->record_modified_node(dst);
+      runtime()->record_modified_node(dst);
     }
   };
 

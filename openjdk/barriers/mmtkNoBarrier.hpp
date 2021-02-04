@@ -6,19 +6,19 @@
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
 
-class MMTkNoBarrierRuntime: public MMTkBarrierRuntime {};
+class MMTkNoBarrierSetRuntime: public MMTkBarrierSetRuntime {};
 
-class MMTkNoBarrierAssembler: public MMTkBarrierAssembler {};
+class MMTkNoBarrierSetAssembler: public MMTkBarrierSetAssembler {};
 
-class MMTkNoBarrierC1: public MMTkBarrierC1 {};
+class MMTkNoBarrierSetC1: public MMTkBarrierSetC1 {};
 
-class MMTkNoBarrierC2: public MMTkBarrierC2 {};
+class MMTkNoBarrierSetC2: public MMTkBarrierSetC2 {};
 
-struct MMTkNoBarrier {
-  typedef MMTkNoBarrierRuntime Runtime;
-  typedef MMTkNoBarrierAssembler Assembler;
-  typedef MMTkNoBarrierC1 C1;
-  typedef MMTkNoBarrierC2 C2;
-};
+struct MMTkNoBarrier: MMTkBarrierImpl<
+  MMTkNoBarrierSetRuntime,
+  MMTkNoBarrierSetAssembler,
+  MMTkNoBarrierSetC1,
+  MMTkNoBarrierSetC2
+> {};
 
 #endif
