@@ -6,11 +6,7 @@
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
 
-class MMTkNoBarrierRuntime: public MMTkBarrierRuntime {
-public:
-  virtual void record_modified_node(void* src);
-  virtual void record_modified_edge(void* slot);
-};
+class MMTkNoBarrierRuntime: public MMTkBarrierRuntime {};
 
 class MMTkNoBarrierAssembler: public MMTkBarrierAssembler {};
 

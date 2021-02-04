@@ -58,9 +58,6 @@ public:
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
-  virtual void record_modified_edge(GraphKit* kit, Node* slot) const;
-  virtual void record_modified_node(GraphKit* kit, Node* node) const;
-
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const;
 
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,

@@ -35,6 +35,7 @@
 #include "runtime/interfaceSupport.inline.hpp"
 #include <cstring>
 #include "barriers/mmtkNoBarrier.hpp"
+#include "barriers/mmtkObjectBarrier.hpp"
 
 bool MMTkBarrierSet::enable_write_barrier = false;
 
@@ -50,17 +51,17 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
       BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)
     )
     , _whole_heap(whole_heap) {
-    char* plan = std::getenv("MMTK_PLAN");
-    if (std::strcmp(plan, "NoGC")) {
+    const char* barrier = "NoBarrier";//mmtk_active_barrier();
+    if (std::strcmp(barrier, "NoBarrier")) {
         _runtime = new MMTkNoBarrierRuntime();
         _assembler = new MMTkNoBarrierAssembler();
         _c1 = new MMTkNoBarrierC1();
         _c2 = new MMTkNoBarrierC2();
-    } else if (std::strcmp(plan, "SemiSpace")) {
-        _runtime = new MMTkNoBarrierRuntime();
-        _assembler = new MMTkNoBarrierAssembler();
-        _c1 = new MMTkNoBarrierC1();
-        _c2 = new MMTkNoBarrierC2();
+    } else if (std::strcmp(barrier, "ObjectBarrier")) {
+        _runtime = new MMTkObjectBarrierRuntime();
+        _assembler = new MMTkObjectBarrierAssembler();
+        _c1 = new MMTkObjectBarrierC1();
+        _c2 = new MMTkObjectBarrierC2();
     } else {
         guarantee(false, "Unimplemented");
     }
@@ -102,16 +103,6 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 
 }
 
-
 bool MMTkBarrierSet::is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_node)
-        || call == CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_edge);
-}
-
-void MMTkBarrierSet::record_modified_node(void* obj) {
-    _runtime->record_modified_node(obj);
-}
-
-void MMTkBarrierSet::record_modified_edge(void* slot) {
-    _runtime->record_modified_edge(slot);
+    return _runtime->is_slow_path_call(call);
 }

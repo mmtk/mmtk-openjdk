@@ -1,6 +1,6 @@
 use libc::{c_char, c_void};
-use std::ffi::CStr;
-
+use std::ffi::{CStr, CString};
+use std::lazy::SyncLazy;
 use mmtk::memory_manager;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
@@ -10,11 +10,22 @@ use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
 use mmtk::Mutator;
 use mmtk::{Plan, MMTK};
-
+use mmtk::util::options::PlanSelector;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+
+static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
+static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+
+#[no_mangle]
+pub extern "C" fn mmtk_active_barrier() -> *const c_char {
+    match SINGLETON.options.plan {
+        PlanSelector::GenCopy => OBJECT_BARRIER.as_ptr(),
+        _ => NO_BARRIER.as_ptr(),
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
