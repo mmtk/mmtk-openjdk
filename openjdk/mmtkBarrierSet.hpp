@@ -65,6 +65,14 @@ public:
   static MMTkBarrierC1* _c1;
   static MMTkBarrierC2* _c2;
 
+  template<class BarrierImpl>
+  inline static void register_barrier() {
+    _runtime = new typename BarrierImpl::Runtime();
+    _assembler = new typename BarrierImpl::Assembler();
+    _c1 = new typename BarrierImpl::C1();
+    _c2 = new typename BarrierImpl::C2();
+  }
+
 protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 

@@ -16,6 +16,7 @@ use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
 
+// TODO: Choose barrier based on plan configuration
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
 

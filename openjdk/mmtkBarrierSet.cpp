@@ -51,20 +51,10 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
       BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)
     )
     , _whole_heap(whole_heap) {
-    const char* barrier = "NoBarrier";//mmtk_active_barrier();
-    if (std::strcmp(barrier, "NoBarrier")) {
-        _runtime = new MMTkNoBarrierRuntime();
-        _assembler = new MMTkNoBarrierAssembler();
-        _c1 = new MMTkNoBarrierC1();
-        _c2 = new MMTkNoBarrierC2();
-    } else if (std::strcmp(barrier, "ObjectBarrier")) {
-        _runtime = new MMTkObjectBarrierRuntime();
-        _assembler = new MMTkObjectBarrierAssembler();
-        _c1 = new MMTkObjectBarrierC1();
-        _c2 = new MMTkObjectBarrierC2();
-    } else {
-        guarantee(false, "Unimplemented");
-    }
+    const char* barrier = mmtk_active_barrier();
+    if (strcmp(barrier, "NoBarrier") == 0) register_barrier<MMTkNoBarrier>();
+    else if (strcmp(barrier, "ObjectBarrier") == 0) register_barrier<MMTkObjectBarrier>();
+    else guarantee(false, "Unimplemented");
 }
 
 void MMTkBarrierSet::write_ref_array_work(MemRegion mr) {
