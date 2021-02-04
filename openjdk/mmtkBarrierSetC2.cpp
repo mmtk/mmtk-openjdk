@@ -483,82 +483,87 @@ void MMTkBarrierSetC2::expand_allocate(
 #define __ ideal.
 
 Node* MMTkBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) const {
-  DecoratorSet decorators = access.decorators();
-  GraphKit* kit = access.kit();
+  return MMTkBarrierSet::_c2->store_at_resolved(access, val);
+  // DecoratorSet decorators = access.decorators();
+  // GraphKit* kit = access.kit();
 
-  const TypePtr* adr_type = access.addr().type();
-  Node* adr = access.addr().node();
+  // const TypePtr* adr_type = access.addr().type();
+  // Node* adr = access.addr().node();
 
-  bool is_array = (decorators & IS_ARRAY) != 0;
-  bool anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
-  bool in_heap = (decorators & IN_HEAP) != 0;
-  bool use_precise = is_array || anonymous;
+  // bool is_array = (decorators & IS_ARRAY) != 0;
+  // bool anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+  // bool in_heap = (decorators & IN_HEAP) != 0;
+  // bool use_precise = is_array || anonymous;
 
-  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
-    return BarrierSetC2::store_at_resolved(access, val);
-  }
+  // if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
+  //   return BarrierSetC2::store_at_resolved(access, val);
+  // }
 
-  Node* store = BarrierSetC2::store_at_resolved(access, val);
+  // Node* store = BarrierSetC2::store_at_resolved(access, val);
 
-  record_modified_node(kit, access.base());
+  // record_modified_node(kit, access.base());
 
-  return store;
+  // return store;
 }
 
 Node* MMTkBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,
                                                          Node* new_val, const Type* value_type) const {
-  DecoratorSet decorators = access.decorators();
-  GraphKit* kit = access.kit();
-  bool in_heap = (decorators & IN_HEAP) != 0;
+  return MMTkBarrierSet::_c2->atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+  // DecoratorSet decorators = access.decorators();
+  // GraphKit* kit = access.kit();
+  // bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
-    return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
-  }
+  // if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
+  //   return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+  // }
 
-  Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+  // Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node(kit, access.base());
+  // record_modified_node(kit, access.base());
 
-  return result;
+  // return result;
 }
 
 Node* MMTkBarrierSetC2::atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val,
                                                           Node* new_val, const Type* value_type) const {
-  DecoratorSet decorators = access.decorators();
-  GraphKit* kit = access.kit();
-  bool in_heap = (decorators & IN_HEAP) != 0;
+  return MMTkBarrierSet::_c2->atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+  // DecoratorSet decorators = access.decorators();
+  // GraphKit* kit = access.kit();
+  // bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
-    return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
-  }
+  // if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
+  //   return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+  // }
 
-  Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+  // Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
 
-  record_modified_node(kit, access.base());
+  // record_modified_node(kit, access.base());
 
-  return load_store;
+  // return load_store;
 }
 
 Node* MMTkBarrierSetC2::atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-  DecoratorSet decorators = access.decorators();
-  GraphKit* kit = access.kit();
+  return MMTkBarrierSet::_c2->atomic_xchg_at_resolved(access, new_val, value_type);
+  // DecoratorSet decorators = access.decorators();
+  // GraphKit* kit = access.kit();
 
-  Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+  // Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
 
-  bool in_heap = (decorators & IN_HEAP) != 0;
+  // bool in_heap = (decorators & IN_HEAP) != 0;
 
-  if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
-    return result;
-  }
+  // if (!MMTkBarrierSet::enable_write_barrier || !access.is_oop()) {
+  //   return result;
+  // }
 
-  record_modified_node(kit, access.base());
+  // record_modified_node(kit, access.base());
 
-  return result;
+  // return result;
 }
 
 void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
-  BarrierSetC2::clone(kit, src, dst, size, is_array);
-  if (MMTkBarrierSet::enable_write_barrier) record_modified_node(kit, dst);
+  MMTkBarrierSet::_c2->clone(kit, src, dst, size, is_array);
+  // BarrierSetC2::clone(kit, src, dst, size, is_array);
+  // if (MMTkBarrierSet::enable_write_barrier) record_modified_node(kit, dst);
 }
 
 const TypeFunc* record_modified_node_entry_Type() {
@@ -582,26 +587,27 @@ const TypeFunc* record_modified_edge_entry_Type() {
 void MMTkBarrierSetC2::record_modified_edge(GraphKit* kit, Node* slot) const {
   IdealKit ideal(kit, true);
   const TypeFunc *tf = record_modified_edge_entry_Type();
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge), "record_modified_edge", slot);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_edge), "record_modified_edge", slot);
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
 
 void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* node) const {
   IdealKit ideal(kit, true);
   const TypeFunc *tf = record_modified_node_entry_Type();
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", node);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_node), "record_modified_node", node);
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
 
 bool MMTkBarrierSetC2::is_gc_barrier_node(Node* node) const {
-  if (node->Opcode() != Op_CallLeaf) {
-    return false;
-  }
-  CallLeafNode *call = node->as_CallLeaf();
-  if (call->_name == NULL) {
-    return false;
-  }
+  return MMTkBarrierSet::_c2->is_gc_barrier_node(node);
+  // if (node->Opcode() != Op_CallLeaf) {
+  //   return false;
+  // }
+  // CallLeafNode *call = node->as_CallLeaf();
+  // if (call->_name == NULL) {
+  //   return false;
+  // }
 
-  return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0;
+  // return strcmp(call->_name, "record_modified_edge") == 0 || strcmp(call->_name, "record_modified_node") == 0;
 }
 

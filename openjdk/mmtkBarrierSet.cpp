@@ -33,8 +33,15 @@
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
 #include "runtime/interfaceSupport.inline.hpp"
+#include <cstring>
+#include "barriers/mmtkNoBarrier.hpp"
 
 bool MMTkBarrierSet::enable_write_barrier = false;
+
+MMTkBarrierRuntime* MMTkBarrierSet::_runtime = NULL;
+MMTkBarrierAssembler* MMTkBarrierSet::_assembler = NULL;
+MMTkBarrierC1* MMTkBarrierSet::_c1 = NULL;
+MMTkBarrierC2* MMTkBarrierSet::_c2 = NULL;
 
 MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
       make_barrier_set_assembler<MMTkBarrierSetAssembler>(),
@@ -42,7 +49,22 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
       make_barrier_set_c2<MMTkBarrierSetC2>(),
       BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)
     )
-    , _whole_heap(whole_heap) {}
+    , _whole_heap(whole_heap) {
+    char* plan = std::getenv("MMTK_PLAN");
+    if (std::strcmp(plan, "NoGC")) {
+        _runtime = new MMTkNoBarrierRuntime();
+        _assembler = new MMTkNoBarrierAssembler();
+        _c1 = new MMTkNoBarrierC1();
+        _c2 = new MMTkNoBarrierC2();
+    } else if (std::strcmp(plan, "SemiSpace")) {
+        _runtime = new MMTkNoBarrierRuntime();
+        _assembler = new MMTkNoBarrierAssembler();
+        _c1 = new MMTkNoBarrierC1();
+        _c2 = new MMTkNoBarrierC2();
+    } else {
+        guarantee(false, "Unimplemented");
+    }
+}
 
 void MMTkBarrierSet::write_ref_array_work(MemRegion mr) {
     guarantee(false, "NoBarrier::write_ref_arrey_work not supported");
@@ -82,13 +104,14 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 
 
 bool MMTkBarrierSet::is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node)
-        || call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge);
+    return call == CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_node)
+        || call == CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_edge);
 }
 
-void MMTkBarrierRuntime::record_modified_node(void* obj) {
-    ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+void MMTkBarrierSet::record_modified_node(void* obj) {
+    _runtime->record_modified_node(obj);
 }
-void MMTkBarrierRuntime::record_modified_edge(void* slot) {
-    ::record_modified_edge((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) slot);
+
+void MMTkBarrierSet::record_modified_edge(void* slot) {
+    _runtime->record_modified_edge(slot);
 }

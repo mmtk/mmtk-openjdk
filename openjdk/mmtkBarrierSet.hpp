@@ -34,21 +34,34 @@
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
 #include "mmtk.h"
+#include "mmtkBarrierSetAssembler_x86.hpp"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
-struct MMTkBarrierRuntime: AllStatic {
+class MMTkBarrierRuntime: public CHeapObj<mtGC> {
 public:
-  static void record_modified_node(void* src);
-  static void record_modified_edge(void* slot);
+  virtual void record_modified_node(void* src) = 0;
+  virtual void record_modified_edge(void* slot) = 0;
 };
+
+class MMTkBarrierC1;
+class MMTkBarrierSetC1;
+class MMTkBarrierC2;
+class MMTkBarrierSetC2;
 
 class MMTkBarrierSet : public BarrierSet {
   friend class VMStructs;
+  friend class MMTkBarrierSetAssembler;
+  friend class MMTkBarrierSetC1;
+  friend class MMTkBarrierSetC2;
 private:
   MemRegion _whole_heap;
+  static MMTkBarrierRuntime* _runtime;
+  static MMTkBarrierAssembler* _assembler;
+  static MMTkBarrierC1* _c1;
+  static MMTkBarrierC2* _c2;
 
 protected:
   virtual void write_ref_array_work(MemRegion mr) ;
@@ -95,49 +108,37 @@ public:
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
       Raw::oop_store(addr, value);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_edge((void*) addr);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_edge((void*) addr);
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       Raw::oop_store_at(base, offset, value);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_node((void*) base);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_node((void*) base);
     }
 
     template <typename T>
     static oop oop_atomic_cmpxchg_in_heap(oop new_value, T* addr, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg(new_value, addr, compare_value);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_edge((void*) addr);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_edge((void*) addr);
       return result;
     }
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_node((void*) base);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_node((void*) base);
       return result;
     }
 
     template <typename T>
     static oop oop_atomic_xchg_in_heap(oop new_value, T* addr) {
       oop result = Raw::oop_atomic_xchg(new_value, addr);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_edge((void*) addr);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_edge((void*) addr);
       return result;;
     }
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_node((void*) base);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_node((void*) base);
       return result;
     }
 
@@ -148,21 +149,19 @@ public:
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_node((void*) dst_obj);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_node((void*) dst_obj);
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-      if (MMTkBarrierSet::enable_write_barrier) {
-        MMTkBarrierRuntime::record_modified_node((void*) dst);
-      }
+      if (MMTkBarrierSet::enable_write_barrier) record_modified_node((void*) dst);
     }
   };
 
   static bool is_slow_path_call(address call);
+  static void record_modified_node(void* src);
+  static void record_modified_edge(void* slot);
 };
 
 template<>

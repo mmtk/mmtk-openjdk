@@ -90,11 +90,12 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
 void MMTkBarrierSetAssembler::store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
                                          Address dst, Register val, Register tmp1, Register tmp2) {
-  if (MMTkBarrierSet::enable_write_barrier && (type == T_OBJECT || type == T_ARRAY)) {
-    oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-  } else {
-    BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-  }
+  MMTkBarrierSet::_assembler->store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  // if (MMTkBarrierSet::enable_write_barrier && (type == T_OBJECT || type == T_ARRAY)) {
+  //   oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  // } else {
+  //   BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  // }
 }
 
 void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
@@ -132,7 +133,7 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
 void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj) {
   __ pusha();
   __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_node), 1);
   __ popa();
 }
 
@@ -183,7 +184,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 
   __ save_live_registers_no_oop_map(true);
 
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierSet::record_modified_node), 1);
 
   __ restore_live_registers(true);
 
