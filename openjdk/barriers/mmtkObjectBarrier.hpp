@@ -177,8 +177,6 @@ public:
 
 #undef __
 
-#endif
-
 #define __ ce->masm()->
 inline void MMTkObjectBarrierAssembler::gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub) {
   MMTkObjectBarrierC1* bs = (MMTkObjectBarrierC1*) ((MMTkBarrierSet*) BarrierSet::barrier_set())->_c1;
@@ -189,10 +187,11 @@ inline void MMTkObjectBarrierAssembler::gen_write_barrier_stub(LIR_Assembler* ce
 }
 #undef __
 
-
 struct MMTkObjectBarrier {
   typedef MMTkObjectBarrierRuntime Runtime;
   typedef MMTkObjectBarrierAssembler Assembler;
   typedef MMTkObjectBarrierC1 C1;
   typedef MMTkObjectBarrierC2 C2;
 };
+
+#endif
