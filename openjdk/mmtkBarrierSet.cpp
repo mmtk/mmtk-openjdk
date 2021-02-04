@@ -22,8 +22,9 @@
  *
  */
 
+#include <cstring>
+#include "runtime/interfaceSupport.inline.hpp"
 #include "mmtkBarrierSet.hpp"
-
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
 #endif
@@ -31,13 +32,8 @@
 #include "mmtkBarrierSetC2.hpp"
 #endif
 #include "mmtkBarrierSetAssembler_x86.hpp"
-
-#include "runtime/interfaceSupport.inline.hpp"
-#include <cstring>
 #include "barriers/mmtkNoBarrier.hpp"
 #include "barriers/mmtkObjectBarrier.hpp"
-
-bool MMTkBarrierSet::enable_write_barrier = false;
 
 MMTkBarrierBase* get_selected_barrier() {
     static MMTkBarrierBase* selected_barrier = NULL;

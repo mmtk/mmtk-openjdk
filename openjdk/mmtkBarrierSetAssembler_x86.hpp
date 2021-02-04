@@ -4,10 +4,6 @@
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
 
-class LIR_Assembler;
-class StubAssembler;
-class MMTkWriteBarrierStub;
-
 class MMTkBarrierSetAssembler: public BarrierSetAssembler {
 public:
   virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case);

@@ -82,9 +82,6 @@ protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
 public:
-  // FIXME: We should remove this field, and use different BarrierSet implementations
-  // for GC plans that use barrier and do not use barrier. This would improve performance.
-  static bool enable_write_barrier;
   MMTkBarrierSet(MemRegion whole_heap);
 
   inline static MMTkBarrierSetRuntime* runtime() {
