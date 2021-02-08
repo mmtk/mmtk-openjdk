@@ -11,20 +11,22 @@ use mmtk::MutatorContext;
 use mmtk::Mutator;
 use mmtk::{Plan, MMTK};
 use mmtk::util::options::PlanSelector;
+use mmtk::plan::barriers::BarrierSelector;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
 
-// TODO: Choose barrier based on plan configuration
+// Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
-    match SINGLETON.options.plan {
-        PlanSelector::GenCopy => OBJECT_BARRIER.as_ptr(),
-        _ => NO_BARRIER.as_ptr(),
+    match SINGLETON.plan.constraints().barrier {
+        BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
+        BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+        _ => unimplemented!()
     }
 }
 
