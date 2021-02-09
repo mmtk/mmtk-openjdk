@@ -29,13 +29,13 @@ struct BumpAllocator {
     void* cursor;
     void* limit;
     RustDynPtr space;
-    void* plan;
+    RustDynPtr plan;
 };
 
 struct LargeObjectAllocator {
     void* tls;
     void* space;
-    void* plan;
+    RustDynPtr plan;
 };
 
 struct Allocators {
@@ -54,9 +54,8 @@ struct MMTkMutatorContext {
     Allocators allocators;
     RustDynPtr barrier;
     void* mutator_tls;
-    void* plan;
+    RustDynPtr plan;
     MutatorConfig config;
-    void* modbuf;
 
     HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 

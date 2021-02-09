@@ -62,49 +62,48 @@
 
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
-
-
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
   inline static void record_modified_node_fast(void* obj) {
-#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-
-#if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
-    const char* byte = (char*) (MMTK_HEAP_END);
-    if (((*byte) & 1) != 0) {
-      record_modified_node(obj);
-    }
-#elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
-    obj = (void*) (((size_t) obj) & ((1 << 22) - 1));
-    const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
-    const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
-    const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
-    const size_t word_offset = ((bit_index >> 6) << 3);
-    const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
-    const size_t bit_offset = bit_index & 63;
-    if (((*word) & (1ULL << bit_offset)) != 0) {
-      record_modified_node(obj);
-    }
-#else
-    const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
-    const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
-    const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
-    const size_t word_offset = ((bit_index >> 6) << 3);
-    const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
-    const size_t bit_offset = bit_index & 63;
-  #if NORMAL_BARRIER_NO_SLOWPATH
-    if (((*word) & (1ULL << bit_offset)) == 0b11) {
-  #else
-    if (((*word) & (1ULL << bit_offset)) != 0) {
-  #endif
-      record_modified_node(obj);
-    }
-#endif
-
-#else
     record_modified_node(obj);
-#endif
+// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+
+// #if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
+//     const char* byte = (char*) (MMTK_HEAP_END);
+//     if (((*byte) & 1) != 0) {
+//       record_modified_node(obj);
+//     }
+// #elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
+//     obj = (void*) (((size_t) obj) & ((1 << 22) - 1));
+//     const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
+//     const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+//     const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
+//     const size_t word_offset = ((bit_index >> 6) << 3);
+//     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
+//     const size_t bit_offset = bit_index & 63;
+//     if (((*word) & (1ULL << bit_offset)) != 0) {
+//       record_modified_node(obj);
+//     }
+// #else
+//     const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
+//     const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
+//     const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
+//     const size_t word_offset = ((bit_index >> 6) << 3);
+//     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
+//     const size_t bit_offset = bit_index & 63;
+//   #if NORMAL_BARRIER_NO_SLOWPATH
+//     if (((*word) & (1ULL << bit_offset)) == 0b11) {
+//   #else
+//     if (((*word) & (1ULL << bit_offset)) != 0) {
+//   #endif
+//       record_modified_node(obj);
+//     }
+// #endif
+
+// #else
+//     record_modified_node(obj);
+// #endif
   }
   static void record_modified_edge(void* slot);
 };
@@ -118,6 +117,9 @@ protected:
   virtual void write_ref_array_work(MemRegion mr) ;
 
 public:
+  // FIXME: We should remove this field, and use different BarrierSet implementations
+  // for GC plans that use barrier and do not use barrier. This would improve performance.
+  static bool enable_write_barrier;
   MMTkBarrierSet(MemRegion whole_heap);
 
   virtual void on_thread_destroy(Thread* thread);
@@ -160,9 +162,9 @@ public:
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       Raw::oop_store_at(base, offset, value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node_fast((void*) base);
+      }
     }
 
     template <typename T>
@@ -173,9 +175,9 @@ public:
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node_fast((void*) base);
+      }
       return result;
     }
 
@@ -187,9 +189,9 @@ public:
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node_fast((void*) base);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node_fast((void*) base);
+      }
       return result;
     }
 
@@ -200,17 +202,17 @@ public:
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node_fast((void*) dst_obj);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node_fast((void*) dst_obj);
+      }
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-#if MMTK_ENABLE_WRITE_BARRIER
-      MMTkBarrierRuntime::record_modified_node_fast((void*) dst);
-#endif
+      if (MMTkBarrierSet::enable_write_barrier) {
+        MMTkBarrierRuntime::record_modified_node_fast((void*) dst);
+      }
     }
   };
 
