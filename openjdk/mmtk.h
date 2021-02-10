@@ -123,7 +123,6 @@ typedef struct {
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
-extern bool openjdk_needs_write_barrier();
 
 extern size_t used_bytes();
 extern void* starting_heap_address();
