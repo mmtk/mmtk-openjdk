@@ -10,7 +10,7 @@ use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
 use mmtk::Mutator;
 use mmtk::MMTK;
-use mmtk::util::alloc::is_malloced;
+use mmtk::util::alloc::is_alloced_by_malloc;
 
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
@@ -82,7 +82,7 @@ use mmtk::util::heap::MonotonePageResource;
 
 #[no_mangle]
 pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> usize {
-    if is_malloced(obj) {
+    if is_alloced_by_malloc(obj) {
         1
     } else {
         0

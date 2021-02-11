@@ -6,14 +6,6 @@ ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
 endif
 
-ifeq ($(MMTK_PLAN), marksweep)
-  ifndef MMTK_MALLOC
-    GC_FEATURES := $(GC_FEATURES),ms_libc
-  else
-    GC_FEATURES := $(GC_FEATURES),ms_$(MMTK_MALLOC)
-  endif
-endif
-
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)

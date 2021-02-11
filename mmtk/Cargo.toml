@@ -21,7 +21,7 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-# mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "f93f50fe8e48c2f4765e84f02f58b370bf4f4348" }
+# mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "b721a6d29d736282c36aa01196efd8f5bf26567f" }
 # Uncomment the following to build locally
 mmtk = { path = "../../mmtk-core" }
 
@@ -29,11 +29,6 @@ mmtk = { path = "../../mmtk-core" }
 default = []
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
-
-ms_mimalloc = ["mmtk/ms_mimalloc"]
-ms_jemalloc = ["mmtk/ms_jemalloc"]
-ms_libc = ["mmtk/ms_libc"]
-ms_hoard = ["mmtk/ms_hoard"]    
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and 
