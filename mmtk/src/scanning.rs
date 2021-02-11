@@ -1,7 +1,7 @@
-use super::gc_works::*;
+use super::gc_work::*;
 use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
