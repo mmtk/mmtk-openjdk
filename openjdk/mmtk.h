@@ -64,6 +64,12 @@ struct AllocatorSelector {
 extern AllocatorSelector get_allocator_mapping(int allocator);
 
 /**
+ * Finalization
+ */
+extern void add_finalizer(void* obj);
+extern void* get_finalized_object();
+
+/**
  * Misc
  */
 extern void enable_collection(void *tls);

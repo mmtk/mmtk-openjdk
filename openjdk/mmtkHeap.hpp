@@ -39,6 +39,7 @@
 #include "gc/shared/workgroup.hpp"
 #include "mmtkCollectorPolicy.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+#include "mmtkFinalizerThread.hpp"
 
 class GCMemoryManager;
 class MemoryPool;
@@ -60,6 +61,8 @@ public:
 
   MMTkHeap(MMTkCollectorPolicy* policy);
 
+  void schedule_finalizer();
+
   inline static MMTkHeap* heap() {
     return _heap;
   }
@@ -68,6 +71,7 @@ public:
 
   jint initialize();
   void enable_collection();
+  void notify_vm_init_complete();
 
   virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
   HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);
