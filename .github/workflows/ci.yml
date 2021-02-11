@@ -13,11 +13,9 @@ jobs:
       # Checkout repos and submodules
       - uses: actions/checkout@v2
         with:
-          # CI_ACCESS_TOKEN is a secret set with the repo
-          token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
       - name: Set credential for cargo dependency
-        run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/qinsoon:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
+        run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/github.com\/mmtk/g' mmtk/Cargo.toml
       - name: Setup Rust Toolchain
         run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
       - name: Setup Environments
