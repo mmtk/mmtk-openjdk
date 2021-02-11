@@ -1,4 +1,4 @@
-use mmtk::scheduler::gc_works::{ProcessEdgesWork, ScanStackRoot};
+use mmtk::scheduler::gc_work::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::OpaquePointer;
 use mmtk::vm::{Collection, Scanning, VMBinding};
