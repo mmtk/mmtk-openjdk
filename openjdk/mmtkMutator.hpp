@@ -21,6 +21,7 @@ struct RustDynPtr {
 // These constants should match the constants defind in mmtk::util::alloc::allocators
 const int MAX_BUMP_ALLOCATORS = 5;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+const int MAX_MALLOC_ALLOCATORS = 1;
 
 // The following types should have the same layout as the types with the same name in MMTk core (Rust)
 
@@ -38,9 +39,16 @@ struct LargeObjectAllocator {
     RustDynPtr plan;
 };
 
+struct MallocAllocator {
+    void* tls;
+    RustDynPtr space;
+    RustDynPtr plan;
+};
+
 struct Allocators {
     BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];
     LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
+    MallocAllocator malloc[MAX_MALLOC_ALLOCATORS];
 };
 
 struct MutatorConfig {

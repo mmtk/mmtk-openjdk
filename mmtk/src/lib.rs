@@ -103,7 +103,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "SemiSpace");
         #[cfg(feature = "gencopy")]
         std::env::set_var("MMTK_PLAN", "GenCopy");
-
+        #[cfg(feature = "marksweep")]
+        std::env::set_var("MMTK_PLAN", "MarkSweep");
         MMTK::new()
     };
 }

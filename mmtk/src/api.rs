@@ -16,6 +16,7 @@ use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+use mmtk::util::alloc::is_alloced_by_malloc;
 
 // Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
@@ -83,7 +84,7 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 // Allocation slow path
 
 use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator, MallocAllocator};
 use mmtk::util::heap::MonotonePageResource;
 
 #[no_mangle]
@@ -95,6 +96,15 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
 ) -> Address {
     use mmtk::policy::immortalspace::ImmortalSpace;
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
+}
+
+#[no_mangle]
+pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> usize {
+    if is_alloced_by_malloc(obj) {
+        1
+    } else {
+        0
+    }
 }
 
 // For plans that do not include copy space, use the other implementation

@@ -132,6 +132,7 @@ extern void iterator(); // ???
 
 // (It is the total_space - capacity_of_to_space in Semispace )
 // PZ: It shouldn't be ...?
+extern size_t is_in_reserved_malloc(const void* ref);
 extern size_t openjdk_max_capacity();
 extern size_t _noaccess_prefix();  // ???
 extern size_t _alignment();        // ???
