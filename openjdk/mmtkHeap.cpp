@@ -119,9 +119,6 @@ void MMTkHeap::post_initialize() {
 
 void MMTkHeap::enable_collection() {
    ::enable_collection(0);
-}
-
-void MMTkHeap::notify_vm_init_complete() {
    MMTkFinalizerThread::initialize();
 }
 

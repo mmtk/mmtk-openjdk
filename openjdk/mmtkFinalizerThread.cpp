@@ -85,8 +85,10 @@ void MMTkFinalizerThread::finalizer_thread_entry(JavaThread* thread, TRAPS) {
   MMTkFinalizerThread* this_thread = MMTkFinalizerThread::instance;
   while (true) {
       printf("Finalizer will wait\n");
-      MutexLocker mu(this_thread->m);
-      this_thread->m->wait();
+      {
+        MutexLocker mu(this_thread->m);
+        this_thread->m->wait();
+      }
 
       // finalize objects
       printf("Finalizer is scheduled and will get objects\n");
