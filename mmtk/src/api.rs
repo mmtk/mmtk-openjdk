@@ -107,11 +107,13 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
 }
 
 #[no_mangle]
-pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> usize {
-    if is_alloced_by_malloc(obj) {
-        1
+pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> bool {
+    if !cfg!(feature = "marksweep") {
+        false
+    } else if is_alloced_by_malloc(obj) {
+        true
     } else {
-        0
+        false
     }
 }
 
