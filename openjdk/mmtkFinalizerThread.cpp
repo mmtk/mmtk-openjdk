@@ -84,18 +84,18 @@ void MMTkFinalizerThread::initialize() {
 void MMTkFinalizerThread::finalizer_thread_entry(JavaThread* thread, TRAPS) {
   MMTkFinalizerThread* this_thread = MMTkFinalizerThread::instance;
   while (true) {
-      printf("Finalizer will wait\n");
+      // printf("Finalizer will wait\n");
       {
         MutexLocker mu(this_thread->m);
         this_thread->m->wait();
       }
 
       // finalize objects
-      printf("Finalizer is scheduled and will get objects\n");
+      // printf("Finalizer is scheduled and will get objects\n");
       while (true) {
         void* obj_ref = get_finalized_object();
         if (obj_ref != NULL) {
-          printf("Invoke finalizer on %p\n", obj_ref);
+          // printf("Invoke finalizer on %p\n", obj_ref);
           instanceOop obj = (instanceOop) obj_ref;
 
           {
@@ -119,7 +119,7 @@ MMTkFinalizerThread::MMTkFinalizerThread(ThreadFunction entry_point) : JavaThrea
 }
 
 void MMTkFinalizerThread::schedule() {
-    printf("Will schedule finalier\n");
+    // printf("Will schedule finalier\n");
     MutexLocker mu(this->m);
     this->m->notify();
 }
