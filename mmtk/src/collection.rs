@@ -21,8 +21,7 @@ impl Collection<OpenJDK> for VMCollection {
             if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
                 0usize as _
             } else {
-                create_mutator_scan_work::<E>
-                    as *const extern "C" fn(&'static mut Mutator<OpenJDK>)
+                create_mutator_scan_work::<E> as *const extern "C" fn(&'static mut Mutator<OpenJDK>)
             }
         };
         unsafe {

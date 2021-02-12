@@ -19,7 +19,8 @@ pub extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
 ) -> NewBuffer {
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false, &SINGLETON));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+            .add(W::new(buf, false, &SINGLETON));
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     NewBuffer { ptr, capacity }

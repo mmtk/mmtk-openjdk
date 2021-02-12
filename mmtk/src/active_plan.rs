@@ -4,14 +4,14 @@ use crate::SINGLETON;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
+use mmtk::Mutator;
 use mmtk::Plan;
 use std::sync::Mutex;
-use mmtk::Mutator;
 
 pub struct VMActivePlan {}
 
 impl ActivePlan<OpenJDK> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM=OpenJDK> {
+    fn global() -> &'static dyn Plan<VM = OpenJDK> {
         &*SINGLETON.plan
     }
 

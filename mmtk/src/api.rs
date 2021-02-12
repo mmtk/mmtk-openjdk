@@ -1,22 +1,22 @@
-use libc::{c_char, c_void};
-use std::ffi::{CStr, CString};
-use std::lazy::SyncLazy;
-use mmtk::memory_manager;
-use mmtk::scheduler::GCWorker;
-use mmtk::util::alloc::allocators::AllocatorSelector;
-use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
-use mmtk::AllocationSemantics;
-use mmtk::MutatorContext;
-use mmtk::Mutator;
-use mmtk::{Plan, MMTK};
-use mmtk::util::options::PlanSelector;
-use mmtk::plan::barriers::BarrierSelector;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+use libc::{c_char, c_void};
+use mmtk::memory_manager;
+use mmtk::plan::barriers::BarrierSelector;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::util::alloc::is_alloced_by_malloc;
+use mmtk::util::constants::LOG_BYTES_IN_PAGE;
+use mmtk::util::options::PlanSelector;
+use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::AllocationSemantics;
+use mmtk::Mutator;
+use mmtk::MutatorContext;
+use mmtk::{Plan, MMTK};
+use std::ffi::{CStr, CString};
+use std::lazy::SyncLazy;
 
 // Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
@@ -27,7 +27,7 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
     match SINGLETON.plan.constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
         BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }
 
@@ -150,12 +150,7 @@ pub extern "C" fn post_alloc(
     bytes: usize,
     allocator: AllocationSemantics,
 ) {
-    memory_manager::post_alloc::<OpenJDK>(
-        unsafe { &mut *mutator },
-        refer,
-        bytes,
-        allocator,
-    )
+    memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
 #[no_mangle]
@@ -289,9 +284,6 @@ pub extern "C" fn record_modified_node(
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_edge(
-    mutator: &'static mut Mutator<OpenJDK>,
-    slot: Address,
-) {
+pub extern "C" fn record_modified_edge(mutator: &'static mut Mutator<OpenJDK>, slot: Address) {
     mutator.record_modified_edge(slot);
 }
