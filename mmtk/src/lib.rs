@@ -2,6 +2,7 @@
 #![feature(const_fn)]
 #![feature(box_syntax)]
 #![feature(vec_into_raw_parts)]
+#![feature(once_cell)]
 
 extern crate libc;
 extern crate mmtk;
