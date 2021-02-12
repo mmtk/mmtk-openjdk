@@ -21,14 +21,19 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-# mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "f93f50fe8e48c2f4765e84f02f58b370bf4f4348" }
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "997a215408dae1181e60d520d521e4f090a060ca" }
 # Uncomment the following to build locally
-mmtk = { path = "../../mmtk-core" }
+# mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = []
-nogc = ["mmtk/nogc"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
-semispace = ["mmtk/semispace"]
-gencopy = ["mmtk/gencopy"]
+
+# We can select plan at runtime. So no need to use any of these features.
+# However, if any of these is provided during build-time, we will ignore any runtime flag and
+# always run this plan. Performance-wise there is no difference. The main reason for these features
+# is to temporarily allow running performance tests without changing performance scripts.
+nogc = []
+semispace = []
+gencopy = []

@@ -1,13 +1,13 @@
-use super::gc_works::*;
+use super::gc_work::*;
 use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
 use mmtk::vm::Scanning;
 use mmtk::MutatorContext;
-use mmtk::{Mutator, SelectedPlan, TraceLocal, TransitiveClosure};
+use mmtk::{Mutator, TraceLocal, TransitiveClosure};
 use std::mem;
 
 pub struct VMScanning {}
@@ -19,7 +19,7 @@ pub extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
 ) -> NewBuffer {
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false, &SINGLETON));
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     NewBuffer { ptr, capacity }
@@ -57,7 +57,7 @@ impl Scanning<OpenJDK> for VMScanning {
     }
 
     fn scan_thread_root<W: ProcessEdgesWork<VM = OpenJDK>>(
-        mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+        mutator: &'static mut Mutator<OpenJDK>,
         _tls: OpaquePointer,
     ) {
         let tls = mutator.get_tls();

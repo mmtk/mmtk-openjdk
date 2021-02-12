@@ -1,6 +1,6 @@
 use super::{OpenJDK, OpenJDK_Upcalls, UPCALLS};
 use crate::scanning::create_process_edges_work;
-use mmtk::scheduler::gc_works::*;
+use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;

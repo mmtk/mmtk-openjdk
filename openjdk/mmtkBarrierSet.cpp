@@ -22,8 +22,9 @@
  *
  */
 
+#include <cstring>
+#include "runtime/interfaceSupport.inline.hpp"
 #include "mmtkBarrierSet.hpp"
-
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
 #endif
@@ -31,16 +32,28 @@
 #include "mmtkBarrierSetC2.hpp"
 #endif
 #include "mmtkBarrierSetAssembler_x86.hpp"
+#include "barriers/mmtkNoBarrier.hpp"
+#include "barriers/mmtkObjectBarrier.hpp"
 
-#include "runtime/interfaceSupport.inline.hpp"
+MMTkBarrierBase* get_selected_barrier() {
+    static MMTkBarrierBase* selected_barrier = NULL;
+    if (selected_barrier) return selected_barrier;
+    const char* barrier = mmtk_active_barrier();
+    if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
+    else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
+    else guarantee(false, "Unimplemented");
+    return selected_barrier;
+}
 
 MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
-      make_barrier_set_assembler<MMTkBarrierSetAssembler>(),
-      make_barrier_set_c1<MMTkBarrierSetC1>(),
-      make_barrier_set_c2<MMTkBarrierSetC2>(),
+      get_selected_barrier()->create_assembler(),
+      get_selected_barrier()->create_c1(),
+      get_selected_barrier()->create_c2(),
       BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)
     )
-    , _whole_heap(whole_heap) {}
+    , _whole_heap(whole_heap)
+    , _runtime(get_selected_barrier()->create_runtime())
+    {}
 
 void MMTkBarrierSet::write_ref_array_work(MemRegion mr) {
     guarantee(false, "NoBarrier::write_ref_arrey_work not supported");
@@ -78,15 +91,6 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 
 }
 
-
 bool MMTkBarrierSet::is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node)
-        || call == CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_edge);
-}
-
-void MMTkBarrierRuntime::record_modified_node(void* obj) {
-    ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
-}
-void MMTkBarrierRuntime::record_modified_edge(void* slot) {
-    ::record_modified_edge((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) slot);
+    return runtime()->is_slow_path_call(call);
 }

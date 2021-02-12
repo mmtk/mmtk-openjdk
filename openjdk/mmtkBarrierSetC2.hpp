@@ -35,22 +35,29 @@ class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
-  virtual void record_modified_edge(GraphKit* kit, Node* slot) const;
-  virtual void record_modified_node(GraphKit* kit, Node* node) const;
-
-  virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const;
-
-  virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val,
-                                               Node* new_val, const Type* value_type) const;
-  virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val,
-                                                Node* new_val, const Type* value_type) const;
-  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const;
+  virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
+    return BarrierSetC2::store_at_resolved(access, val);
+  }
+  virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+  }
+  virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+  }
+  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
+    return BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+  }
 
 public:
-  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const;
-  virtual bool array_copy_requires_gc_barriers(BasicType type) const { return true; }
-
-  virtual bool is_gc_barrier_node(Node* node) const;
+  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
+    BarrierSetC2::clone(kit, src, dst, size, is_array);
+  }
+  virtual bool array_copy_requires_gc_barriers(BasicType type) const {
+    return true;
+  }
+  virtual bool is_gc_barrier_node(Node* node) const {
+    return BarrierSetC2::is_gc_barrier_node(node);
+  }
   static void expand_allocate(
             PhaseMacroExpand* x,
             AllocateNode* alloc, // allocation node to be expanded

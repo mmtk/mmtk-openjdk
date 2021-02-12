@@ -1,7 +1,7 @@
 use super::abi::*;
 use super::UPCALLS;
 use crate::{OpenJDK, SINGLETON};
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
@@ -194,7 +194,7 @@ impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
             self.1
-                .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+                .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
         }
     }
     fn process_node(&mut self, _object: ObjectReference) {
@@ -208,7 +208,7 @@ impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> Drop for ObjectsClosure<'a, E> {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
         self.1
-            .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+            .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
     }
 }
 

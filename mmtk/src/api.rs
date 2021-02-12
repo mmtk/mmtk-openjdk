@@ -1,6 +1,6 @@
 use libc::{c_char, c_void};
-use std::ffi::CStr;
-
+use std::ffi::{CStr, CString};
+use std::lazy::SyncLazy;
 use mmtk::memory_manager;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
@@ -8,13 +8,27 @@ use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
-use mmtk::{Mutator, SelectedPlan};
+use mmtk::Mutator;
 use mmtk::{Plan, MMTK};
-
+use mmtk::util::options::PlanSelector;
+use mmtk::plan::barriers::BarrierSelector;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+
+// Supported barriers:
+static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
+static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+
+#[no_mangle]
+pub extern "C" fn mmtk_active_barrier() -> *const c_char {
+    match SINGLETON.plan.constraints().barrier {
+        BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
+        BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+        _ => unimplemented!()
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
@@ -36,23 +50,23 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<SelectedPlan<OpenJDK>> {
+pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<OpenJDK>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn flush_mutator(mutator: *mut Mutator<SelectedPlan<OpenJDK>>) {
+pub extern "C" fn flush_mutator(mutator: *mut Mutator<OpenJDK>) {
     memory_manager::flush_mutator(unsafe { &mut *mutator })
 }
 
 #[no_mangle]
 pub extern "C" fn alloc(
-    mutator: *mut Mutator<SelectedPlan<OpenJDK>>,
+    mutator: *mut Mutator<OpenJDK>,
     size: usize,
     align: usize,
     offset: isize,
@@ -121,7 +135,7 @@ pub extern "C" fn alloc_slow_largeobject(
 
 #[no_mangle]
 pub extern "C" fn post_alloc(
-    mutator: *mut Mutator<SelectedPlan<OpenJDK>>,
+    mutator: *mut Mutator<OpenJDK>,
     refer: ObjectReference,
     bytes: usize,
     allocator: AllocationSemantics,
@@ -258,7 +272,7 @@ pub extern "C" fn executable() -> bool {
 
 #[no_mangle]
 pub extern "C" fn record_modified_node(
-    mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+    mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
 ) {
     mutator.record_modified_node(obj);
@@ -266,7 +280,7 @@ pub extern "C" fn record_modified_node(
 
 #[no_mangle]
 pub extern "C" fn record_modified_edge(
-    mutator: &'static mut Mutator<SelectedPlan<OpenJDK>>,
+    mutator: &'static mut Mutator<OpenJDK>,
     slot: Address,
 ) {
     mutator.record_modified_edge(slot);
