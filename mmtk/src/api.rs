@@ -44,7 +44,6 @@ pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usi
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     if cfg!(feature = "marksweep") {
         unsafe { mmtk_enable_allocation_fastpath = false; }
-        println!("openjdk_gc_init -> allocation fastpath deactivated");
     }
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
