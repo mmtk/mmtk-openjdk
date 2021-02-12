@@ -75,7 +75,7 @@ void MMTkBarrierSetC2::expand_allocate(
     initial_slow_test = BoolNode::make_predicate(initial_slow_test, &x->_igvn);
   }
 
-  if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH) {
+  if (x->C->env()->dtrace_alloc_probes() || !mmtk_enable_allocation_fastpath) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;

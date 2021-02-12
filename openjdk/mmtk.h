@@ -15,6 +15,9 @@ typedef void* MMTk_TraceLocal;
 /**
  * Allocation
  */
+
+static bool mmtk_enable_allocation_fastpath = true;
+
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
 extern void flush_mutator(MMTk_Mutator mutator);

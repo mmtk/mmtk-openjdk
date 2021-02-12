@@ -37,7 +37,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, var_size_in_bytes, t1);
   // printf("eden_allocate\n");
-  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
+  if (!mmtk_enable_allocation_fastpath) {
     __ jmp(slow_case);
   } else {
     // We always use the default allocator.

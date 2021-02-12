@@ -36,9 +36,6 @@
 #include "mmtk.h"
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH false
-
-
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
   virtual void record_modified_node(oop object) {};
