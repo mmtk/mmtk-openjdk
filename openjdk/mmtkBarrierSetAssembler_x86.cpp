@@ -37,19 +37,24 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, var_size_in_bytes, t1);
   // printf("eden_allocate\n");
-  if (!mmtk_enable_allocation_fastpath) {
+  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
     // We always use the default allocator.
     // But we need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
 
+    if (selector.tag == TAG_MALLOC) {
+      __ jmp(slow_case);
+      return;
+    }
+
     // Only bump pointer allocator is implemented.
     if (selector.tag != TAG_BUMP_POINTER) {
       fatal("unimplemented allocator fastpath\n");
     }
 
-    // Calculat offsets of top and end. We now assume we are using bump pointer.
+    // Calculate offsets of top and end. We now assume we are using bump pointer.
     int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
       + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
       + in_bytes(byte_offset_of(Allocators, bump_pointer))
