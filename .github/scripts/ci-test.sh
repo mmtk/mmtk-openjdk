@@ -2,6 +2,8 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
+git log -n 3
+
 # To OpenJDK folder
 cd repos/openjdk
 
