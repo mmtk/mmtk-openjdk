@@ -29,10 +29,10 @@
 #include "runtime/thread.hpp"
 #include "runtime/mutex.hpp"
 
+// This mimics the example of hotspot/share/runtime/ServiceThread.hpp
+
 class MMTkFinalizerThread: public JavaThread {
 private:
-//   conditional_variable cv;
-//   bool scheduled;
   // Constructor
   MMTkFinalizerThread(ThreadFunction entry_point);
 

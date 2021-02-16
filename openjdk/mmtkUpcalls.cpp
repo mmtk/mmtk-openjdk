@@ -54,8 +54,6 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 }
 
 static void mmtk_resume_mutators(void *tls) {
-    printf("mmtk_resume_mutators()\n");
-
     MMTkHeap::_create_stack_scan_work = NULL;
     SafepointSynchronize::end();
     MMTkHeap::heap()->gc_lock()->lock_without_safepoint_check();
