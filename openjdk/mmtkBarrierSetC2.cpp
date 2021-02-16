@@ -504,6 +504,7 @@ public:
   Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
   Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
   Node* URShiftI(Node* l, Node* r) { return transform(new URShiftINode(l, r)); }
+  Node* ConP(intptr_t ptr) { return makecon(TypeRawPtr::make((address) ptr)); }
 };
 
 #define __ ideal.
@@ -590,70 +591,31 @@ void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bo
 void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
   MMTkIdealKit ideal(kit, true);
 
-#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-
-Node* cmp = __ ConI(0xdead);
-
-#if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
+// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
     Node* no_base = __ top();
     float unlikely  = PROB_UNLIKELY(0.999);
 
     Node* zero  = __ ConI(0);
-    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
-    Node* byte = __ load(__ ctrl(), heap_end, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-    __ if_then(byte, BoolTest::ne, zero, unlikely); {
-        const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
-        Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
-    } __ end_if();
-#elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
-    Node* no_base = __ top();
-    float unlikely  = PROB_UNLIKELY(0.999);
-
-    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
-    Node* zero  = __ ConI(0);
-    Node* src_long = __ CastPX(__ ctrl(), src);
-    // src = src & CHUNK_MASK
-    src_long = __ AndX(src_long, __ ConX((1 << 22) - 1));
-
-    Node* word_index = __ URShiftX(src_long, __ ConI(3));
-    Node* byte_offset = __ URShiftX(word_index, __ ConI(3));
-    Node* byte_ptr = __ AddP(no_base, heap_end, byte_offset);
-    Node* byte = __ load(__ ctrl(), byte_ptr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-    Node* bit_offset = __ ConvL2I(__ AndX(word_index, __ ConX(7)));
-    Node* result = __ AndI(__ URShiftI(byte, bit_offset), __ ConI(1));
+    Node* addr = __ CastPX(__ ctrl(), src);
+    Node* meta_chunk_addr = __ AddP(no_base, __ ConP(SIDE_METADATA_BASE_ADDRESS),
+      __ URShiftX(__ AndX(addr, __ ConX(~CHUNK_MASK)), __ ConI(SIDE_METADATA_WORST_CASE_RATIO_LOG))
+    );
+    Node* internal_addr = __ AndX(addr, __ ConX(CHUNK_MASK));
+    Node* second_offset = __ URShiftX(internal_addr, __ ConI(6));
+    Node* meta_addr = __ AddP(no_base, meta_chunk_addr, second_offset);
+    Node* shift = __ URShiftX(addr, __ ConI(3));
+    shift = __ AndI(__ ConvL2I(shift), __ ConI(0b111));
+    Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+    Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
     __ if_then(result, BoolTest::ne, zero, unlikely); {
         const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
         Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
     } __ end_if();
-#else
-    Node* no_base = __ top();
-    float unlikely  = PROB_UNLIKELY(0.999);
-
-    Node* zero  = __ ConI(0);
-    Node* src_long = __ CastPX(__ ctrl(), src);
-    Node* word_index = __ URShiftX(src_long, __ ConI(3));
-    Node* byte_offset = __ URShiftX(word_index, __ ConI(3));
-    Node* heap_end = __ makecon(TypeRawPtr::make((address) MMTK_HEAP_END));
-    Node* byte_ptr = __ AddP(no_base, heap_end, byte_offset);
-    Node* byte = __ load(__ ctrl(), byte_ptr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-    Node* bit_offset = __ ConvL2I(__ AndX(word_index, __ ConX(7)));
-    Node* result = __ AndI(__ URShiftI(byte, bit_offset), __ ConI(1));
-
-#if NORMAL_BARRIER_NO_SLOWPATH
-    __ if_then(result, BoolTest::eq, __ ConI(0b11), unlikely); {
-#else
-    __ if_then(result, BoolTest::ne, zero, unlikely); {
-#endif
-        const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
-        Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
-    } __ end_if();
-#endif
-
-#else
-    const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
-#endif
+// #else
+//     const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
+//     Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
+// #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
