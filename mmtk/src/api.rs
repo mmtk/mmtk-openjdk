@@ -100,7 +100,7 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
 
 #[no_mangle]
 pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> bool {
-    if !cfg!(feature = "marksweep") {
+    if !matches!(SINGLETON.plan.options().plan, PlanSelector::MarkSweep) {
         false
     } else if is_alloced_by_malloc(obj) {
         true
