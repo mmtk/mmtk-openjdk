@@ -63,47 +63,28 @@
 #define MMTK_NURSERY_START ((void*) 0x20000000000ULL)
 #define MMTK_NURSERY_END   ((void*) 0x40000000000ULL)
 
+#define SIDE_METADATA_BASE_ADDRESS 0x0000060000000000L
+#define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
+#define LOG_BYTES_IN_CHUNK 22
+#define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
+
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
 struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
   inline static void record_modified_node_fast(void* obj) {
-    record_modified_node(obj);
 // #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-
-// #if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
-//     const char* byte = (char*) (MMTK_HEAP_END);
-//     if (((*byte) & 1) != 0) {
-//       record_modified_node(obj);
-//     }
-// #elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
-//     obj = (void*) (((size_t) obj) & ((1 << 22) - 1));
-//     const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
-//     const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
-//     const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
-//     const size_t word_offset = ((bit_index >> 6) << 3);
-//     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
-//     const size_t bit_offset = bit_index & 63;
-//     if (((*word) & (1ULL << bit_offset)) != 0) {
-//       record_modified_node(obj);
-//     }
-// #else
-//     const size_t chunk_index = ((size_t) obj) >> MMTK_LOG_CHUNK_SIZE;
-//     const size_t chunk_offset = chunk_index << MMTK_LOG_PER_CHUNK_METADATA_SIZE;
-//     const size_t bit_index = (((size_t) obj) & MMTK_CHUNK_MASK) >> 3;
-//     const size_t word_offset = ((bit_index >> 6) << 3);
-//     const size_t* word = (size_t*) (MMTK_HEAP_END + chunk_offset + word_offset);
-//     const size_t bit_offset = bit_index & 63;
-//   #if NORMAL_BARRIER_NO_SLOWPATH
-//     if (((*word) & (1ULL << bit_offset)) == 0b11) {
-//   #else
-//     if (((*word) & (1ULL << bit_offset)) != 0) {
-//   #endif
-//       record_modified_node(obj);
-//     }
-// #endif
-
+    intptr_t addr = (intptr_t) obj;
+    intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
+    intptr_t internal_addr = addr & CHUNK_MASK;
+    intptr_t second_offset = internal_addr >> 6;
+    uint8_t* meta_addr = (uint8_t*) (meta_chunk_addr + second_offset);
+    intptr_t shift = (addr >> 3) & 0b111;
+    uint8_t byte_val = *meta_addr;
+    if (((byte_val >> shift) & 1) == 1) {
+      record_modified_node(obj);
+    }
 // #else
 //     record_modified_node(obj);
 // #endif

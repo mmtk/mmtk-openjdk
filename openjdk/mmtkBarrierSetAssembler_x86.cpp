@@ -114,9 +114,7 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
 }
 
 void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
-#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-
-#if BARRIER_VARIENT == BARRIER_TEST_GLOBAL
+// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
   Label done;
 
   Register tmp3 = rscratch1;
@@ -124,100 +122,43 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
   assert_different_registers(obj, tmp2, tmp3);
   assert_different_registers(tmp4, rcx);
 
-  // tmp2 = *MMTK_HEAP_END
-  __ movptr(tmp2, (intptr_t) 0);
-  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
-  __ movl(tmp2, Address(tmp3, tmp2));
-  // if ((tmp2 & 1) != 0) goto slowpath;
-  __ andptr(tmp2, 1);
-  __ cmpptr(tmp2, (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, done);
-
-  assert_different_registers(c_rarg0, obj);
-  __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
-
-  __ bind(done);
-#elif BARRIER_VARIENT == BARRIER_SINGLE_PAGE_METADATA
-
-  Label done;
-
-  Register tmp3 = rscratch1;
-  Register tmp4 = rscratch2;
-  assert_different_registers(obj, tmp2, tmp3);
-  assert_different_registers(tmp4, rcx);
-
-__ movptr(tmp4, obj);
-     __ andptr(tmp4, (1 << 22) - 1);
-  // tmp2 = * (char*) ((obj >> 6) + MMTK_HEAP_END)
-  __ movptr(tmp2, tmp4);
-     // tmp2 = tmp2 & CHUNK_MASK
-  __ shrptr(tmp2, 6);
-  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
-  __ movl(tmp2, Address(tmp3, tmp2));
-  // tmp3 = (obj >> 3) & 7
-  // tmp2 = tmp2 >> tmp3
-  __ movptr(tmp3, tmp4);
-  __ shrptr(tmp3, 3);
-  __ andptr(tmp3, 7);
-  __ movptr(tmp4, rcx);
-  __ movl(rcx, tmp3);
-  __ shrptr(tmp2);
-  __ movptr(rcx, tmp4);
-  // if ((tmp2 & 1) == 0) goto slowpath;
-  __ andptr(tmp2, 1);
-  __ cmpptr(tmp2, (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, done);
-
-  assert_different_registers(c_rarg0, obj);
-  __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
-
-  __ bind(done);
-#else
-  Label done;
-
-  Register tmp3 = rscratch1;
-  Register tmp4 = rscratch2;
-  assert_different_registers(obj, tmp2, tmp3);
-  assert_different_registers(tmp4, rcx);
-
-  // tmp2 = * (char*) ((obj >> 6) + MMTK_HEAP_END)
+  // tmp3 = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
+  __ movptr(tmp3, obj);
+  __ movptr(tmp2, ~CHUNK_MASK);
+  __ andptr(tmp3, tmp2);
+  __ shrptr(tmp3, SIDE_METADATA_WORST_CASE_RATIO_LOG);
+  __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
+  __ addptr(tmp3, tmp2);
+  // tmp2 = * (uint8_t*) (((obj & CHUNK_MASK) >> 6) + tmp3)
   __ movptr(tmp2, obj);
+  __ andptr(tmp2, CHUNK_MASK);
   __ shrptr(tmp2, 6);
-  __ movptr(tmp3, (intptr_t) MMTK_HEAP_END);
-  __ movl(tmp2, Address(tmp3, tmp2));
+  __ movb(tmp2, Address(tmp3, tmp2));
   // tmp3 = (obj >> 3) & 7
-  // tmp2 = tmp2 >> tmp3
+  __ movptr(tmp4, tmp3);
   __ movptr(tmp3, obj);
   __ shrptr(tmp3, 3);
   __ andptr(tmp3, 7);
+  // tmp2 = tmp2 >> tmp3
   __ movptr(tmp4, rcx);
   __ movl(rcx, tmp3);
   __ shrptr(tmp2);
   __ movptr(rcx, tmp4);
-  // if ((tmp2 & 1) == 0) goto slowpath;
+  // if ((tmp2 & 1) == 1) goto slowpath;
   __ andptr(tmp2, 1);
-#if NORMAL_BARRIER_NO_SLOWPATH
-  __ cmpptr(tmp2, (int32_t) 0b11);
+  __ cmpptr(tmp2, 1);
   __ jcc(Assembler::notEqual, done);
-#else
-  __ cmpptr(tmp2, (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, done);
-#endif
 
   assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
 
   __ bind(done);
-#endif
-
-#else
-  assert_different_registers(c_rarg0, obj);
-  __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
-#endif
+// #else
+//   assert_different_registers(c_rarg0, obj);
+//   __ movptr(c_rarg0, obj);
+//   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+// #endif
 }
 
 
