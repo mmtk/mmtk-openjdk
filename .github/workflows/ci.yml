@@ -2,7 +2,7 @@ name: Dacapo Tests
 
 on:
   pull_request:
-    branhes:
+    branches:
       - master
 
 jobs:
