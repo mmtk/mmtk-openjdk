@@ -66,7 +66,6 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
     src = reg;
   }
   assert(src->is_register(), "must be a register at this point");
-
   if (!slot->is_register()) {
     LIR_Opr reg = gen->new_pointer_register();
     if (slot->is_constant()) {
@@ -91,32 +90,41 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
 
   CodeStub* slow = new MMTkWriteBarrierStub(src, slot, new_val);
 
-#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
-  LIR_Opr byte_offset = gen->new_pointer_register();
-  __ move(src, byte_offset);
-  __ shift_right(byte_offset, 6, byte_offset);
-  LIR_Opr byte = gen->new_register(T_INT);
-  LIR_Opr heap_end = gen->new_pointer_register();
-  __ move(LIR_OprFact::intptrConst(MMTK_HEAP_END), heap_end);
-  LIR_Address* addr = new LIR_Address(byte_offset, heap_end, T_BYTE);
-  __ move(addr, byte);
-  LIR_Opr bit_offset = gen->new_register(T_LONG);
-  __ move(src, bit_offset);
-  __ shift_right(bit_offset, 3, bit_offset);
-  __ logical_and(bit_offset, LIR_OprFact::longConst(7), bit_offset);
-  LIR_Opr bit_offset_int = gen->new_register(T_INT);
-  __ convert(Bytecodes::_l2i, bit_offset, bit_offset_int);
-  LIR_Opr bit_offset_reg = LIRGenerator::shiftCountOpr();
-  __ move(bit_offset_int, bit_offset_reg);
-  LIR_Opr result = byte;
-  __ shift_right(result, bit_offset_reg, result, LIR_OprFact::illegalOpr);
+// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+  LIR_Opr addr = src;
+  // intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
+  // uint8_t* meta_addr = (uint8_t*) (meta_chunk_addr + ((addr & CHUNK_MASK) >> 6));
+  LIR_Opr meta_chunk_addr = gen->new_pointer_register();
+  __ move(addr, meta_chunk_addr);
+  __ logical_and(meta_chunk_addr, LIR_OprFact::longConst(~CHUNK_MASK), meta_chunk_addr);
+  __ shift_right(meta_chunk_addr, SIDE_METADATA_WORST_CASE_RATIO_LOG, meta_chunk_addr);
+  __ add(meta_chunk_addr, LIR_OprFact::longConst(SIDE_METADATA_BASE_ADDRESS), meta_chunk_addr);
+  LIR_Opr offset = gen->new_pointer_register();
+  __ move(addr, offset);
+  __ logical_and(offset, LIR_OprFact::longConst(CHUNK_MASK), offset);
+  __ shift_right(offset, 6, offset);
+  LIR_Address* meta_addr = new LIR_Address(meta_chunk_addr, offset, T_BYTE);
+  // intptr_t shift = (addr >> 3) & 0b111;
+  LIR_Opr shift_long = gen->new_pointer_register();
+  __ move(addr, shift_long);
+  __ shift_right(shift_long, 3, shift_long);
+  __ logical_and(shift_long, LIR_OprFact::longConst(0b111), shift_long);
+  LIR_Opr shift_int = gen->new_register(T_INT);
+  __ convert(Bytecodes::_l2i, shift_long, shift_int);
+  LIR_Opr shift = LIRGenerator::shiftCountOpr();
+  __ move(shift_int, shift);
+  // uint8_t byte_val = *meta_addr;
+  LIR_Opr byte_val = gen->new_register(T_INT);
+  __ move(meta_addr, byte_val);
+  // if (((byte_val >> shift) & 1) == 1) slow;
+  LIR_Opr result = byte_val;
+  __ shift_right(result, shift, result, LIR_OprFact::illegalOpr);
   __ logical_and(result, LIR_OprFact::intConst(1), result);
-  __ cmp(lir_cond_notEqual, result, LIR_OprFact::intConst(0));
-
-  __ branch(lir_cond_notEqual, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
-#else
-  __ jump(slow);
-#endif
+  __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
+  __ branch(lir_cond_equal, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
+// #else
+//   __ jump(slow);
+// #endif
 
   __ branch_destination(slow->continuation());
 }
