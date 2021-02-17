@@ -90,7 +90,7 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
 
   CodeStub* slow = new MMTkWriteBarrierStub(src, slot, new_val);
 
-// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
   LIR_Opr addr = src;
   // intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
   // uint8_t* meta_addr = (uint8_t*) (meta_chunk_addr + ((addr & CHUNK_MASK) >> 6));
@@ -122,9 +122,9 @@ void MMTkBarrierSetC1::write_barrier(LIRAccess& access, LIR_Opr src, LIR_Opr slo
   __ logical_and(result, LIR_OprFact::intConst(1), result);
   __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
   __ branch(lir_cond_equal, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
-// #else
-//   __ jump(slow);
-// #endif
+#else
+  __ jump(slow);
+#endif
 
   __ branch_destination(slow->continuation());
 }

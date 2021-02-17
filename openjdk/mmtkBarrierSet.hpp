@@ -44,17 +44,8 @@
 
 #define NORMAL_BARRIER_NO_SLOWPATH false
 
-
-// #if MMTK_GC_GENCOPY || MMTK_GC_NOGC
-// #define MMTK_ENABLE_WRITE_BARRIER true
-// #define MMTK_ENABLE_WRITE_BARRIER_FASTPATH true
-// #else
-// #define MMTK_ENABLE_WRITE_BARRIER false
-// #define MMTK_ENABLE_WRITE_BARRIER_FASTPATH false
-// #endif
-
 #define MMTK_ENABLE_WRITE_BARRIER true
-#define MMTK_ENABLE_WRITE_BARRIER_FASTPATH false
+#define MMTK_ENABLE_WRITE_BARRIER_FASTPATH true
 
 #define MMTK_HEAP_END 0x0000200000000000ULL
 #define MMTK_LOG_CHUNK_SIZE 22
@@ -74,7 +65,7 @@ struct MMTkBarrierRuntime: AllStatic {
 public:
   static void record_modified_node(void* src);
   inline static void record_modified_node_fast(void* obj) {
-// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
     intptr_t addr = (intptr_t) obj;
     intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
     intptr_t internal_addr = addr & CHUNK_MASK;
@@ -85,9 +76,9 @@ public:
     if (((byte_val >> shift) & 1) == 1) {
       record_modified_node(obj);
     }
-// #else
-//     record_modified_node(obj);
-// #endif
+#else
+    record_modified_node(obj);
+#endif
   }
   static void record_modified_edge(void* slot);
 };

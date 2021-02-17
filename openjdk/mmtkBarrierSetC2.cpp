@@ -591,7 +591,7 @@ void MMTkBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bo
 void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
   MMTkIdealKit ideal(kit, true);
 
-// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
     Node* no_base = __ top();
     float unlikely  = PROB_UNLIKELY(0.999);
 
@@ -612,10 +612,10 @@ void MMTkBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
         const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
         Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
     } __ end_if();
-// #else
-//     const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
-//     Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
-// #endif
+#else
+    const TypeFunc* tf = build_type_func(TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), "record_modified_node", src);
+#endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }

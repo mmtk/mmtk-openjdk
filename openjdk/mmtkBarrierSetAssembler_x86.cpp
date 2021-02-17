@@ -114,7 +114,7 @@ void MMTkBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet de
 }
 
 void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
-// #if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
+#if MMTK_ENABLE_WRITE_BARRIER_FASTPATH
   Label done;
 
   Register tmp3 = rscratch1;
@@ -154,11 +154,11 @@ void MMTkBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Registe
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
 
   __ bind(done);
-// #else
-//   assert_different_registers(c_rarg0, obj);
-//   __ movptr(c_rarg0, obj);
-//   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
-// #endif
+#else
+  assert_different_registers(c_rarg0, obj);
+  __ movptr(c_rarg0, obj);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkBarrierRuntime::record_modified_node), 1);
+#endif
 }
 
 
