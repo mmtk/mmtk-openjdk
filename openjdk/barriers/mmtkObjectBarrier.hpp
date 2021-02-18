@@ -1,0 +1,205 @@
+#ifndef MMTK_BARRIERS_OBJECT_BARRIER
+#define MMTK_BARRIERS_OBJECT_BARRIER
+
+#include "opto/callnode.hpp"
+#include "opto/idealKit.hpp"
+#include "c1/c1_LIRAssembler.hpp"
+#include "c1/c1_MacroAssembler.hpp"
+#include "gc/shared/barrierSet.hpp"
+#include "../mmtkBarrierSet.hpp"
+#include "../mmtkBarrierSetAssembler_x86.hpp"
+#include "../mmtkBarrierSetC1.hpp"
+#include "../mmtkBarrierSetC2.hpp"
+
+#define MMTK_ENABLE_OBJECT_BARRIER_FASTPATH true
+
+#define SIDE_METADATA_BASE_ADDRESS 0x0000060000000000L
+#define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
+#define LOG_BYTES_IN_CHUNK 22
+#define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
+
+class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
+public:
+  static void record_modified_node_slow(void* src);
+
+  virtual bool is_slow_path_call(address call) {
+    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
+  }
+
+  virtual void record_modified_node(oop src);
+};
+
+class MMTkObjectBarrierSetC1;
+class MMTkObjectBarrierStub;
+
+class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
+  void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
+  void record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2);
+public:
+  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
+    if (type == T_OBJECT || type == T_ARRAY) {
+      oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+    } else {
+      BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+    }
+  }
+  inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
+#define __ sasm->
+  void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) {
+    __ prologue("mmtk_write_barrier", false);
+
+    Address store_addr(rbp, 3*BytesPerWord);
+
+    Label done;
+    Label runtime;
+
+    __ push(c_rarg0);
+    // __ push(c_rarg1);
+    // __ push(c_rarg2);
+    __ push(rax);
+
+    __ load_parameter(0, c_rarg0);
+    // __ load_parameter(1, c_rarg1);
+    // __ load_parameter(2, c_rarg2);
+
+    __ bind(runtime);
+
+    __ save_live_registers_no_oop_map(true);
+
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+
+    __ restore_live_registers(true);
+
+    __ bind(done);
+    __ pop(rax);
+    // __ pop(c_rarg2);
+    // __ pop(c_rarg1);
+    __ pop(c_rarg0);
+
+    __ epilogue();
+  }
+#undef __
+};
+
+#ifdef ASSERT
+#define __ gen->lir(__FILE__, __LINE__)->
+#else
+#define __ gen->lir()->
+#endif
+
+struct MMTkObjectBarrierStub: CodeStub {
+  LIR_Opr _src, _slot, _new_val;
+  MMTkObjectBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): _src(src), _slot(slot), _new_val(new_val) {}
+  virtual void emit_code(LIR_Assembler* ce) {
+    MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+    bs->gen_write_barrier_stub(ce, this);
+  }
+  virtual void visit(LIR_OpVisitState* visitor) {
+    visitor->do_slow_case();
+    if (_src != NULL) visitor->do_input(_src);
+    if (_slot != NULL) visitor->do_input(_slot);
+    if (_new_val != NULL) visitor->do_input(_new_val);
+  }
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkWriteBarrierStub"); });
+};
+
+class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
+public:
+  class MMTkObjectBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
+    virtual OopMapSet* generate_code(StubAssembler* sasm) {
+      MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+      bs->generate_c1_write_barrier_runtime_stub(sasm);
+      return NULL;
+    }
+  };
+  void record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val);
+public:
+  CodeBlob* _write_barrier_c1_runtime_code_blob;
+  virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) {
+    BarrierSetC1::store_at_resolved(access, value);
+    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), value);
+  }
+  virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
+    LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
+    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), new_value.result());
+    return result;
+  }
+  virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
+    LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
+    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), value.result());
+    return result;
+  }
+  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
+    MMTkObjectBarrierCodeGenClosure write_code_gen_cl;
+    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
+  }
+  virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register) {
+    DecoratorSet decorators = access.decorators();
+    bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
+    bool is_write = (decorators & C1_WRITE_ACCESS) != 0;
+    bool is_array = (decorators & IS_ARRAY) != 0;
+    bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+    bool precise = is_array || on_anonymous;
+    resolve_in_register |= !needs_patching && is_write && access.is_oop() && precise;
+    return BarrierSetC1::resolve_address(access, resolve_in_register);
+  }
+};
+
+#undef __
+
+#define __ ideal.
+
+class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
+  void record_modified_node(GraphKit* kit, Node* node) const;
+public:
+  virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
+    Node* store = BarrierSetC2::store_at_resolved(access, val);
+    if (access.is_oop()) record_modified_node(access.kit(), access.base());
+    return store;
+  }
+  virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) record_modified_node(access.kit(), access.base());
+    return result;
+  }
+  virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) record_modified_node(access.kit(), access.base());
+    return load_store;
+  }
+  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
+    Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+    if (access.is_oop()) record_modified_node(access.kit(), access.base());
+    return result;
+  }
+  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
+    BarrierSetC2::clone(kit, src, dst, size, is_array);
+    record_modified_node(kit, dst);
+  }
+  virtual bool is_gc_barrier_node(Node* node) const {
+    if (node->Opcode() != Op_CallLeaf) return false;
+    CallLeafNode *call = node->as_CallLeaf();
+    return call->_name != NULL && strcmp(call->_name, "record_modified_node") == 0;
+  }
+};
+
+#undef __
+
+#define __ ce->masm()->
+inline void MMTkObjectBarrierSetAssembler::gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub) {
+  MMTkObjectBarrierSetC1* bs = (MMTkObjectBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+  __ bind(*stub->entry());
+  ce->store_parameter(stub->_src->as_pointer_register(), 0);
+  __ call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
+  __ jmp(*stub->continuation());
+}
+#undef __
+
+struct MMTkObjectBarrier: MMTkBarrierImpl<
+  MMTkObjectBarrierSetRuntime,
+  MMTkObjectBarrierSetAssembler,
+  MMTkObjectBarrierSetC1,
+  MMTkObjectBarrierSetC2
+> {};
+
+#endif

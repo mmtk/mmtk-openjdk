@@ -1,6 +1,6 @@
 use libc::{c_char, c_void};
-use std::ffi::CStr;
-
+use std::ffi::{CStr, CString};
+use std::lazy::SyncLazy;
 use mmtk::memory_manager;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
@@ -10,11 +10,25 @@ use mmtk::AllocationSemantics;
 use mmtk::MutatorContext;
 use mmtk::Mutator;
 use mmtk::{Plan, MMTK};
-
+use mmtk::util::options::PlanSelector;
+use mmtk::plan::barriers::BarrierSelector;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+
+// Supported barriers:
+static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
+static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+
+#[no_mangle]
+pub extern "C" fn mmtk_active_barrier() -> *const c_char {
+    match SINGLETON.plan.constraints().barrier {
+        BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
+        BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+        _ => unimplemented!()
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
@@ -28,11 +42,6 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-}
-
-#[no_mangle]
-pub extern "C" fn openjdk_needs_write_barrier() -> bool {
-    SINGLETON.plan.constraints().needs_write_barrier
 }
 
 #[no_mangle]

@@ -2,6 +2,7 @@
 #![feature(const_fn)]
 #![feature(box_syntax)]
 #![feature(vec_into_raw_parts)]
+#![feature(once_cell)]
 
 extern crate libc;
 extern crate mmtk;
@@ -21,7 +22,7 @@ mod abi;
 pub mod active_plan;
 pub mod api;
 pub mod collection;
-mod gc_works;
+mod gc_work;
 pub mod object_model;
 mod object_scanning;
 pub mod reference_glue;

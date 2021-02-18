@@ -4,6 +4,5 @@
 #include "mmtkBarrierSet.hpp"
 
 typedef MMTkBarrierSet ThirdPartyHeapBarrierSet;
-typedef MMTkBarrierRuntime ThirdPartyHeapBarrierRuntime;
 
 #endif // SHARE_GC_MMTK_THIRDPARTYHEAPBARRIERSET_HPP
