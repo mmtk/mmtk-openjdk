@@ -277,11 +277,3 @@ pub extern "C" fn record_modified_node(
 ) {
     mutator.record_modified_node(obj);
 }
-
-#[no_mangle]
-pub extern "C" fn record_modified_edge(
-    mutator: &'static mut Mutator<OpenJDK>,
-    slot: Address,
-) {
-    mutator.record_modified_edge(slot);
-}

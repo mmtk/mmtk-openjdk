@@ -168,28 +168,6 @@ static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
     thread->oops_do(&cl, &cb_cl);
 }
 
-static void mmtk_scan_static_roots(ProcessEdgesFn process_edges, void* tls) {
-    MMTkRootsClosure2 cl(process_edges);
-    MMTkHeap::heap()->scan_static_roots(cl);
-}
-
-static void mmtk_scan_global_roots(ProcessEdgesFn process_edges, void* tls) {
-    MMTkRootsClosure2 cl(process_edges);
-    MMTkHeap::heap()->scan_global_roots(cl);
-}
-
-// static void mmtk_start_computing_roots() {
-//     nmethod::oops_do_marking_prologue();
-//     Threads::change_thread_claim_parity();
-//     // Zero the claimed high water mark in the StringTable
-//     StringTable::clear_parallel_claimed_index();
-// }
-
-// static void mmtk_finish_computing_roots() {
-//   nmethod::oops_do_marking_epilogue();
-//   Threads::assert_all_threads_claimed();
-// }
-
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
     MMTkScanObjectClosure cl(trace);
     ((oop) object)->oop_iterate(&cl);

@@ -33,7 +33,6 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
 extern void record_modified_node(MMTk_Mutator mutator, void* obj);
-extern void record_modified_edge(MMTk_Mutator mutator, void* slot);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
