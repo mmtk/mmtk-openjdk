@@ -39,23 +39,6 @@
 #include "mmtk.h"
 #include "mmtkMutator.hpp"
 
-void build_type_func_helper(const Type** fields) {}
-
-template<class T, class... Types>
-void build_type_func_helper(const Type** fields, T t, Types... ts) {
-  fields[0] = t;
-  build_type_func_helper(fields + 1);
-}
-
-template<class... Types>
-const TypeFunc* build_type_func(Types... types) {
-  const Type** fields = TypeTuple::fields(sizeof...(types));
-  build_type_func_helper(fields + TypeFunc::Parms, types...);
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-  fields = TypeTuple::fields(0);
-  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-  return TypeFunc::make(domain, range);
-}
 
 void MMTkBarrierSetC2::expand_allocate(
             PhaseMacroExpand* x,

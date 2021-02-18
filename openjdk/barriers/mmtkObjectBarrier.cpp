@@ -98,15 +98,13 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, R
 void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
-
   if ((decorators & IN_HEAP) == 0) return;
-
   if (!src->is_register()) {
     LIR_Opr reg = gen->new_pointer_register();
     if (src->is_constant()) {
-      __ move(new_val, reg);
+      __ move(src, reg);
     } else {
-      __ leal(new_val, reg);
+      __ leal(src, reg);
     }
     src = reg;
   }
@@ -121,7 +119,6 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
     slot = reg;
   }
   assert(slot->is_register(), "must be a register at this point");
-
   if (!new_val->is_register()) {
     LIR_Opr new_val_reg = gen->new_register(T_OBJECT);
     if (new_val->is_constant()) {

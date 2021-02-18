@@ -26,8 +26,9 @@ pub extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
 }
 
 impl Scanning<OpenJDK> for VMScanning {
-    const SCAN_MUTATORS_IN_SAFEPOINT: bool = true;
-    const SINGLE_THREAD_MUTATOR_SCANNING: bool = true;
+    const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
+    const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
+
     fn scan_object<T: TransitiveClosure>(
         trace: &mut T,
         object: ObjectReference,
