@@ -80,6 +80,7 @@ pub struct OpenJDK_Upcalls {
     pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
+    pub schedule_finalizer: extern "C" fn (),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

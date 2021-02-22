@@ -126,6 +126,7 @@ typedef struct {
     void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
     void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
     size_t (*number_of_mutators)();
+    void (*schedule_finalizer)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
