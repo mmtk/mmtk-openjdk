@@ -48,6 +48,7 @@ struct AllocatorSelector {
 };
 #define TAG_BUMP_POINTER 0
 #define TAG_LARGE_OBJECT 1
+#define TAG_IMMIX 2
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 

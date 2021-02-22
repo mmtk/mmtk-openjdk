@@ -45,7 +45,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
 
     // Only bump pointer allocator is implemented.
-    if (selector.tag != TAG_BUMP_POINTER) {
+    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
 
