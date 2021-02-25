@@ -285,3 +285,17 @@ pub extern "C" fn record_modified_edge(
 ) {
     mutator.record_modified_edge(slot);
 }
+
+// finalization
+#[no_mangle]
+pub extern "C" fn add_finalizer(object: ObjectReference) {
+    memory_manager::add_finalizer(&SINGLETON, object);
+}
+
+#[no_mangle]
+pub extern "C" fn get_finalized_object() -> ObjectReference {
+    match memory_manager::get_finalized_object(&SINGLETON) {
+        Some(obj) => obj,
+        None => unsafe { Address::ZERO.to_object_reference() }
+    }
+}

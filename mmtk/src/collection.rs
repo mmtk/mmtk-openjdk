@@ -56,4 +56,10 @@ impl Collection<OpenJDK> for VMCollection {
     fn prepare_mutator<T: MutatorContext<OpenJDK>>(_tls: OpaquePointer, _m: &T) {
         // unimplemented!()
     }
+
+    fn schedule_finalization(_tls: OpaquePointer) {
+        unsafe {
+            ((*UPCALLS).schedule_finalizer)();
+        }
+    }
 }
