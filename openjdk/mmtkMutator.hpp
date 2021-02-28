@@ -51,10 +51,11 @@ struct ImmixAllocator {
     void* large_limit;
     uint8_t request_for_large;
     uint8_t straddle;
-    uint32_t line_use_count;
+    uintptr_t line_use_count;
     void* mark_table;
+    uint8_t recyclable_block_tag;
     void* recyclable_block;
-    uint32_t line;
+    uintptr_t line;
     uint8_t recyclable_exhausted;
 };
 
