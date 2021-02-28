@@ -48,15 +48,26 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
-
+    
     // Calculat offsets of top and end. We now assume we are using bump pointer.
-    int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
-      + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
-      + in_bytes(byte_offset_of(Allocators, bump_pointer))
-      + selector.index * sizeof(BumpAllocator);
+    int allocator_base_offset;
+    Address cursor, limit;
 
-    Address cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
-    Address limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
+    if (selector.tag == TAG_IMMIX) {
+      allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        + in_bytes(byte_offset_of(Allocators, immix))
+        + selector.index * sizeof(ImmixAllocator);
+      cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor)));
+      limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit)));
+    } else {
+      allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        + in_bytes(byte_offset_of(Allocators, bump_pointer))
+        + selector.index * sizeof(BumpAllocator);
+      cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
+      limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
+    }
     // obj = load lab.cursor
     __ movptr(obj, cursor);
     // end = obj + size
