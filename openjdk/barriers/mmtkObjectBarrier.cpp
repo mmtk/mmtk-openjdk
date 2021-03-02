@@ -183,7 +183,12 @@ const TypeFunc* record_modified_node_entry_Type() {
   return TypeFunc::make(domain, range);
 }
 
-void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src) const {
+void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* val) const {
+  if (val != NULL && val->is_Con()) {
+    const Type* t = val->bottom_type();
+    if (t == TypePtr::NULL_PTR) return;
+  }
+
   MMTkIdealKit ideal(kit, true);
 
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
