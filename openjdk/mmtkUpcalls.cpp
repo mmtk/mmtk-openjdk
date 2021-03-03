@@ -236,6 +236,10 @@ static char* dump_object_string(void* object) {
     return o->print_value_string();
 }
 
+static void mmtk_schedule_finalizer() {
+    MMTkHeap::heap()->schedule_finalizer();
+}
+
 static void mmtk_scan_universe_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
 static void mmtk_scan_jni_handle_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
 static void mmtk_scan_object_synchronizer_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
@@ -292,4 +296,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_scan_weak_processor_roots,
     mmtk_scan_vm_thread_roots,
     mmtk_number_of_mutators,
+    mmtk_schedule_finalizer,
 };

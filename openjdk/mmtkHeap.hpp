@@ -39,6 +39,7 @@
 #include "gc/shared/workgroup.hpp"
 #include "mmtkCollectorPolicy.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+#include "mmtkFinalizerThread.hpp"
 
 class GCMemoryManager;
 class MemoryPool;
@@ -59,6 +60,8 @@ class MMTkHeap : public CollectedHeap {
 public:
 
   MMTkHeap(MMTkCollectorPolicy* policy);
+
+  void schedule_finalizer();
 
   inline static MMTkHeap* heap() {
     return _heap;
