@@ -109,12 +109,17 @@ jint MMTkHeap::initialize() {
 
 }
 
+void MMTkHeap::schedule_finalizer() {
+   MMTkFinalizerThread::instance->schedule();
+}
+
 void MMTkHeap::post_initialize() {
     CollectedHeap::post_initialize();
 }
 
 void MMTkHeap::enable_collection() {
    ::enable_collection(0);
+   MMTkFinalizerThread::initialize();
 }
 
 ////Previously pure abstract methods--
