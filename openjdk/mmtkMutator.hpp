@@ -41,7 +41,7 @@ struct LargeObjectAllocator {
 
 struct MallocAllocator {
     void* tls;
-    RustDynPtr space;
+    void* space;
     RustDynPtr plan;
 };
 
