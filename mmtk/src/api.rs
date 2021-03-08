@@ -98,17 +98,6 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
 
-#[no_mangle]
-pub extern "C" fn is_in_reserved_malloc(obj: ObjectReference) -> bool {
-    if !matches!(SINGLETON.plan.options().plan, PlanSelector::MarkSweep) {
-        false
-    } else if is_alloced_by_malloc(obj) {
-        true
-    } else {
-        false
-    }
-}
-
 // For plans that do not include copy space, use the other implementation
 // FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
 
@@ -198,12 +187,12 @@ pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
 
 #[no_mangle]
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    object.is_mapped()
+    memory_manager::is_mapped_object(object)
 }
 
 #[no_mangle]
 pub extern "C" fn is_mapped_address(addr: Address) -> bool {
-    addr.is_mapped()
+    memory_manager::is_mapped_address(addr)
 }
 
 #[no_mangle]
