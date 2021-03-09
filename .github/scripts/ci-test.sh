@@ -6,7 +6,7 @@ unset JAVA_TOOL_OPTIONS
 cd repos/openjdk
 
 # Choose build: use slowdebug for shorter build time (32m user time for release vs. 20m user time for slowdebug)
-export DEBUG_LEVEL=slowdebug
+export DEBUG_LEVEL=fastdebug
 echo $RUSTUP_TOOLCHAIN
 
 # Build
