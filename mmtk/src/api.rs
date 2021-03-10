@@ -12,10 +12,12 @@ use mmtk::Mutator;
 use mmtk::{Plan, MMTK};
 use mmtk::util::options::PlanSelector;
 use mmtk::plan::barriers::BarrierSelector;
+use mmtk::vm::ObjectModel;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
+use crate::object_model::VMObjectModel;
 
 // Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
@@ -42,6 +44,9 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
+    if let PlanSelector::GenCopy = SINGLETON.options.plan {
+        assert!(VMObjectModel::HAS_GC_BYTE, "Side GC-byte conflicts with logging bit metadata.");
+    }
 }
 
 #[no_mangle]
