@@ -25,6 +25,17 @@
 #ifndef MMTK_BARRIERSETC2_HPP
 #define MMTK_BARRIERSETC2_HPP
 
+#include "opto/arraycopynode.hpp"
+#include "opto/convertnode.hpp"
+#include "opto/graphKit.hpp"
+#include "opto/idealKit.hpp"
+#include "opto/narrowptrnode.hpp"
+#include "opto/macro.hpp"
+#include "opto/type.hpp"
+#include "opto/addnode.hpp"
+#include "opto/callnode.hpp"
+#include "opto/compile.hpp"
+#include "opto/node.hpp"
 #include "gc/shared/c2/barrierSetC2.hpp"
 
 class TypeOopPtr;
@@ -65,6 +76,34 @@ public:
             const TypeFunc* slow_call_type, // Type of slow call
             address slow_call_address  // Address of slow call
     );
+};
+
+class MMTkIdealKit: public IdealKit {
+  inline void build_type_func_helper(const Type** fields) {}
+
+  template<class T, class... Types>
+  inline void build_type_func_helper(const Type** fields, T t, Types... ts) {
+    fields[0] = t;
+    build_type_func_helper(fields + 1);
+  }
+public:
+  using IdealKit::IdealKit;
+  inline Node* LShiftX(Node* l, Node* r) { return transform(new LShiftXNode(l, r)); }
+  inline Node* AndX(Node* l, Node* r) { return transform(new AndXNode(l, r)); }
+  inline Node* ConvL2I(Node* x) { return transform(new ConvL2INode(x)); }
+  inline Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
+  inline Node* URShiftI(Node* l, Node* r) { return transform(new URShiftINode(l, r)); }
+  inline Node* ConP(intptr_t ptr) { return makecon(TypeRawPtr::make((address) ptr)); }
+
+  template<class... Types>
+  inline const TypeFunc* func_type(Types... types) {
+    const Type** fields = TypeTuple::fields(sizeof...(types));
+    build_type_func_helper(fields + TypeFunc::Parms, types...);
+    const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+    fields = TypeTuple::fields(0);
+    const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
+    return TypeFunc::make(domain, range);
+  }
 };
 
 #endif // MMTK_BARRIERSETC2_HPP
