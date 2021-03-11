@@ -45,8 +45,10 @@ struct AllocatorSelector {
     uint8_t tag;
     uint8_t index;
 };
-#define TAG_BUMP_POINTER 0
-#define TAG_LARGE_OBJECT 1
+
+#define TAG_BUMP_POINTER    0
+#define TAG_LARGE_OBJECT    1
+#define TAG_MALLOC          2
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 

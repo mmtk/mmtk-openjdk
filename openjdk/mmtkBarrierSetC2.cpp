@@ -75,7 +75,13 @@ void MMTkBarrierSetC2::expand_allocate(
     initial_slow_test = BoolNode::make_predicate(initial_slow_test, &x->_igvn);
   }
 
-  if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH) {
+  // We always use the default allocator.
+  // But we need to figure out which allocator we are using by querying MMTk.
+  AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+
+  if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
+    // Malloc allocator has no fastpath
+    || (selector.tag == TAG_MALLOC)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;
@@ -120,11 +126,7 @@ void MMTkBarrierSetC2::expand_allocate(
     Node* eden_end_adr;
 
     {
-      // We always use the default allocator.
-      // But we need to figure out which allocator we are using by querying MMTk.
-      AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
-
-      // Only bump pointer allocator is implemented.
+      // Only bump pointer allocator fastpath is implemented.
       if (selector.tag != TAG_BUMP_POINTER) {
         fatal("unimplemented allocator fastpath\n");
       }

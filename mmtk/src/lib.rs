@@ -54,8 +54,7 @@ pub struct OpenJDK_Upcalls {
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
-    pub get_mmtk_mutator:
-        extern "C" fn(tls: OpaquePointer) -> *mut Mutator<OpenJDK>,
+    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut Mutator<OpenJDK>,
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
     pub enter_vm: extern "C" fn() -> i32,
     pub leave_vm: extern "C" fn(st: i32),
@@ -104,7 +103,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "SemiSpace");
         #[cfg(feature = "gencopy")]
         std::env::set_var("MMTK_PLAN", "GenCopy");
-
+        #[cfg(feature = "marksweep")]
+        std::env::set_var("MMTK_PLAN", "MarkSweep");
         MMTK::new()
     };
 }
