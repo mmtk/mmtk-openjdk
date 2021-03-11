@@ -1,15 +1,9 @@
-use crate::OpenJDK;
-use crate::OpenJDK_Upcalls;
-use crate::SINGLETON;
-use crate::UPCALLS;
 use libc::{c_char, c_void};
 use mmtk::memory_manager;
-use mmtk::plan::barriers::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::util::alloc::is_alloced_by_malloc;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
