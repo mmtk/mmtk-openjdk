@@ -118,8 +118,11 @@ void MMTkHeap::post_initialize() {
 }
 
 void MMTkHeap::enable_collection() {
-   ::enable_collection(0);
+   // Initialize finalizer thread before enable_collection().
+   // Otherwise it is possible that we schedule finalizer (during a GC) before the finalizer thread is ready.
    MMTkFinalizerThread::initialize();
+
+   ::enable_collection(0);
 }
 
 ////Previously pure abstract methods--
