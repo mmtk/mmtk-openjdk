@@ -8,10 +8,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
 void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
     intptr_t addr = (intptr_t) (void*) src;
-    intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
-    intptr_t internal_addr = addr & CHUNK_MASK;
-    intptr_t second_offset = internal_addr >> 6;
-    uint8_t* meta_addr = (uint8_t*) (meta_chunk_addr + second_offset);
+    uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
     intptr_t shift = (addr >> 3) & 0b111;
     uint8_t byte_val = *meta_addr;
     if (((byte_val >> shift) & 1) == 1) {
@@ -48,20 +45,12 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, R
   assert_different_registers(obj, tmp2, tmp3);
   assert_different_registers(tmp4, rcx);
 
-  // tmp3 = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
+  // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
   __ movptr(tmp3, obj);
-  __ movptr(tmp2, ~CHUNK_MASK);
-  __ andptr(tmp3, tmp2);
-  __ shrptr(tmp3, SIDE_METADATA_WORST_CASE_RATIO_LOG);
+  __ shrptr(tmp3, 6);
   __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
-  __ addptr(tmp3, tmp2);
-  // tmp2 = * (uint8_t*) (((obj & CHUNK_MASK) >> 6) + tmp3)
-  __ movptr(tmp2, obj);
-  __ andptr(tmp2, CHUNK_MASK);
-  __ shrptr(tmp2, 6);
-  __ movb(tmp2, Address(tmp3, tmp2));
+  __ movb(tmp2, Address(tmp2, tmp3));
   // tmp3 = (obj >> 3) & 7
-  __ movptr(tmp4, tmp3);
   __ movptr(tmp3, obj);
   __ shrptr(tmp3, 3);
   __ andptr(tmp3, 7);
@@ -133,18 +122,13 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
 
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   LIR_Opr addr = src;
-  // intptr_t meta_chunk_addr = SIDE_METADATA_BASE_ADDRESS + ((addr & ~CHUNK_MASK) >> SIDE_METADATA_WORST_CASE_RATIO_LOG);
-  // uint8_t* meta_addr = (uint8_t*) (meta_chunk_addr + ((addr & CHUNK_MASK) >> 6));
-  LIR_Opr meta_chunk_addr = gen->new_pointer_register();
-  __ move(addr, meta_chunk_addr);
-  __ logical_and(meta_chunk_addr, LIR_OprFact::longConst(~CHUNK_MASK), meta_chunk_addr);
-  __ shift_right(meta_chunk_addr, SIDE_METADATA_WORST_CASE_RATIO_LOG, meta_chunk_addr);
-  __ add(meta_chunk_addr, LIR_OprFact::longConst(SIDE_METADATA_BASE_ADDRESS), meta_chunk_addr);
+  // uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   LIR_Opr offset = gen->new_pointer_register();
   __ move(addr, offset);
-  __ logical_and(offset, LIR_OprFact::longConst(CHUNK_MASK), offset);
   __ shift_right(offset, 6, offset);
-  LIR_Address* meta_addr = new LIR_Address(meta_chunk_addr, offset, T_BYTE);
+  LIR_Opr base = gen->new_pointer_register();
+  __ move(LIR_OprFact::longConst(SIDE_METADATA_BASE_ADDRESS), base);
+  LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
   // intptr_t shift = (addr >> 3) & 0b111;
   LIR_Opr shift_long = gen->new_pointer_register();
   __ move(addr, shift_long);
@@ -197,15 +181,10 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
 
   Node* zero  = __ ConI(0);
   Node* addr = __ CastPX(__ ctrl(), src);
-  Node* meta_chunk_addr = __ AddP(no_base, __ ConP(SIDE_METADATA_BASE_ADDRESS),
-    __ URShiftX(__ AndX(addr, __ ConX(~CHUNK_MASK)), __ ConI(SIDE_METADATA_WORST_CASE_RATIO_LOG))
-  );
-  Node* internal_addr = __ AndX(addr, __ ConX(CHUNK_MASK));
-  Node* second_offset = __ URShiftX(internal_addr, __ ConI(6));
-  Node* meta_addr = __ AddP(no_base, meta_chunk_addr, second_offset);
-  Node* shift = __ URShiftX(addr, __ ConI(3));
-  shift = __ AndI(__ ConvL2I(shift), __ ConI(0b111));
+  Node* meta_addr = __ AddP(no_base, __ ConP(SIDE_METADATA_BASE_ADDRESS), __ URShiftX(addr, __ ConI(6)));
   Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+  Node* shift = __ URShiftX(addr, __ ConI(3));
+  shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
