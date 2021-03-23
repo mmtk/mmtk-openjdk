@@ -29,6 +29,7 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "0985c60a1d8e430
 default = []
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+side_gc_header = ["mmtk/side_gc_header"]
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
