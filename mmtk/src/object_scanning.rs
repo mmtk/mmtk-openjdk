@@ -193,8 +193,10 @@ impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure
         if self.0.len() >= E::CAPACITY {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
-            self.1
-                .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
+            self.1.add_work(
+                WorkBucketStage::Closure,
+                E::new(new_edges, false, &SINGLETON),
+            );
         }
     }
     fn process_node(&mut self, _object: ObjectReference) {
@@ -207,8 +209,10 @@ impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> Drop for ObjectsClosure<'a, E> {
     fn drop(&mut self) {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
-        self.1
-            .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
+        self.1.add_work(
+            WorkBucketStage::Closure,
+            E::new(new_edges, false, &SINGLETON),
+        );
     }
 }
 

@@ -33,7 +33,6 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
 extern void record_modified_node(MMTk_Mutator mutator, void* obj);
-extern void record_modified_edge(MMTk_Mutator mutator, void* slot);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
@@ -46,9 +45,11 @@ struct AllocatorSelector {
     uint8_t tag;
     uint8_t index;
 };
-#define TAG_BUMP_POINTER 0
-#define TAG_LARGE_OBJECT 1
-#define TAG_IMMIX 2
+
+#define TAG_BUMP_POINTER    0
+#define TAG_LARGE_OBJECT    1
+#define TAG_MALLOC          2
+#define TAG_IMMIX           3
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 

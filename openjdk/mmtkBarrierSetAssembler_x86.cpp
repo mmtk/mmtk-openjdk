@@ -44,11 +44,16 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // But we need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
 
+    if (selector.tag == TAG_MALLOC) {
+      __ jmp(slow_case);
+      return;
+    }
+
     // Only bump pointer allocator is implemented.
     if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
-    
+
     // Calculat offsets of top and end. We now assume we are using bump pointer.
     int allocator_base_offset;
     Address cursor, limit;

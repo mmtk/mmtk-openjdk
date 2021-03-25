@@ -118,8 +118,11 @@ void MMTkHeap::post_initialize() {
 }
 
 void MMTkHeap::enable_collection() {
-   ::enable_collection(0);
+   // Initialize finalizer thread before enable_collection().
+   // Otherwise it is possible that we schedule finalizer (during a GC) before the finalizer thread is ready.
    MMTkFinalizerThread::initialize();
+
+   ::enable_collection(0);
 }
 
 ////Previously pure abstract methods--
@@ -168,22 +171,12 @@ bool MMTkHeap::is_in(const void* p) const {
    //return cp >= committed_low_addr() && cp < committed_high_addr();
 
    //guarantee(false, "is in not supported");
-    return p >= (void*) _start && p < (void*) _end;
+   return is_mapped_object(const_cast<void *>(p));
 }
 
 bool MMTkHeap::is_in_reserved(const void* p) const {
-    //used in collected heap , jvmruntime and many more.........
-
-    // Returns "TRUE" iff "p" points into the committed areas of the heap.
-    //we need starting and endinf address of the heap
-
-    // in ps : char* const cp = (char*)p;
-    //return cp >= committed_low_addr() && cp < committed_high_addr();
-
-    //guarantee(false, "is in not supported");
-
     //printf("calling MMTkHeap::is_in_reserved\n");
-    return p >= (void*) _start && p < (void*) _end;
+    return is_in(p);
 }
 
 bool MMTkHeap::supports_tlab_allocation() const {
