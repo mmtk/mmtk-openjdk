@@ -43,7 +43,7 @@ struct ImmixAllocator {
     void* tls;
     void* cursor;
     void* limit;
-    RustDynPtr space;
+    void* immix_space;
     RustDynPtr plan;
     uint8_t hot;
     uint8_t copy;
