@@ -1,5 +1,5 @@
 use libc::{c_char, c_void};
-use mmtk::memory_manager;
+use mmtk::{memory_manager, policy::immix::block::Block};
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::util::alloc::is_alloced_by_malloc;
@@ -78,7 +78,13 @@ pub extern "C" fn alloc(
     offset: isize,
     allocator: AllocationSemantics,
 ) -> Address {
-    memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
+    if size > Block::BYTES {
+        let address = memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, AllocationSemantics::Los);
+        memory_manager::post_alloc::<OpenJDK>(unsafe { &mut *mutator }, unsafe { address.to_object_reference() }, size, AllocationSemantics::Los);
+        address
+    } else {
+        memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
+    }
 }
 
 #[no_mangle]
