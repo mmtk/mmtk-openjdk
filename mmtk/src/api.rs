@@ -45,11 +45,6 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-    if let PlanSelector::GenCopy = SINGLETON.options.plan {
-        if cfg!(feature = "side_gc_header") {
-            panic!("Side GC-byte conflicts with logging bit metadata.");
-        }
-    }
 }
 
 #[no_mangle]
