@@ -1,24 +1,24 @@
+use crate::object_model::VMObjectModel;
+use crate::OpenJDK;
+use crate::OpenJDK_Upcalls;
+use crate::SINGLETON;
+use crate::UPCALLS;
 use libc::{c_char, c_void};
 use mmtk::memory_manager;
+use mmtk::plan::barriers::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::util::alloc::is_alloced_by_malloc;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
 use mmtk::{Plan, MMTK};
 use std::ffi::{CStr, CString};
 use std::lazy::SyncLazy;
-use mmtk::util::options::PlanSelector;
-use mmtk::plan::barriers::BarrierSelector;
-use mmtk::vm::ObjectModel;
-use crate::OpenJDK;
-use crate::OpenJDK_Upcalls;
-use crate::SINGLETON;
-use crate::UPCALLS;
-use crate::object_model::VMObjectModel;
 
 // Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
@@ -45,9 +45,6 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-    if let PlanSelector::GenCopy = SINGLETON.options.plan {
-        assert!(VMObjectModel::HAS_GC_BYTE, "Side GC-byte conflicts with logging bit metadata.");
-    }
 }
 
 #[no_mangle]
@@ -289,6 +286,6 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
-        None => unsafe { Address::ZERO.to_object_reference() }
+        None => unsafe { Address::ZERO.to_object_reference() },
     }
 }
