@@ -1,4 +1,7 @@
+// specialization is considered as an incomplete feature.
+#![allow(incomplete_features)]
 #![feature(specialization)]
+
 #![feature(const_fn)]
 #![feature(box_syntax)]
 #![feature(vec_into_raw_parts)]
@@ -17,7 +20,7 @@ use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
-use mmtk::{Mutator, Plan};
+use mmtk::Mutator;
 mod abi;
 pub mod active_plan;
 pub mod api;

@@ -4,21 +4,20 @@ use crate::OpenJDK;
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::OpaquePointer;
-use mmtk::util::{Address, ObjectReference, SynchronizedCounter};
+use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::Scanning;
 use mmtk::MutatorContext;
-use mmtk::{Mutator, TraceLocal, TransitiveClosure};
-use std::mem;
+use mmtk::{Mutator, TransitiveClosure};
 
 pub struct VMScanning {}
 
-pub extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
+pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
     ptr: *mut Address,
     length: usize,
     capacity: usize,
 ) -> NewBuffer {
     if !ptr.is_null() {
-        let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
+        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
         SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
             .add(W::new(buf, false, &SINGLETON));
     }

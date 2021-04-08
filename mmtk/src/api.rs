@@ -1,4 +1,3 @@
-use crate::object_model::VMObjectModel;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
@@ -8,15 +7,12 @@ use mmtk::memory_manager;
 use mmtk::plan::barriers::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
-use mmtk::util::alloc::is_alloced_by_malloc;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
-use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
-use mmtk::{Plan, MMTK};
+use mmtk::MMTK;
 use std::ffi::{CStr, CString};
 use std::lazy::SyncLazy;
 
@@ -29,19 +25,25 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
     match SINGLETON.plan.constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
         BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+        // In case we have more barriers in mmtk-core.
+        #[allow(unreachable_patterns)]
         _ => unimplemented!(),
     }
 }
 
+/// # Safety
+/// Caller needs to make sure the ptr is a valid vector pointer.
 #[no_mangle]
-pub extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
-    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
+pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
+    let _vec = Vec::<Address>::from_raw_parts(ptr, length, capacity);
 }
 
 #[no_mangle]
 pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
+    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
+    #[allow(clippy::cast_ref_to_mut)]
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
@@ -58,16 +60,22 @@ pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK> {
 }
 
 #[no_mangle]
+// It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<OpenJDK>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
+// We trust the mutator pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn flush_mutator(mutator: *mut Mutator<OpenJDK>) {
     memory_manager::flush_mutator(unsafe { &mut *mutator })
 }
 
 #[no_mangle]
+// We trust the mutator pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn alloc(
     mutator: *mut Mutator<OpenJDK>,
     size: usize,
@@ -86,8 +94,7 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 // Allocation slow path
 
 use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator, MallocAllocator};
-use mmtk::util::heap::MonotonePageResource;
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
 
 #[no_mangle]
 pub extern "C" fn alloc_slow_bump_monotone_immortal(
@@ -96,7 +103,6 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
     align: usize,
     offset: isize,
 ) -> Address {
-    use mmtk::policy::immortalspace::ImmortalSpace;
     unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
 }
 
@@ -117,10 +123,10 @@ pub extern "C" fn alloc_slow_bump_monotone_copy(
 #[no_mangle]
 #[cfg(not(any(feature = "semispace", feature = "gencopy")))]
 pub extern "C" fn alloc_slow_bump_monotone_copy(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
+    _allocator: *mut c_void,
+    _size: usize,
+    _align: usize,
+    _offset: isize,
 ) -> Address {
     unimplemented!()
 }
@@ -137,6 +143,8 @@ pub extern "C" fn alloc_slow_largeobject(
 }
 
 #[no_mangle]
+// We trust the mutator pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn post_alloc(
     mutator: *mut Mutator<OpenJDK>,
     refer: ObjectReference,
@@ -152,6 +160,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
+// We trust the worker pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<OpenJDK>) {
     memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
@@ -238,6 +248,8 @@ pub extern "C" fn harness_end(_id: usize) {
 }
 
 #[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
