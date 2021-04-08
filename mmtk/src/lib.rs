@@ -1,7 +1,6 @@
 // specialization is considered as an incomplete feature.
 #![allow(incomplete_features)]
 #![feature(specialization)]
-
 #![feature(const_fn)]
 #![feature(box_syntax)]
 #![feature(vec_into_raw_parts)]
@@ -19,8 +18,8 @@ use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
-use mmtk::MMTK;
 use mmtk::Mutator;
+use mmtk::MMTK;
 mod abi;
 pub mod active_plan;
 pub mod api;
@@ -82,7 +81,7 @@ pub struct OpenJDK_Upcalls {
     pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
-    pub schedule_finalizer: extern "C" fn (),
+    pub schedule_finalizer: extern "C" fn(),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
