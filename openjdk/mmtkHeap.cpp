@@ -414,8 +414,7 @@ void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
    ResourceMark rm;
    MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-   CodeBlobToOopClosure cb_cl(&cl, false);
-   VMThread::vm_thread()->oops_do(&cl, &cb_cl);
+   VMThread::vm_thread()->oops_do(&cl, NULL);
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
