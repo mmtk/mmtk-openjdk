@@ -24,3 +24,7 @@ jobs:
       # Run the tests
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test.sh
+
+      # Style check
+      - name: Style checks
+        run: ./.github/scripts/ci-style.sh

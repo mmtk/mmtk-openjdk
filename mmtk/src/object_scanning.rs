@@ -10,7 +10,6 @@ use std::marker::PhantomData;
 use std::{mem, slice};
 
 trait OopIterate: Sized {
-    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure);
 }
 
@@ -186,7 +185,7 @@ pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
 impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
         self.0.push(slot);
