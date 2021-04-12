@@ -26,9 +26,10 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "c2132e36c0f0db1
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = []
+default = ["extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+extreme_assertions = ["mmtk/extreme_assertions"]
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
