@@ -448,9 +448,7 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
 void MMTkHeap::scan_thread_roots(OopClosure& cl) {
    ResourceMark rm;
    MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-
-   CodeBlobToOopClosure cb_cl(&cl, false);
-   Threads::possibly_parallel_oops_do(false, &cl, &cb_cl);
+   Threads::possibly_parallel_oops_do(false, &cl, NULL);
 }
 
 void MMTkHeap::scan_roots(OopClosure& cl) {
