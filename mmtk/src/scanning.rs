@@ -18,10 +18,6 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        #[cfg(feature = "extreme_assertions")]
-        for edge in &buf {
-            mmtk::util::edge_logger::log_edge(*edge);
-        }
         SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
             .add(W::new(buf, false, &SINGLETON));
     }

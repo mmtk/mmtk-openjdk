@@ -4,8 +4,6 @@ use crate::{OpenJDK, SINGLETON};
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
-#[cfg(feature = "extreme_assertions")]
-use mmtk::util::edge_logger;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::TransitiveClosure;
 use std::marker::PhantomData;
@@ -187,9 +185,6 @@ pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
 impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        #[cfg(feature = "extreme_assertions")]
-        edge_logger::log_edge(slot);
-
         if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
