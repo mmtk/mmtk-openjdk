@@ -93,10 +93,6 @@ static void mmtk_block_for_gc() {
     }
 }
 
-static void* mmtk_active_collector(void* tls) {
-    return ((MMTkCollectorThread*) tls)->get_context();
-}
-
 static void* mmtk_get_mmtk_mutator(void* tls) {
     return (void*) &((Thread*) tls)->third_party_heap_mutator;
 }
@@ -261,7 +257,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_resume_mutators,
     mmtk_spawn_collector_thread,
     mmtk_block_for_gc,
-    mmtk_active_collector,
     mmtk_get_next_mutator,
     mmtk_reset_mutator_iterator,
     mmtk_compute_static_roots,
