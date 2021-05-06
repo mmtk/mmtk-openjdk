@@ -111,7 +111,7 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_thread_roots)(ProcessEdgesFn process_edges);
     void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
     void (*scan_universe_roots) (ProcessEdgesFn process_edges);
     void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
