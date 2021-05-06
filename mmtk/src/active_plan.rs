@@ -1,7 +1,6 @@
 use super::UPCALLS;
 use crate::OpenJDK;
 use crate::SINGLETON;
-use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
@@ -13,12 +12,6 @@ pub struct VMActivePlan {}
 impl ActivePlan<OpenJDK> for VMActivePlan {
     fn global() -> &'static dyn Plan<VM = OpenJDK> {
         &*SINGLETON.plan
-    }
-
-    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<OpenJDK> {
-        let c = ((*UPCALLS).active_collector)(tls);
-        assert!(!c.is_null());
-        &mut *c
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
