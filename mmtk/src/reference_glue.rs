@@ -1,6 +1,6 @@
 use crate::OpenJDK;
-use mmtk::util::ObjectReference;
 use mmtk::util::opaque_pointer::VMWorkerThread;
+use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 use mmtk::TraceLocal;
 

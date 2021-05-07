@@ -222,6 +222,10 @@ pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM = OpenJDK>>(
 ) {
     let mut closure = ObjectsClosure::<E>(Vec::new(), worker, PhantomData);
     for object in objects {
-        scan_object(*object, &mut closure, VMWorkerThread(VMThread::UNINITIALIZED));
+        scan_object(
+            *object,
+            &mut closure,
+            VMWorkerThread(VMThread::UNINITIALIZED),
+        );
     }
 }
