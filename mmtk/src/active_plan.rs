@@ -19,8 +19,10 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
     }
 
     fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK> {
-        let m = unsafe { ((*UPCALLS).get_mmtk_mutator)(tls) };
-        unsafe { &mut *m }
+        unsafe {
+            let m = ((*UPCALLS).get_mmtk_mutator)(tls);
+            &mut *m
+        }
     }
 
     fn reset_mutator_iterator() {
