@@ -2,10 +2,6 @@
 MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
-ifdef MMTK_PLAN
-  GC_FEATURES=--features $(MMTK_PLAN)
-endif
-
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)
