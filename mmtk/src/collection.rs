@@ -12,7 +12,7 @@ pub struct VMCollection {}
 extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
     mutator: &'static mut Mutator<OpenJDK>,
 ) {
-    SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanStackRoot::<E>(mutator));
+    mmtk::memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Prepare, ScanStackRoot::<E>(mutator));
 }
 
 impl Collection<OpenJDK> for VMCollection {

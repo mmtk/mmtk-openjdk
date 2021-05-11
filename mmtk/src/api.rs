@@ -22,7 +22,7 @@ static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("Object
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
-    match SINGLETON.plan.constraints().barrier {
+    match SINGLETON.get_plan().constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
         BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
         // In case we have more barriers in mmtk-core.
@@ -272,7 +272,7 @@ pub extern "C" fn last_heap_address() -> Address {
 
 #[no_mangle]
 pub extern "C" fn openjdk_max_capacity() -> usize {
-    SINGLETON.plan.get_total_pages() << LOG_BYTES_IN_PAGE
+    memory_manager::total_bytes(&SINGLETON)
 }
 
 #[no_mangle]
