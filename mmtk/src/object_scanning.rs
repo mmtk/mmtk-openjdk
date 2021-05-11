@@ -4,7 +4,8 @@ use crate::{OpenJDK, SINGLETON};
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::TransitiveClosure;
 use std::marker::PhantomData;
 use std::{mem, slice};
@@ -126,7 +127,7 @@ fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaqueP
 }
 
 #[inline]
-fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePointer) {
+fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure) {
     let klass_id = oop.klass.id;
     debug_assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < 6,
@@ -166,14 +167,14 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePoint
 pub fn scan_object(
     object: ObjectReference,
     closure: &mut impl TransitiveClosure,
-    tls: OpaquePointer,
+    _tls: VMWorkerThread,
 ) {
     // println!("*****scan_object(0x{:x}) -> \n 0x{:x}, 0x{:x} \n",
     //     object,
     //     unsafe { *(object.value() as *const usize) },
     //     unsafe { *((object.value() + 8) as *const usize) }
     // );
-    unsafe { oop_iterate(mem::transmute(object), closure, tls) }
+    unsafe { oop_iterate(mem::transmute(object), closure) }
 }
 
 pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
@@ -221,6 +222,10 @@ pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM = OpenJDK>>(
 ) {
     let mut closure = ObjectsClosure::<E>(Vec::new(), worker, PhantomData);
     for object in objects {
-        scan_object(*object, &mut closure, OpaquePointer::UNINITIALIZED);
+        scan_object(
+            *object,
+            &mut closure,
+            VMWorkerThread(VMThread::UNINITIALIZED),
+        );
     }
 }
