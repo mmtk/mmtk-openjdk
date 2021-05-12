@@ -1,11 +1,9 @@
 use super::UPCALLS;
 use crate::OpenJDK;
-use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 
 pub struct VMObjectModel {}
 

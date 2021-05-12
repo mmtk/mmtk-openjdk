@@ -93,10 +93,6 @@ static void mmtk_block_for_gc() {
     }
 }
 
-static void* mmtk_active_collector(void* tls) {
-    return ((MMTkCollectorThread*) tls)->get_context();
-}
-
 static void* mmtk_get_mmtk_mutator(void* tls) {
     return (void*) &((Thread*) tls)->third_party_heap_mutator;
 }
@@ -155,7 +151,7 @@ static void mmtk_compute_thread_roots(void* trace, void* tls) {
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
+static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
@@ -164,8 +160,7 @@ static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
     ResourceMark rm;
     JavaThread* thread = (JavaThread*) tls;
     MMTkRootsClosure2 cl(process_edges);
-    CodeBlobToOopClosure cb_cl(&cl, false);
-    thread->oops_do(&cl, &cb_cl);
+    thread->oops_do(&cl, NULL);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
@@ -262,7 +257,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_resume_mutators,
     mmtk_spawn_collector_thread,
     mmtk_block_for_gc,
-    mmtk_active_collector,
     mmtk_get_next_mutator,
     mmtk_reset_mutator_iterator,
     mmtk_compute_static_roots,

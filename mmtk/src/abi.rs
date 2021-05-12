@@ -251,7 +251,7 @@ pub type Oop = &'static OopDesc;
 
 impl OopDesc {
     pub unsafe fn as_array_oop<T>(&self) -> ArrayOop<T> {
-        mem::transmute(self)
+        &*(self as *const OopDesc as *const ArrayOopDesc<T>)
     }
 
     pub fn get_field_address(&self, offset: i32) -> Address {

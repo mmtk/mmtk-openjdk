@@ -4,13 +4,13 @@ use crate::{OpenJDK, SINGLETON};
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::TransitiveClosure;
 use std::marker::PhantomData;
 use std::{mem, slice};
 
 trait OopIterate: Sized {
-    #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure);
 }
 
@@ -127,7 +127,7 @@ fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaqueP
 }
 
 #[inline]
-fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePointer) {
+fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure) {
     let klass_id = oop.klass.id;
     debug_assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < 6,
@@ -167,14 +167,14 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure, _tls: OpaquePoint
 pub fn scan_object(
     object: ObjectReference,
     closure: &mut impl TransitiveClosure,
-    tls: OpaquePointer,
+    _tls: VMWorkerThread,
 ) {
     // println!("*****scan_object(0x{:x}) -> \n 0x{:x}, 0x{:x} \n",
     //     object,
     //     unsafe { *(object.value() as *const usize) },
     //     unsafe { *((object.value() + 8) as *const usize) }
     // );
-    unsafe { oop_iterate(mem::transmute(object), closure, tls) }
+    unsafe { oop_iterate(mem::transmute(object), closure) }
 }
 
 pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
@@ -186,7 +186,7 @@ pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
 impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
         self.0.push(slot);
@@ -222,6 +222,10 @@ pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM = OpenJDK>>(
 ) {
     let mut closure = ObjectsClosure::<E>(Vec::new(), worker, PhantomData);
     for object in objects {
-        scan_object(*object, &mut closure, OpaquePointer::UNINITIALIZED);
+        scan_object(
+            *object,
+            &mut closure,
+            VMWorkerThread(VMThread::UNINITIALIZED),
+        );
     }
 }

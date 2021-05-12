@@ -94,7 +94,6 @@ typedef struct {
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
-    void* (*active_collector) (void* tls);
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
     void (*compute_static_roots) (void* trace, void* tls);
@@ -113,7 +112,7 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
+    void (*scan_thread_roots)(ProcessEdgesFn process_edges);
     void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
     void (*scan_universe_roots) (ProcessEdgesFn process_edges);
     void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
