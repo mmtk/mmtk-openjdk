@@ -4,7 +4,7 @@ use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::{c_char, c_void};
 use mmtk::memory_manager;
-use mmtk::plan::barriers::BarrierSelector;
+use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
