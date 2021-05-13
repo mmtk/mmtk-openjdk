@@ -1,5 +1,5 @@
-use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
+use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
@@ -12,7 +12,11 @@ pub struct VMCollection {}
 extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
     mutator: &'static mut Mutator<OpenJDK>,
 ) {
-    mmtk::memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Prepare, ScanStackRoot::<E>(mutator));
+    mmtk::memory_manager::add_work_packet(
+        &SINGLETON,
+        WorkBucketStage::Prepare,
+        ScanStackRoot::<E>(mutator),
+    );
 }
 
 impl Collection<OpenJDK> for VMCollection {
