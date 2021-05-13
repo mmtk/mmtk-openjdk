@@ -48,12 +48,10 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unimplemented!()
     }
 
-    #[inline(always)]
     fn object_start_ref(object: ObjectReference) -> Address {
         object.to_address()
     }
 
-    #[inline(always)]
     fn ref_to_address(object: ObjectReference) -> Address {
         object.to_address()
     }

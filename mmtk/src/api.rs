@@ -3,7 +3,7 @@ use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::{c_char, c_void};
-use mmtk::{memory_manager, policy::immix::block::Block};
+use mmtk::memory_manager;
 use mmtk::plan::barriers::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::allocators::AllocatorSelector;
