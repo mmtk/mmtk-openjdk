@@ -4,7 +4,7 @@ use crate::OpenJDK;
 use mmtk::memory_manager;
 use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::Scanning;
 use mmtk::MutatorContext;
@@ -32,12 +32,12 @@ impl Scanning<OpenJDK> for VMScanning {
     fn scan_object<T: TransitiveClosure>(
         trace: &mut T,
         object: ObjectReference,
-        tls: OpaquePointer,
+        tls: VMWorkerThread,
     ) {
         crate::object_scanning::scan_object(object, trace, tls)
     }
 
-    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
+    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         // unimplemented!()
         // TODO
     }
@@ -52,13 +52,13 @@ impl Scanning<OpenJDK> for VMScanning {
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
         let process_edges = create_process_edges_work::<W>;
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(process_edges as _, OpaquePointer::UNINITIALIZED);
+            ((*UPCALLS).scan_thread_roots)(process_edges as _);
         }
     }
 
     fn scan_thread_root<W: ProcessEdgesWork<VM = OpenJDK>>(
         mutator: &'static mut Mutator<OpenJDK>,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) {
         let tls = mutator.get_tls();
         let process_edges = create_process_edges_work::<W>;

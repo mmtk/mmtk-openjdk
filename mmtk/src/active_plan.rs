@@ -1,7 +1,7 @@
 use super::UPCALLS;
 use crate::OpenJDK;
 use crate::SINGLETON;
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
 use mmtk::Plan;
@@ -14,13 +14,15 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         SINGLETON.get_plan()
     }
 
-    unsafe fn is_mutator(tls: OpaquePointer) -> bool {
-        ((*UPCALLS).is_mutator)(tls)
+    fn is_mutator(tls: VMThread) -> bool {
+        unsafe { ((*UPCALLS).is_mutator)(tls) }
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut Mutator<OpenJDK> {
-        let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-        &mut *m
+    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK> {
+        unsafe {
+            let m = ((*UPCALLS).get_mmtk_mutator)(tls);
+            &mut *m
+        }
     }
 
     fn reset_mutator_iterator() {

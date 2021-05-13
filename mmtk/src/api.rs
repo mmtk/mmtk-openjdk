@@ -8,7 +8,8 @@ use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
@@ -50,12 +51,12 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(tls: OpaquePointer) {
+pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
     memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK> {
+pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<OpenJDK> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
 
@@ -162,12 +163,12 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<OpenJDK>) {
+pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJDK>) {
     memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(tls: OpaquePointer) {
+pub extern "C" fn enable_collection(tls: VMThread) {
     memory_manager::enable_collection(&SINGLETON, tls)
 }
 
@@ -193,7 +194,7 @@ pub extern "C" fn scan_region() {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
+pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<OpenJDK>(&SINGLETON, tls);
 }
 
@@ -236,7 +237,7 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 pub extern "C" fn harness_begin(_id: usize) {
     let state = unsafe { ((*UPCALLS).enter_vm)() };
     // Pass null as tls, OpenJDK binding does not rely on the tls value to block the current thread and do a GC
-    memory_manager::harness_begin(&SINGLETON, OpaquePointer::UNINITIALIZED);
+    memory_manager::harness_begin(&SINGLETON, VMMutatorThread(VMThread::UNINITIALIZED));
     unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 

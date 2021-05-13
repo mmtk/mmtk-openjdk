@@ -1,6 +1,6 @@
 use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
 
@@ -16,7 +16,7 @@ extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
 }
 
 impl Collection<OpenJDK> for VMCollection {
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: VMWorkerThread) {
         let f = {
             if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
                 0usize as _
@@ -29,19 +29,19 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn resume_mutators(tls: OpaquePointer) {
+    fn resume_mutators(tls: VMWorkerThread) {
         unsafe {
             ((*UPCALLS).resume_mutators)(tls);
         }
     }
 
-    fn block_for_gc(_tls: OpaquePointer) {
+    fn block_for_gc(_tls: VMMutatorThread) {
         unsafe {
             ((*UPCALLS).block_for_gc)();
         }
     }
 
-    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<OpenJDK>>) {
+    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<OpenJDK>>) {
         let ctx_ptr = if let Some(r) = ctx {
             r as *const GCWorker<OpenJDK> as *mut GCWorker<OpenJDK>
         } else {
@@ -53,14 +53,14 @@ impl Collection<OpenJDK> for VMCollection {
     }
 
     fn prepare_mutator<T: MutatorContext<OpenJDK>>(
-        _tls_w: OpaquePointer,
-        _tls_m: OpaquePointer,
+        _tls_w: VMWorkerThread,
+        _tls_m: VMMutatorThread,
         _m: &T,
     ) {
         // unimplemented!()
     }
 
-    fn schedule_finalization(_tls: OpaquePointer) {
+    fn schedule_finalization(_tls: VMWorkerThread) {
         unsafe {
             ((*UPCALLS).schedule_finalizer)();
         }
