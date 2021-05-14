@@ -11,7 +11,7 @@ pub struct VMActivePlan {}
 
 impl ActivePlan<OpenJDK> for VMActivePlan {
     fn global() -> &'static dyn Plan<VM = OpenJDK> {
-        &*SINGLETON.plan
+        SINGLETON.get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
