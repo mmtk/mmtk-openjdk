@@ -2,7 +2,7 @@ use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
-use libc::{c_char, c_void};
+use libc::c_char;
 use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
@@ -89,57 +89,6 @@ pub extern "C" fn alloc(
 #[no_mangle]
 pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> AllocatorSelector {
     memory_manager::get_allocator_mapping(&SINGLETON, allocator)
-}
-
-// Allocation slow path
-
-use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
-
-#[no_mangle]
-pub extern "C" fn alloc_slow_bump_monotone_immortal(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
-}
-
-// For plans that do not include copy space, use the other implementation
-// FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
-
-#[no_mangle]
-#[cfg(any(feature = "semispace", feature = "gencopy"))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    use mmtk::policy::copyspace::CopySpace;
-    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
-}
-#[no_mangle]
-#[cfg(not(any(feature = "semispace", feature = "gencopy")))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(
-    _allocator: *mut c_void,
-    _size: usize,
-    _align: usize,
-    _offset: isize,
-) -> Address {
-    unimplemented!()
-}
-
-#[no_mangle]
-pub extern "C" fn alloc_slow_largeobject(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    unsafe { &mut *(allocator as *mut LargeObjectAllocator<OpenJDK>) }
-        .alloc_slow(size, align, offset)
 }
 
 #[no_mangle]
