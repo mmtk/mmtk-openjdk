@@ -5,7 +5,7 @@
 * Switches to our new OpenJDK fork (`11.0.11+6-mmtk`) which is based-on [OpenJDK-11 update repo](https://github.com/openjdk/jdk11u.git)
 * Adds style checks
 * Cleans up some unused code
-* Refactors in accordance with the latest changes in `mmtk-core` API
+* Updates to mmtk-core 0.4.0
 
 
 0.3.0 (2021-04-01)
