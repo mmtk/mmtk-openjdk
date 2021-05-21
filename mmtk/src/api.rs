@@ -2,13 +2,13 @@ use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
 use crate::SINGLETON;
 use crate::UPCALLS;
-use libc::{c_char, c_void};
+use libc::c_char;
 use mmtk::memory_manager;
-use mmtk::plan::barriers::BarrierSelector;
+use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
-use mmtk::util::alloc::allocators::AllocatorSelector;
-use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::alloc::AllocatorSelector;
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
@@ -22,7 +22,7 @@ static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("Object
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
-    match SINGLETON.plan.constraints().barrier {
+    match SINGLETON.get_plan().constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
         BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
         // In case we have more barriers in mmtk-core.
@@ -50,12 +50,12 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(tls: OpaquePointer) {
+pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
     memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<OpenJDK> {
+pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<OpenJDK> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
 
@@ -91,57 +91,6 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
     memory_manager::get_allocator_mapping(&SINGLETON, allocator)
 }
 
-// Allocation slow path
-
-use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
-
-#[no_mangle]
-pub extern "C" fn alloc_slow_bump_monotone_immortal(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
-}
-
-// For plans that do not include copy space, use the other implementation
-// FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
-
-#[no_mangle]
-#[cfg(any(feature = "semispace", feature = "gencopy"))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    use mmtk::policy::copyspace::CopySpace;
-    unsafe { &mut *(allocator as *mut BumpAllocator<OpenJDK>) }.alloc_slow(size, align, offset)
-}
-#[no_mangle]
-#[cfg(not(any(feature = "semispace", feature = "gencopy")))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(
-    _allocator: *mut c_void,
-    _size: usize,
-    _align: usize,
-    _offset: isize,
-) -> Address {
-    unimplemented!()
-}
-
-#[no_mangle]
-pub extern "C" fn alloc_slow_largeobject(
-    allocator: *mut c_void,
-    size: usize,
-    align: usize,
-    offset: isize,
-) -> Address {
-    unsafe { &mut *(allocator as *mut LargeObjectAllocator<OpenJDK>) }
-        .alloc_slow(size, align, offset)
-}
-
 #[no_mangle]
 // We trust the mutator pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -162,12 +111,12 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<OpenJDK>) {
+pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJDK>) {
     memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(tls: OpaquePointer) {
+pub extern "C" fn enable_collection(tls: VMThread) {
     memory_manager::enable_collection(&SINGLETON, tls)
 }
 
@@ -193,7 +142,7 @@ pub extern "C" fn scan_region() {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
+pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<OpenJDK>(&SINGLETON, tls);
 }
 
@@ -236,7 +185,7 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 pub extern "C" fn harness_begin(_id: usize) {
     let state = unsafe { ((*UPCALLS).enter_vm)() };
     // Pass null as tls, OpenJDK binding does not rely on the tls value to block the current thread and do a GC
-    memory_manager::harness_begin(&SINGLETON, OpaquePointer::UNINITIALIZED);
+    memory_manager::harness_begin(&SINGLETON, VMMutatorThread(VMThread::UNINITIALIZED));
     unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
@@ -272,7 +221,7 @@ pub extern "C" fn last_heap_address() -> Address {
 
 #[no_mangle]
 pub extern "C" fn openjdk_max_capacity() -> usize {
-    SINGLETON.plan.get_total_pages() << LOG_BYTES_IN_PAGE
+    memory_manager::total_bytes(&SINGLETON)
 }
 
 #[no_mangle]

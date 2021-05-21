@@ -151,7 +151,7 @@ static void mmtk_compute_thread_roots(void* trace, void* tls) {
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
+static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges) {
     MMTkRootsClosure2 cl(process_edges);
     MMTkHeap::heap()->scan_thread_roots(cl);
 }
