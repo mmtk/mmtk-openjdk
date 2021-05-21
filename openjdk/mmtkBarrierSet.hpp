@@ -36,7 +36,7 @@
 #include "mmtk.h"
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH false
+#define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
