@@ -52,7 +52,11 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext<OpenJDK>>(_tls: OpaquePointer, _m: &T) {
+    fn prepare_mutator<T: MutatorContext<OpenJDK>>(
+        _tls_w: OpaquePointer,
+        _tls_m: OpaquePointer,
+        _m: &T,
+    ) {
         // unimplemented!()
     }
 
