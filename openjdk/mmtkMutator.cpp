@@ -7,6 +7,10 @@ MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
 }
 
 HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
+    if (bytes >= get_max_non_los_default_alloc_bytes()) {
+        allocator = AllocatorLos;
+    }
+
     // FIXME: Proper use of slow-path api
     HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, allocator);
     // Post allococation. Currently we are only calling post_alloc in slowpath here.

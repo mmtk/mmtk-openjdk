@@ -40,9 +40,27 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
-    // We always use the default allocator.
-    // But we need to figure out which allocator we are using by querying MMTk.
-    AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+    // We only use LOS or the default allocator. We need to check size
+    // max non-los size
+    int max_non_los_bytes = (int)get_max_non_los_default_alloc_bytes();
+    // For size larger than max non-los size, we always jump to slowpath.
+    if (var_size_in_bytes == noreg) {
+      // const size
+      if ((con_size_in_bytes) > max_non_los_bytes) {
+        __ jmp(slow_case);
+        return;
+      }
+    } else {
+      // var size
+      __ cmpptr(var_size_in_bytes, max_non_los_bytes);
+      __ jcc(Assembler::greaterEqual, slow_case);
+      return;
+    }
+
+    // fastpath, we only use default allocator
+    Allocator allocator = AllocatorDefault;
+    // We need to figure out which allocator we are using by querying MMTk.
+    AllocatorSelector selector = get_allocator_mapping(allocator);
 
     if (selector.tag == TAG_MALLOC) {
       __ jmp(slow_case);
