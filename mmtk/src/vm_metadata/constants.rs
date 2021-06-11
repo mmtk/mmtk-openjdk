@@ -8,7 +8,7 @@ use mmtk::util::metadata::side_metadata::{
 use mmtk::util::metadata::MetadataSpec;
 
 #[cfg(target_pointer_width = "32")]
-const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
+const fn side_metadata_size(metadata_spec: &MetadataSpec) -> usize {
     if metadata_spec.is_global {
         metadata_address_range_size(metadata_spec)
     } else {
@@ -17,7 +17,7 @@ const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
 }
 
 #[cfg(target_pointer_width = "64")]
-const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
+const fn side_metadata_size(metadata_spec: &MetadataSpec) -> usize {
     metadata_address_range_size(metadata_spec)
 }
 
@@ -92,7 +92,7 @@ pub(crate) const UNLOGGED_SIDE_METADATA_SPEC: MetadataSpec = MetadataSpec {
 };
 
 pub(crate) const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize =
-    GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize() + side_metadata_size(LOGGING_SIDE_METADATA_SPEC);
+    GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize() + side_metadata_size(&LOGGING_SIDE_METADATA_SPEC);
 
 pub(crate) const LAST_LOCAL_SIDE_METADATA_OFFSET: usize =
-    UNLOGGED_SIDE_METADATA_SPEC.offset as usize + side_metadata_size(UNLOGGED_SIDE_METADATA_SPEC);
+    UNLOGGED_SIDE_METADATA_SPEC.offset as usize + side_metadata_size(&UNLOGGED_SIDE_METADATA_SPEC);
