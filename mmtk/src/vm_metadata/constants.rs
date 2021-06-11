@@ -1,8 +1,11 @@
 pub(super) use mmtk::util::constants::{LOG_BITS_IN_BYTE, LOG_BITS_IN_WORD, LOG_MIN_OBJECT_SIZE};
 #[cfg(target_pointer_width = "32")]
 use mmtk::util::metadata::metadata_bytes_per_chunk;
-use mmtk::util::metadata::{metadata_address_range_size, GLOBAL_SIDE_METADATA_BASE_ADDRESS};
-use mmtk::util::metadata::{MetadataSpec, LOCAL_SIDE_METADATA_BASE_ADDRESS};
+use mmtk::util::metadata::side_metadata::{
+    metadata_address_range_size, GLOBAL_SIDE_METADATA_BASE_ADDRESS,
+    LOCAL_SIDE_METADATA_BASE_ADDRESS,
+};
+use mmtk::util::metadata::MetadataSpec;
 
 #[cfg(target_pointer_width = "32")]
 const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
