@@ -13,4 +13,4 @@ wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/d
 
 # Install dependencies
 sudo apt-get update -y
-sudo apt-get install build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev
+sudo apt-get install build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev

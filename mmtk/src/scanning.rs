@@ -1,7 +1,8 @@
 use super::gc_work::*;
 use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
-use mmtk::scheduler::gc_work::ProcessEdgesWork;
+use mmtk::memory_manager;
+use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
@@ -18,8 +19,11 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-            .add(W::new(buf, false, &SINGLETON));
+        memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            W::new(buf, false, &SINGLETON),
+        );
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     NewBuffer { ptr, capacity }
@@ -68,8 +72,9 @@ impl Scanning<OpenJDK> for VMScanning {
     }
 
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].bulk_add(
-            1000,
+        memory_manager::add_work_packets(
+            &SINGLETON,
+            WorkBucketStage::Prepare,
             vec![
                 box ScanUniverseRoots::<W>::new(),
                 box ScanJNIHandlesRoots::<W>::new(),
@@ -85,8 +90,11 @@ impl Scanning<OpenJDK> for VMScanning {
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanVMThreadRoots::<W>::new());
+            memory_manager::add_work_packet(
+                &SINGLETON,
+                WorkBucketStage::Prepare,
+                ScanVMThreadRoots::<W>::new(),
+            );
         }
     }
 
