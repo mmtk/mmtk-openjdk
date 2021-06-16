@@ -6,6 +6,7 @@ use crate::vm_metadata::LOG_BITS_IN_U32;
 
 use super::constants::{LOG_BITS_IN_BYTE, LOG_BITS_IN_U16, LOG_BITS_IN_WORD};
 
+#[inline(always)]
 pub(crate) fn load_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -118,6 +119,7 @@ pub(crate) fn load_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn store_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -342,6 +344,7 @@ pub(crate) fn store_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn compare_exchange_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -509,6 +512,7 @@ pub(crate) fn compare_exchange_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn fetch_add_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -603,6 +607,7 @@ pub(crate) fn fetch_add_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn fetch_sub_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,

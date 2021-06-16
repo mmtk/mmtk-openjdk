@@ -11,6 +11,7 @@ use mmtk::CopyContext;
 pub struct VMObjectModel {}
 
 impl ObjectModel<OpenJDK> for VMObjectModel {
+    #[inline(always)]
     fn load_metadata(
         metadata_spec: MetadataSpec,
         object: ObjectReference,
@@ -20,6 +21,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         vm_metadata::load_metadata(metadata_spec, object, mask, atomic_ordering)
     }
 
+    #[inline(always)]
     fn store_metadata(
         metadata_spec: MetadataSpec,
         object: ObjectReference,
@@ -30,6 +32,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         vm_metadata::store_metadata(metadata_spec, object, val, mask, atomic_ordering);
     }
 
+    #[inline(always)]
     fn compare_exchange_metadata(
         metadata_spec: MetadataSpec,
         object: ObjectReference,
@@ -50,6 +53,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         )
     }
 
+    #[inline(always)]
     fn fetch_add_metadata(
         metadata_spec: MetadataSpec,
         object: ObjectReference,
@@ -59,6 +63,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         vm_metadata::fetch_add_metadata(metadata_spec, object, val, order)
     }
 
+    #[inline(always)]
     fn fetch_sub_metadata(
         metadata_spec: MetadataSpec,
         object: ObjectReference,
