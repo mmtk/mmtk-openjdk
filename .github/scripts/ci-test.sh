@@ -87,7 +87,7 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 # --- PageProtect ---
 export MMTK_PLAN=PageProtect
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar antlr
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xm4G -jar benchmarks/dacapo-2006-10-MR2.jar antlr
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xm4G -jar benchmarks/dacapo-2006-10-MR2.jar fop
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xm4G -jar benchmarks/dacapo-2006-10-MR2.jar luindex
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xm4G -jar benchmarks/dacapo-2006-10-MR2.jar pmd
