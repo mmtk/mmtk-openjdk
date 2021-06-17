@@ -6,6 +6,7 @@ use crate::vm_metadata::LOG_BITS_IN_U32;
 
 use super::constants::{LOG_BITS_IN_BYTE, LOG_BITS_IN_U16, LOG_BITS_IN_WORD};
 
+/// This function implements the `load_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn load_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
@@ -13,6 +14,7 @@ pub(crate) fn load_metadata(
     optional_mask: Option<usize>,
     atomic_ordering: Option<Ordering>,
 ) -> usize {
+    // For side metadata, use the side_metadata module from mmtk-core
     if metadata_spec.is_side_metadata {
         if let Some(order) = atomic_ordering {
             mmtk_meta::side_metadata::load_atomic(metadata_spec, object.to_address(), order)
@@ -22,6 +24,7 @@ pub(crate) fn load_metadata(
     } else {
         debug_assert!(optional_mask.is_none() || metadata_spec.num_of_bits >= 8,"optional_mask is only supported for 8X-bits in-header metadata. Problematic MetadataSpec: ({:?})", metadata_spec);
 
+        // metadata smaller than 8-bits is special in that more than one metadata value may be included in one AtomicU8 operation, and extra shift and mask is required
         let res: usize = if metadata_spec.num_of_bits < 8 {
             debug_assert!(
                 (metadata_spec.offset >> LOG_BITS_IN_BYTE)
@@ -119,6 +122,7 @@ pub(crate) fn load_metadata(
     }
 }
 
+/// This function implements the `store_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn store_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
@@ -127,6 +131,7 @@ pub(crate) fn store_metadata(
     optional_mask: Option<usize>,
     atomic_ordering: Option<Ordering>,
 ) {
+    // For side metadata, use the side_metadata module from mmtk-core
     if metadata_spec.is_side_metadata {
         if let Some(order) = atomic_ordering {
             mmtk_meta::side_metadata::store_atomic(metadata_spec, object.to_address(), val, order);
@@ -138,6 +143,7 @@ pub(crate) fn store_metadata(
     } else {
         debug_assert!(optional_mask.is_none() || metadata_spec.num_of_bits >= 8,"optional_mask is only supported for 8X-bits in-header metadata. Problematic MetadataSpec: ({:?})", metadata_spec);
 
+        // metadata smaller than 8-bits is special in that more than one metadata value may be included in one AtomicU8 operation, and extra shift and mask, and compare_exchange is required
         if metadata_spec.num_of_bits < 8 {
             debug_assert!(
                 (metadata_spec.offset >> LOG_BITS_IN_BYTE)
@@ -344,6 +350,7 @@ pub(crate) fn store_metadata(
     }
 }
 
+/// This function implements the `compare_exchange_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn compare_exchange_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
@@ -354,6 +361,7 @@ pub(crate) fn compare_exchange_metadata(
     success_order: Ordering,
     failure_order: Ordering,
 ) -> bool {
+    // For side metadata, use the side_metadata module from mmtk-core
     if metadata_spec.is_side_metadata {
         mmtk_meta::side_metadata::compare_exchange_atomic(
             metadata_spec,
@@ -365,6 +373,7 @@ pub(crate) fn compare_exchange_metadata(
         )
     } else {
         #[allow(clippy::collapsible_else_if)]
+        // metadata smaller than 8-bits is special in that more than one metadata value may be included in one AtomicU8 operation, and extra shift and mask is required
         if metadata_spec.num_of_bits < 8 {
             debug_assert!(
                 (metadata_spec.offset >> LOG_BITS_IN_BYTE as isize)
@@ -512,6 +521,7 @@ pub(crate) fn compare_exchange_metadata(
     }
 }
 
+/// This function implements the `fetch_add_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn fetch_add_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
@@ -519,9 +529,11 @@ pub(crate) fn fetch_add_metadata(
     val: usize,
     order: Ordering,
 ) -> usize {
+    // For side metadata, use the side_metadata module from mmtk-core
     if metadata_spec.is_side_metadata {
         mmtk_meta::side_metadata::fetch_add_atomic(metadata_spec, object.to_address(), val, order)
     } else {
+        // metadata smaller than 8-bits is special in that more than one metadata value may be included in one AtomicU8 operation, and extra shift and mask is required
         #[allow(clippy::collapsible_else_if)]
         if metadata_spec.num_of_bits < 8 {
             debug_assert!(
@@ -607,6 +619,7 @@ pub(crate) fn fetch_add_metadata(
     }
 }
 
+/// This function implements the `fetch_sub_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn fetch_sub_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
@@ -614,9 +627,11 @@ pub(crate) fn fetch_sub_metadata(
     val: usize,
     order: Ordering,
 ) -> usize {
+    // For side metadata, use the side_metadata module from mmtk-core
     if metadata_spec.is_side_metadata {
         mmtk_meta::side_metadata::fetch_sub_atomic(metadata_spec, object.to_address(), val, order)
     } else {
+        // metadata smaller than 8-bits is special in that more than one metadata value may be included in one AtomicU8 operation, and extra shift and mask is required
         #[allow(clippy::collapsible_else_if)]
         if metadata_spec.num_of_bits < 8 {
             debug_assert!(
