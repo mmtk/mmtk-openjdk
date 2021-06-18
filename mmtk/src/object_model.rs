@@ -83,10 +83,6 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = vm_metadata::LOS_METADATA_SPEC;
     const LOCAL_UNLOGGED_BIT_SPEC: MetadataSpec = vm_metadata::UNLOGGED_SIDE_METADATA_SPEC;
 
-    const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize = vm_metadata::LAST_GLOBAL_SIDE_METADATA_OFFSET;
-
-    const LAST_LOCAL_SIDE_METADATA_OFFSET: usize = vm_metadata::LAST_LOCAL_SIDE_METADATA_OFFSET;
-
     #[inline]
     fn copy(
         from: ObjectReference,
