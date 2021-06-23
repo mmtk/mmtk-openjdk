@@ -48,6 +48,7 @@ void MMTkBarrierSetC2::expand_allocate(
             address slow_call_address  // Address of slow call
     )
 {
+  assert(false, "c2 is used");
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
   Node* i_o  = alloc->in(TypeFunc::I_O);
@@ -71,8 +72,54 @@ void MMTkBarrierSetC2::expand_allocate(
   if (tv >= 0) {
     always_slow = (tv == 1);
     initial_slow_test = NULL;
+    // We should do our size comparison to replace initial_slow_test
   } else {
-    initial_slow_test = BoolNode::make_predicate(initial_slow_test, &x->_igvn);
+    // printf("initial_slow_test = make_predicate\n");
+    // initial_slow_test = BoolNode::make_predicate(initial_slow_test, &x->_igvn);
+    // We should or our size comparison with the initial_slow_test
+  }
+
+  int max_non_los_bytes = (int)get_max_non_los_default_alloc_bytes();
+  int const_size = x->_igvn.find_int_con(size_in_bytes, -1);
+  // We know at JIT time that we need to go to slowpath
+  if (const_size >= 0) {
+    if (const_size > max_non_los_bytes) {
+      initial_slow_test = x->intcon(1);
+    }
+  } else {
+    // printf("===Generate code to check mmtk size===\n");
+    // printf("*intcon\n");
+    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes);
+    x->transform_later(max_non_los_bytes_node);
+
+    // printf("*cmpnode\n");
+    // size_in_bytes->dump(":size_in_bytes\n");
+    // max_non_los_bytes_node->dump(":max_non_los_bytes\n");
+    Node *mmtk_size_cmp = new CmpLNode(size_in_bytes, max_non_los_bytes_node);
+    x->transform_later(mmtk_size_cmp);
+    // mmtk_size_cmp->dump(":mmtk_size_cmp\n");
+    
+    // printf("*boolnode\n");
+    Node *mmtk_size_bool = new BoolNode(mmtk_size_cmp, BoolTest::ge);
+    x->transform_later(mmtk_size_bool);
+    // mmtk_size_bool->dump(":mmtk_size_bool\n");
+    
+    if (initial_slow_test == NULL) {
+      // printf("*initial_slow_test = mmtk_size_bool\n");
+      initial_slow_test = BoolNode::make_predicate(mmtk_size_bool, &x->_igvn);
+      // initial_slow_test->dump(":initial_slow_test\n");
+    } else {
+      Node *mmtk_size_cmov = new CMoveINode(mmtk_size_bool, x->intcon(0), x->intcon(1), TypeInt::INT);
+      x->transform_later(mmtk_size_cmov);
+
+      // printf("*initial_slow_test = mmtk_size_bool || initial_slow_test\n");
+      // initial_slow_test->dump(":old initial_slow_test\n");
+      Node* new_slow_test = new OrINode(mmtk_size_cmov, initial_slow_test);
+      x->transform_later(new_slow_test);
+      // new_slow_test->dump(":new_slow_test\n");
+      initial_slow_test = BoolNode::make_predicate(new_slow_test, &x->_igvn);
+      // initial_slow_test->dump(":initial_slow_test\n");
+    }
   }
 
   // We always use the default allocator.
@@ -81,7 +128,7 @@ void MMTkBarrierSetC2::expand_allocate(
 
   if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
     // Malloc allocator has no fastpath
-    || (selector.tag == TAG_MALLOC)) {
+    || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;

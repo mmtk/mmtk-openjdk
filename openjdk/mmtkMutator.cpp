@@ -1,14 +1,24 @@
 
 #include "mmtk.h"
 #include "mmtkMutator.hpp"
+#include <atomic>
 
 MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
     return *((MMTkMutatorContext*) ::bind_mutator((void*) current));
 }
 
 HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
+    static std::atomic<long> slow_count(0);
+    static std::atomic<long> large_count(0);
+
+    slow_count.fetch_add(1);
     if (bytes >= get_max_non_los_default_alloc_bytes()) {
         allocator = AllocatorLos;
+        large_count.fetch_add(1);
+    }
+
+    if (slow_count > 0 && slow_count % 10000 == 0) {
+        printf("slowpath alloc: %ld large / %ld total\n", large_count.load(), slow_count.load());
     }
 
     // FIXME: Proper use of slow-path api
