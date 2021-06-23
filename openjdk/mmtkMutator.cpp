@@ -17,9 +17,9 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
         large_count.fetch_add(1);
     }
 
-    if (slow_count > 0 && slow_count % 10000 == 0) {
-        printf("slowpath alloc: %ld large / %ld total\n", large_count.load(), slow_count.load());
-    }
+    // if (slow_count > 0 && slow_count % 10000 == 0) {
+    //     printf("slowpath alloc: %ld large / %ld total\n", large_count.load(), slow_count.load());
+    // }
 
     // FIXME: Proper use of slow-path api
     HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, allocator);
