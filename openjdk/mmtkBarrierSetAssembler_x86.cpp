@@ -36,29 +36,28 @@
 void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) {
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, var_size_in_bytes, t1);
-  // printf("eden_allocate\n");
+
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
     // We only use LOS or the default allocator. We need to check size
     // max non-los size
-    int max_non_los_bytes = (int)get_max_non_los_default_alloc_bytes();
+    size_t max_non_los_bytes = get_max_non_los_default_alloc_bytes();
     // For size larger than max non-los size, we always jump to slowpath.
     if (var_size_in_bytes == noreg) {
+      assert(con_size_in_bytes <= 128*1024, "con_size_in_bytes should be smaller than 128K");
       // const size: this check seems never true, which means openjdk may have its own size check.
-      if (con_size_in_bytes > max_non_los_bytes) {
-        printf("consize jump: %d > %d\n", con_size_in_bytes, max_non_los_bytes);
-        assert(false, "we are actually jumping to slow due to mmtk size check");
+      if ((size_t)con_size_in_bytes > max_non_los_bytes) {
+        // printf("consize jump: %d > %ld\n", con_size_in_bytes, max_non_los_bytes);
+        // assert(false, "we are actually jumping to slow due to mmtk size check");
         __ jmp(slow_case);
         return;
       }
     } else {
       assert(var_size_in_bytes->is_valid(), "var_size_in_bytes is not noreg, and is not valid");
-      // // var size
-      // printf("varsize\n");
-      // __ cmpptr(var_size_in_bytes, max_non_los_bytes);
-      // __ jcc(Assembler::aboveEqual, slow_case);
-      // return;
+      // var size
+      __ cmpptr(var_size_in_bytes, max_non_los_bytes);
+      __ jcc(Assembler::aboveEqual, slow_case);
     }
 
     // fastpath, we only use default allocator
