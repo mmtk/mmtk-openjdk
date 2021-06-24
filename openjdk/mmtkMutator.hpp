@@ -18,6 +18,11 @@ struct RustDynPtr {
     void* vtable;
 };
 
+struct RustHashMap {
+    void* hash_builder;
+    void* table;
+};
+
 // These constants should match the constants defind in mmtk::util::alloc::allocators
 const int MAX_BUMP_ALLOCATORS = 5;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
@@ -46,20 +51,11 @@ struct MallocAllocator {
     RustDynPtr plan;
 };
 
-struct FreeListAllocator {
-    void* tls;
-    void* space;
-    RustDynPtr plan;
-    void* available_blocks;
-    void* exhausted_blocks;
-    void* free_lists;
-};
-
 struct Allocators {
     BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];
     LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
     MallocAllocator malloc[MAX_MALLOC_ALLOCATORS];
-    FreeListAllocator free_list[MAX_FREE_LIST_ALLOCATORS];
+    RustDynPtr free_list[MAX_FREE_LIST_ALLOCATORS];
 };
 
 struct MutatorConfig {
