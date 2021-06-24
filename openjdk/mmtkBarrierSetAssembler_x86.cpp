@@ -40,22 +40,20 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
-    // We only use LOS or the default allocator. We need to check size
-    // max non-los size
+    // MMTk size check. If the alloc size is larger than the allowed max size for non los,
+    // we jump to slow path and allodate with LOS in slowpath.
+    // Note that OpenJDK has a slow path check. Search for layout_helper_needs_slow_path and FastAllocateSizeLimit.
+    // I tried to set FastAllocateSizeLimit in MMTkHeap::initialize(). But there are still large objects allocated into the
+    // default space.
     size_t max_non_los_bytes = get_max_non_los_default_alloc_bytes();
-    // For size larger than max non-los size, we always jump to slowpath.
     if (var_size_in_bytes == noreg) {
-      assert(con_size_in_bytes <= 128*1024, "con_size_in_bytes should be smaller than 128K");
-      // const size: this check seems never true, which means openjdk may have its own size check.
+      // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
       if ((size_t)con_size_in_bytes > max_non_los_bytes) {
-        // printf("consize jump: %d > %ld\n", con_size_in_bytes, max_non_los_bytes);
-        // assert(false, "we are actually jumping to slow due to mmtk size check");
         __ jmp(slow_case);
         return;
       }
     } else {
-      assert(var_size_in_bytes->is_valid(), "var_size_in_bytes is not noreg, and is not valid");
-      // var size
+      // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
       __ cmpptr(var_size_in_bytes, max_non_los_bytes);
       __ jcc(Assembler::aboveEqual, slow_case);
     }

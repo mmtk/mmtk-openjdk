@@ -68,57 +68,59 @@ void MMTkBarrierSetC2::expand_allocate(
   // The initial slow comparison is a size check, the comparison
   // we want to do is a BoolTest::gt
   bool always_slow = false;
+  // Check if we need initial_slow_test
   int tv = x->_igvn.find_int_con(initial_slow_test, -1);
   if (tv >= 0) {
     always_slow = (tv == 1);
     initial_slow_test = NULL;
-    // We should do our size comparison to replace initial_slow_test
-  } else {
-    // printf("initial_slow_test = make_predicate\n");
-    // initial_slow_test = BoolNode::make_predicate(initial_slow_test, &x->_igvn);
-    // We should or our size comparison with the initial_slow_test
   }
 
+  // We will do MMTk size check.
+  // The implementation tries not to change the current control flow, and instead evaluate allocation size
+  // with max non-los bytes and combine the result with initial_slow_test. If the size check fails, initial_slow_test
+  // should be evaluated to true, and we jump to the slowpath.
+
+  // The max non-los bytes from MMTk
   int max_non_los_bytes = (int)get_max_non_los_default_alloc_bytes();
+  // Check if allocation size is constant
   int const_size = x->_igvn.find_int_con(size_in_bytes, -1);
-  // We know at JIT time that we need to go to slowpath
   if (const_size >= 0) {
+    // Constant alloc size
     if (const_size > max_non_los_bytes) {
+      // We know at JIT time that we need to go to slowpath
       initial_slow_test = x->intcon(1);
     }
   } else {
-    // printf("===Generate code to check mmtk size===\n");
-    // printf("*intcon\n");
+    // Variable alloc size
+
+    // Create a node for the constant and compare with size_in_bytes
     Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes);
     x->transform_later(max_non_los_bytes_node);
-
-    // printf("*cmpnode\n");
-    // size_in_bytes->dump(":size_in_bytes\n");
-    // max_non_los_bytes_node->dump(":max_non_los_bytes\n");
     Node *mmtk_size_cmp = new CmpLNode(size_in_bytes, max_non_los_bytes_node);
     x->transform_later(mmtk_size_cmp);
-    // mmtk_size_cmp->dump(":mmtk_size_cmp\n");
-    
-    // printf("*boolnode\n");
+    // Size Check: if size_in_bytes >= max_non_los_bytes
     Node *mmtk_size_bool = new BoolNode(mmtk_size_cmp, BoolTest::ge);
     x->transform_later(mmtk_size_bool);
-    // mmtk_size_bool->dump(":mmtk_size_bool\n");
-    
+
     if (initial_slow_test == NULL) {
-      // printf("*initial_slow_test = mmtk_size_bool\n");
+      // If there is no previous initial_slow_test, we use the size check as initial_slow_test
       initial_slow_test = BoolNode::make_predicate(mmtk_size_bool, &x->_igvn);
-      // initial_slow_test->dump(":initial_slow_test\n");
     } else {
+      // If there is existing initial_slow_test, we combine the result by 'or' them together.
+
+      // Conditionally move a value 1 or 0 depends on the size check.
+      // This is definitely not optimal. But to make things simple and to avoid changing the control flow,
+      // this is the only way I can think up with. But it seems it does not affect performance much
+      // (maybe this branch does not get generated often?).
       Node *mmtk_size_cmov = new CMoveINode(mmtk_size_bool, x->intcon(0), x->intcon(1), TypeInt::INT);
       x->transform_later(mmtk_size_cmov);
 
-      // printf("*initial_slow_test = mmtk_size_bool || initial_slow_test\n");
-      // initial_slow_test->dump(":old initial_slow_test\n");
+      // Logical or the size check result (1 or 0) with initial_slow_test
       Node* new_slow_test = new OrINode(mmtk_size_cmov, initial_slow_test);
       x->transform_later(new_slow_test);
-      // new_slow_test->dump(":new_slow_test\n");
+
+      // Use the or'd result as initial_slow_test
       initial_slow_test = BoolNode::make_predicate(new_slow_test, &x->_igvn);
-      // initial_slow_test->dump(":initial_slow_test\n");
     }
   }
 
