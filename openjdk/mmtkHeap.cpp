@@ -103,6 +103,8 @@ jint MMTkHeap::initialize() {
     //barrier_set->initialize();
     BarrierSet::set_barrier_set(barrier_set);
 
+    FastAllocateSizeLimit = get_max_non_los_default_alloc_bytes();
+
     // Set up the GCTaskManager
     //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
     return JNI_OK;

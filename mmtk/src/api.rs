@@ -93,10 +93,12 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 
 #[no_mangle]
 pub extern "C" fn get_max_non_los_default_alloc_bytes() -> usize {
-    SINGLETON
-        .get_plan()
-        .constraints()
-        .max_non_los_default_alloc_bytes
+    // test use
+    4096
+    // SINGLETON
+    //     .get_plan()
+    //     .constraints()
+    //     .max_non_los_default_alloc_bytes
 }
 
 #[no_mangle]
