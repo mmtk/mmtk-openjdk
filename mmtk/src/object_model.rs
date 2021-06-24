@@ -20,11 +20,6 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         copy_context: &mut impl CopyContext,
     ) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
-        assert!(
-            bytes <= super::api::get_max_non_los_default_alloc_bytes(),
-            "trying to copy object of {} bytes, it should not be allocated into copy space",
-            bytes
-        );
         let dst =
             copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy

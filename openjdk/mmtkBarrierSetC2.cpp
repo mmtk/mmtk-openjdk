@@ -48,7 +48,6 @@ void MMTkBarrierSetC2::expand_allocate(
             address slow_call_address  // Address of slow call
     )
 {
-  // assert(false, "c2 is used");
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
   Node* i_o  = alloc->in(TypeFunc::I_O);
