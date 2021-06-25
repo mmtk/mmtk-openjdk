@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
-use mmtk::util::metadata::{HeaderMetadataSpec, MetadataSpec};
+use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;

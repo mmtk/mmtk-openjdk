@@ -1,11 +1,10 @@
-pub(super) use mmtk::util::constants::{LOG_BITS_IN_BYTE, LOG_BITS_IN_WORD};
+pub(super) use mmtk::util::constants::LOG_BITS_IN_WORD;
+use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 #[cfg(target_pointer_width = "32")]
 use mmtk::util::metadata::metadata_bytes_per_chunk;
 use mmtk::util::metadata::side_metadata::{SideMetadataSpec, GLOBAL_SIDE_METADATA_BASE_ADDRESS};
-use mmtk::util::metadata::{HeaderMetadataSpec, MetadataSpec};
+use mmtk::util::metadata::MetadataSpec;
 
-pub(crate) const LOG_BITS_IN_U16: usize = 4;
-pub(crate) const LOG_BITS_IN_U32: usize = 5;
 #[cfg(target_pointer_width = "64")]
 pub(crate) const FORWARDING_BITS_OFFSET: usize = 56;
 #[cfg(target_pointer_width = "32")]
