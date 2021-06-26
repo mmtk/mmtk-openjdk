@@ -28,6 +28,7 @@ pub mod object_model;
 mod object_scanning;
 pub mod reference_glue;
 pub mod scanning;
+pub(crate) mod vm_metadata;
 
 #[repr(C)]
 pub struct NewBuffer {
