@@ -1,3 +1,10 @@
+0.5.0 (2021-06-28)
+===
+
+* Supports the new `PageProtect` plan, added to help debugging.
+* Updates `ObjectModel` to support the new metadata structure, where the bindings decide whether to put each per-object metadata on side or in object header.
+* Updates to mmtk-core 0.5.0.
+
 0.4.0 (2021-05-17)
 ===
 
