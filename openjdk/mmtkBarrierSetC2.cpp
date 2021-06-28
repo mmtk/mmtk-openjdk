@@ -81,7 +81,7 @@ void MMTkBarrierSetC2::expand_allocate(
 
   if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
     // Malloc allocator has no fastpath
-    || (selector.tag == TAG_MALLOC)) {
+    || (selector.tag == TAG_MALLOC) || selector.tag == TAG_LARGE_OBJECT) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;

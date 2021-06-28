@@ -1,5 +1,8 @@
+use std::sync::atomic::Ordering;
+
 use super::UPCALLS;
-use crate::OpenJDK;
+use crate::{vm_metadata, OpenJDK};
+use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;
@@ -8,10 +11,76 @@ use mmtk::CopyContext;
 pub struct VMObjectModel {}
 
 impl ObjectModel<OpenJDK> for VMObjectModel {
-    #[cfg(target_pointer_width = "64")]
-    const GC_BYTE_OFFSET: isize = 7;
-    #[cfg(target_pointer_width = "32")]
-    const GC_BYTE_OFFSET: isize = 0;
+    // For now we use the default const from mmtk-core
+    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
+
+    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec =
+        vm_metadata::FORWARDING_POINTER_METADATA_SPEC;
+    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = vm_metadata::FORWARDING_BITS_METADATA_SPEC;
+    const LOCAL_MARK_BIT_SPEC: MetadataSpec = vm_metadata::MARKING_METADATA_SPEC;
+    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = vm_metadata::LOS_METADATA_SPEC;
+
+    #[inline(always)]
+    fn load_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) -> usize {
+        vm_metadata::load_metadata(metadata_spec, object, mask, atomic_ordering)
+    }
+
+    #[inline(always)]
+    fn store_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) {
+        vm_metadata::store_metadata(metadata_spec, object, val, mask, atomic_ordering);
+    }
+
+    #[inline(always)]
+    fn compare_exchange_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        old_val: usize,
+        new_val: usize,
+        mask: Option<usize>,
+        success_order: Ordering,
+        failure_order: Ordering,
+    ) -> bool {
+        vm_metadata::compare_exchange_metadata(
+            metadata_spec,
+            object,
+            old_val,
+            new_val,
+            mask,
+            success_order,
+            failure_order,
+        )
+    }
+
+    #[inline(always)]
+    fn fetch_add_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_add_metadata(metadata_spec, object, val, order)
+    }
+
+    #[inline(always)]
+    fn fetch_sub_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_sub_metadata(metadata_spec, object, val, order)
+    }
 
     #[inline]
     fn copy(
