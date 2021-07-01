@@ -28,6 +28,7 @@ pub mod object_model;
 mod object_scanning;
 pub mod reference_glue;
 pub mod scanning;
+pub(crate) mod vm_metadata;
 
 #[repr(C)]
 pub struct NewBuffer {
@@ -105,6 +106,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "GenCopy");
         #[cfg(feature = "marksweep")]
         std::env::set_var("MMTK_PLAN", "MarkSweep");
+        #[cfg(feature = "pageprotect")]
+        std::env::set_var("MMTK_PLAN", "PageProtect");
         MMTK::new()
     };
 }
