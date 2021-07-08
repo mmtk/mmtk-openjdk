@@ -87,7 +87,8 @@ void MMTkBarrierSetC2::expand_allocate(
     // Constant alloc size
     if (const_size > max_non_los_bytes) {
       // We know at JIT time that we need to go to slowpath
-      initial_slow_test = x->intcon(1);
+      always_slow = true;
+      initial_slow_test = NULL;
     }
   } else {
     // Variable alloc size
@@ -108,9 +109,9 @@ void MMTkBarrierSetC2::expand_allocate(
       // If there is existing initial_slow_test, we combine the result by 'or' them together.
 
       // Conditionally move a value 1 or 0 depends on the size check.
-      // This is definitely not optimal. But to make things simple and to avoid changing the control flow,
-      // this is the only way I can think up with. But it seems it does not affect performance much
-      // (maybe this branch does not get generated often?).
+      // This is definitely not optimal. But to make things simple and to avoid changing the original
+      // control flow, it is much easier to implement with a cmov. And it should not affect performance much,
+      // as var size allocation is rare.
       Node *mmtk_size_cmov = new CMoveINode(mmtk_size_bool, x->intcon(0), x->intcon(1), TypeInt::INT);
       x->transform_later(mmtk_size_cmov);
 
