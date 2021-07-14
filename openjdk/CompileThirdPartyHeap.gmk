@@ -3,7 +3,11 @@ MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
 MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
 
 ifdef MMTK_PLAN
-  GC_FEATURES=--features $(MMTK_PLAN)
+  GC_FEATURES_TMP="$(MMTK_PLAN)"
+endif
+
+ifeq ($(MARK_IN_HEADER), 1)
+  GC_FEATURES_TMP+=" mark_bit_in_header"
 endif
 
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
@@ -21,12 +25,18 @@ else
   CARGO_VERSION=+$(RUSTUP_TOOLCHAIN)
 endif
 
-$(LIB_MMTK): FORCE
+$(LIB_MMTK): FORCE | GC_FEATURES_LIST
 	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
+
+GC_FEATURES_LIST:
+ifdef GC_FEATURES_TMP
+	GC_FEATURES="--features "; \
+	$(foreach x,$(GC_FEATURES_TMP),GC_FEATURES+=",$(x)";)
+endif
 
 FORCE:
 
