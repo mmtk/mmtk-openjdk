@@ -80,7 +80,8 @@ void MMTkBarrierSetC2::expand_allocate(
   // should be evaluated to true, and we jump to the slowpath.
 
   // The max non-los bytes from MMTk
-  size_t max_non_los_bytes = get_max_non_los_default_alloc_bytes();
+  assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
+  size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
   // Check if allocation size is constant
   long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {

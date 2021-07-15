@@ -45,7 +45,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // Note that OpenJDK has a slow path check. Search for layout_helper_needs_slow_path and FastAllocateSizeLimit.
     // I tried to set FastAllocateSizeLimit in MMTkHeap::initialize(). But there are still large objects allocated into the
     // default space.
-    size_t max_non_los_bytes = get_max_non_los_default_alloc_bytes();
+    assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
+    size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
       if ((size_t)con_size_in_bytes > max_non_los_bytes) {
