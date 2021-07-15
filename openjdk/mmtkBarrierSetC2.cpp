@@ -80,12 +80,12 @@ void MMTkBarrierSetC2::expand_allocate(
   // should be evaluated to true, and we jump to the slowpath.
 
   // The max non-los bytes from MMTk
-  int max_non_los_bytes = (int)get_max_non_los_default_alloc_bytes();
+  size_t max_non_los_bytes = get_max_non_los_default_alloc_bytes();
   // Check if allocation size is constant
-  int const_size = x->_igvn.find_int_con(size_in_bytes, -1);
+  long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {
-    // Constant alloc size
-    if (const_size > max_non_los_bytes) {
+    // Constant alloc size. We know it is non-negative, it is safe to cast to unsigned long and compare with size_t
+    if (((unsigned long)const_size) > max_non_los_bytes) {
       // We know at JIT time that we need to go to slowpath
       always_slow = true;
       initial_slow_test = NULL;
