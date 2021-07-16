@@ -83,13 +83,7 @@ pub extern "C" fn alloc(
     offset: isize,
     allocator: AllocationSemantics,
 ) -> Address {
-    let mutator = unsafe { &mut *mutator };
-    let allocator = mutator.check_allocator(size, align, allocator);
-    let address = memory_manager::alloc::<OpenJDK>(mutator, size, align, offset, allocator);
-    // Post allococation. Currently we are only calling post_alloc in slowpath here.
-    // TODO: We also need to call them in the fastpath.
-    post_alloc(mutator, unsafe { address.to_object_reference() }, size, allocator);
-    address
+    memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
