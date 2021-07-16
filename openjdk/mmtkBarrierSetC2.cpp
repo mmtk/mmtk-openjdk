@@ -182,29 +182,25 @@ void MMTkBarrierSetC2::expand_allocate(
       }
 
       // Calculat offsets of top and end. We now assume we are using bump pointer.
+      int allocators_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators));
+      int tlab_top_offset, tlab_end_offset;
       if (selector.tag == TAG_IMMIX) {
-        int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
-          + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        int allocator_base_offset = allocators_base_offset
           + in_bytes(byte_offset_of(Allocators, immix))
           + selector.index * sizeof(ImmixAllocator);
-
-        Node* thread = x->transform_later(new ThreadLocalNode());
-        int tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor));
-        int tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit));
-        eden_top_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_top_offset);
-        eden_end_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_end_offset);
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit));
       } else {
-        int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
-          + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        int allocator_base_offset = allocators_base_offset
           + in_bytes(byte_offset_of(Allocators, bump_pointer))
           + selector.index * sizeof(BumpAllocator);
-
-        Node* thread = x->transform_later(new ThreadLocalNode());
-        int tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
-        int tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
-        eden_top_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_top_offset);
-        eden_end_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_end_offset);
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
       }
+      Node* thread = x->transform_later(new ThreadLocalNode());
+      eden_top_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_top_offset);
+      eden_end_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_end_offset);
     }
 
     // set_eden_pointers(eden_top_adr, eden_end_adr);
