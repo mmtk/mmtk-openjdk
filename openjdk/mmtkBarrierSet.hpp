@@ -40,7 +40,7 @@
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
-  virtual void record_modified_node(oop object) {};
+  virtual void record_modified_node(oop src, ptrdiff_t offset, oop val) {};
   virtual bool is_slow_path_call(address call) {
     return false;
   }
@@ -128,8 +128,8 @@ public:
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
+      runtime()->record_modified_node(base, offset, value);
       Raw::oop_store_at(base, offset, value);
-      runtime()->record_modified_node(base);
     }
 
     template <typename T>
@@ -139,8 +139,8 @@ public:
     }
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
+      runtime()->record_modified_node(base, offset, new_value);
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-      runtime()->record_modified_node(base);
       return result;
     }
 
@@ -151,8 +151,8 @@ public:
     }
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
+      runtime()->record_modified_node(base, offset, new_value);
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-      runtime()->record_modified_node(base);
       return result;
     }
 
@@ -160,16 +160,18 @@ public:
     static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
+      // for () {
+      //   runtime()->record_modified_node((oop) dst_obj, i, );
+      // }
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-      runtime()->record_modified_node((oop) dst_obj);
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-      runtime()->record_modified_node(dst);
+      // runtime()->record_modified_node(dst);
     }
   };
 

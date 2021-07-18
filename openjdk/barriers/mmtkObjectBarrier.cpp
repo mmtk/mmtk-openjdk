@@ -1,11 +1,11 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
-  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* src, void* slot, void* val) {
+  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, val);
 }
 
-void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
+void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset, oop val) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
     intptr_t addr = (intptr_t) (void*) src;
     uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
@@ -15,7 +15,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
       record_modified_node_slow((void*) src);
     }
 #else
-    record_modified_node_slow((void*) src);
+    record_modified_node_slow((void*) src, (void*) (((intptr_t) (void*) src) + offset), (void*) val);
 #endif
 }
 
@@ -31,12 +31,12 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
     return;
   }
 
-  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+  record_modified_node(masm, dst, val, tmp1, tmp2);
 
-  record_modified_node(masm, dst.base(), tmp1, tmp2);
+  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 }
 
-void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
+void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   Label done;
 
@@ -70,9 +70,13 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, R
 
   __ bind(done);
 #else
-  assert_different_registers(c_rarg0, obj);
-  __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+  // assert_different_registers(c_rarg0, val);
+  __ pusha();
+  __ movptr(c_rarg0, dst.base());
+  __ lea(c_rarg1, dst);
+  __ movptr(c_rarg2, val);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+  __ popa();
 #endif
 }
 

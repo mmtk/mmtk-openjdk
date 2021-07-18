@@ -12,7 +12,7 @@
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
 
-#define MMTK_ENABLE_OBJECT_BARRIER_FASTPATH true
+#define MMTK_ENABLE_OBJECT_BARRIER_FASTPATH false
 
 #define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
 #define LOG_BYTES_IN_CHUNK 22
@@ -22,13 +22,13 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
-  static void record_modified_node_slow(void* src);
+  static void record_modified_node_slow(void* src, void* slot, void* val);
 
   virtual bool is_slow_path_call(address call) {
     return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
   }
 
-  virtual void record_modified_node(oop src);
+  virtual void record_modified_node(oop src, ptrdiff_t offset, oop val);
 };
 
 class MMTkObjectBarrierSetC1;
@@ -36,7 +36,7 @@ class MMTkObjectBarrierStub;
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
   void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
-  void record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2);
+  void record_modified_node(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2);
 public:
   virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
     if (type == T_OBJECT || type == T_ARRAY) {

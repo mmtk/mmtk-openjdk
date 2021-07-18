@@ -22,13 +22,14 @@ static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("Object
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
-    match SINGLETON.get_plan().constraints().barrier {
-        BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
-        BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
-        // In case we have more barriers in mmtk-core.
-        #[allow(unreachable_patterns)]
-        _ => unimplemented!(),
-    }
+    // match SINGLETON.get_plan().constraints().barrier {
+    //     BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
+    //     BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+    //     // In case we have more barriers in mmtk-core.
+    //     #[allow(unreachable_patterns)]
+    //     _ => unimplemented!(),
+    // }
+    OBJECT_BARRIER.as_ptr()
 }
 
 /// # Safety
@@ -240,9 +241,11 @@ pub extern "C" fn executable() -> bool {
 #[no_mangle]
 pub extern "C" fn record_modified_node(
     mutator: &'static mut Mutator<OpenJDK>,
-    obj: ObjectReference,
+    src: ObjectReference,
+    slot: Address,
+    val: ObjectReference,
 ) {
-    mutator.record_modified_node(obj);
+    mutator.record_modified_node(src, slot, val);
 }
 
 // finalization
