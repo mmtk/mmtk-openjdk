@@ -83,6 +83,16 @@ $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
 
+### Location of Mark-bit
+The location of the mark-bit can be specified by the environment variable
+`MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
+metadata), but by setting the environment variable `MARK_IN_HEADER=1` while
+building OpenJDK, we can change its location to be in the object's header:
+
+```console
+$ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+```
+
 ## Test
 
 ### Run HelloWorld (without MMTk)
