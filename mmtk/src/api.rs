@@ -92,6 +92,14 @@ pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> Alloc
 }
 
 #[no_mangle]
+pub extern "C" fn get_max_non_los_default_alloc_bytes() -> usize {
+    SINGLETON
+        .get_plan()
+        .constraints()
+        .max_non_los_default_alloc_bytes
+}
+
+#[no_mangle]
 // We trust the mutator pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn post_alloc(
