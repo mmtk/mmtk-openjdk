@@ -53,6 +53,12 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
     SafepointSynchronize::begin();
 }
 
+static void mmtk_stop_mutators(void *tls) {
+    gcInProgress = true;
+    MMTkHeap::_create_stack_scan_work = NULL;
+    SafepointSynchronize::begin();
+}
+
 static void mmtk_resume_mutators(void *tls) {
     MMTkHeap::_create_stack_scan_work = NULL;
     SafepointSynchronize::end();
@@ -291,4 +297,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
     mmtk_scan_vm_thread_roots,
     mmtk_number_of_mutators,
     mmtk_schedule_finalizer,
+    mmtk_stop_mutators,
 };

@@ -160,9 +160,14 @@ public:
     static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
-      // for () {
-      //   runtime()->record_modified_node((oop) dst_obj, i, );
+      // T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
+      // T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
+      // char* base = reinterpret_cast<char*>((void*) src_obj);
+      // for (const T* const end = src + length; src < end; src++, dst++) {
+      //   int offset = reinterpret_cast<char*>((void*) src) - base;
+      //   runtime()->record_modified_node(dst_obj, offset, (oop) *dst);
       // }
+
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
