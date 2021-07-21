@@ -36,13 +36,33 @@
 void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) {
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, var_size_in_bytes, t1);
-  // printf("eden_allocate\n");
+
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
     __ jmp(slow_case);
   } else {
-    // We always use the default allocator.
-    // But we need to figure out which allocator we are using by querying MMTk.
-    AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+    // MMTk size check. If the alloc size is larger than the allowed max size for non los,
+    // we jump to slow path and allodate with LOS in slowpath.
+    // Note that OpenJDK has a slow path check. Search for layout_helper_needs_slow_path and FastAllocateSizeLimit.
+    // I tried to set FastAllocateSizeLimit in MMTkHeap::initialize(). But there are still large objects allocated into the
+    // default space.
+    assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
+    size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
+    if (var_size_in_bytes == noreg) {
+      // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
+      if ((size_t)con_size_in_bytes > max_non_los_bytes) {
+        __ jmp(slow_case);
+        return;
+      }
+    } else {
+      // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
+      __ cmpptr(var_size_in_bytes, max_non_los_bytes);
+      __ jcc(Assembler::aboveEqual, slow_case);
+    }
+
+    // fastpath, we only use default allocator
+    Allocator allocator = AllocatorDefault;
+    // We need to figure out which allocator we are using by querying MMTk.
+    AllocatorSelector selector = get_allocator_mapping(allocator);
 
     if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
       __ jmp(slow_case);

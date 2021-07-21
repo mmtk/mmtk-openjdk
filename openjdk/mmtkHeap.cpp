@@ -77,6 +77,8 @@ jint MMTkHeap::initialize() {
     /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
     openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
+    // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
+    MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
 
     //ReservedSpace heap_rs = Universe::reserve_heap(mmtk_heap_size, _collector_policy->heap_alignment());
 
