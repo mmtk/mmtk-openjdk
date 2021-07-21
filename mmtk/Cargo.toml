@@ -20,7 +20,7 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "cb6fc0a2d8362a29110fa8ba0cedf40b5159ed91" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "48006db5e40a4aeb7ff66b77ffc3cc8c4b15d3af" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
@@ -28,6 +28,9 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "cb6fc0a2d8362a291
 default = []
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+
+# This compile time constant places the mark bit in the header of the object instead of on the side.
+mark_bit_in_header = []
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
