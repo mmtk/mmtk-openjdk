@@ -1,3 +1,4 @@
+use mmtk::util::metadata::MetadataSpec;
 use mmtk::util::metadata::side_metadata::{
     GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS, LOCAL_SIDE_METADATA_VM_BASE_ADDRESS,
 };
@@ -34,7 +35,10 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
 /// PolicySpecific mark bit metadata spec
 /// 1 bit per object
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
-    VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
+    VMLocalMarkBitSpec::side(match LOS_METADATA_SPEC.get_spec() {
+        MetadataSpec::OnSide(side) => side.accumulated_size(),
+        _ => LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize()
+    });
 
 /// PolicySpecific mark-and-nursery bits metadata spec
 /// 2-bits per object
