@@ -31,7 +31,7 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
 /// 1 bit per object
 #[cfg(feature = "mark_bit_in_header")]
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
-    VMLocalMarkBitSpec::in_header();
+    VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
 
 #[cfg(not(feature = "mark_bit_in_header"))]
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
