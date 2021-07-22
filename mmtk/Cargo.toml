@@ -29,6 +29,9 @@ default = []
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
 
+# This compile time constant places the mark bit in the header of the object instead of on the side.
+mark_bit_in_header = []
+
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
 # always run this plan. Performance-wise there is no difference. The main reason for these features
@@ -38,3 +41,4 @@ semispace = []
 gencopy = []
 marksweep = []
 pageprotect = []
+immix = []
