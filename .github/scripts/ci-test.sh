@@ -108,7 +108,7 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 
 # --- PageProtect ---
 # Make sure this runs last in our tests unless we want to set it back to the default limit.
-sudo sysctl -w vm.max_map_count=655300
+sudo sysctl -w vm.max_map_count=1310720
 
 export MMTK_PLAN=PageProtect
 
