@@ -26,7 +26,7 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   bool as_normal = (decorators & AS_NORMAL) != 0;
   assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
 
-  if (!in_heap || val == noreg) {
+  if (!in_heap) {
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     return;
   }
@@ -74,7 +74,11 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
   __ pusha();
   __ movptr(c_rarg0, dst.base());
   __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val);
+  if (val == noreg) {
+    __ movptr(c_rarg2, (int32_t) NULL_WORD);
+  } else {
+    __ movptr(c_rarg2, val);
+  }
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
   __ popa();
 #endif
