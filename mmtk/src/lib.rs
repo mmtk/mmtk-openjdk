@@ -113,6 +113,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "MarkSweep");
         #[cfg(feature = "pageprotect")]
         std::env::set_var("MMTK_PLAN", "PageProtect");
+        #[cfg(feature = "immix")]
+        std::env::set_var("MMTK_PLAN", "Immix");
         MMTK::new()
     };
 }

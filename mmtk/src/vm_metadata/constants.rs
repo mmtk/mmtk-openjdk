@@ -1,6 +1,3 @@
-use mmtk::util::metadata::side_metadata::{
-    GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS, LOCAL_SIDE_METADATA_VM_BASE_ADDRESS,
-};
 use mmtk::vm::*;
 
 #[cfg(target_pointer_width = "64")]
@@ -14,8 +11,7 @@ pub(crate) const FORWARDING_POINTER_OFFSET: isize = 0;
 
 /// Global logging bit metadata spec
 /// 1 bit per object
-pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec =
-    VMGlobalLogBitSpec::side(GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize());
+pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side_first();
 
 // Global MetadataSpecs - End
 
@@ -33,16 +29,20 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
 
 /// PolicySpecific mark bit metadata spec
 /// 1 bit per object
+#[cfg(feature = "mark_bit_in_header")]
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
-    VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
+    VMLocalMarkBitSpec::side(match LOS_METADATA_SPEC.get_spec() {
+        MetadataSpec::OnSide(side) => side.accumulated_size(),
+        _ => LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize()
+    });
+
+#[cfg(not(feature = "mark_bit_in_header"))]
+pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
+    VMLocalMarkBitSpec::side_after(LOS_METADATA_SPEC.as_spec());
 
 /// PolicySpecific mark-and-nursery bits metadata spec
 /// 2-bits per object
 pub(crate) const LOS_METADATA_SPEC: VMLocalLOSMarkNurserySpec =
-    VMLocalLOSMarkNurserySpec::side(if cfg!(target_pointer_width = "64") {
-        LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize()
-    } else {
-        0
-    });
+    VMLocalLOSMarkNurserySpec::side_first();
 
 // PolicySpecific MetadataSpecs - End
