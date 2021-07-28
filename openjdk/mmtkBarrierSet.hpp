@@ -156,13 +156,14 @@ public:
       return result;
     }
 
-    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, oop* src_raw,
-                                      arrayOop dst_obj, size_t dst_offset_in_bytes, oop* dst_raw,
+    template <typename T>
+    static bool oop_arraycopy_in_heap_impl(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
-      oop* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
-      oop* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
+      T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
+      T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
       char* base = reinterpret_cast<char*>((void*) src_obj);
-      for (const oop* const end = src + length; src < end; src++, dst++) {
+      for (const T* const end = src + length; src < end; src++, dst++) {
         int offset = reinterpret_cast<char*>((void*) src) - base;
         runtime()->record_modified_node(dst_obj, offset, (oop) *dst);
       }
@@ -171,6 +172,33 @@ public:
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
       return result;
+    }
+
+
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, oop* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, oop* dst_raw,
+                                      size_t length) {
+      return oop_arraycopy_in_heap_impl(src_obj, src_offset_in_bytes, src_raw, dst_obj, dst_offset_in_bytes, dst_raw, length);
+    }
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, arrayOop* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, arrayOop* dst_raw,
+                                      size_t length) {
+      return oop_arraycopy_in_heap_impl(src_obj, src_offset_in_bytes, src_raw, dst_obj, dst_offset_in_bytes, dst_raw, length);
+    }
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, instanceOop* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, instanceOop* dst_raw,
+                                      size_t length) {
+      return oop_arraycopy_in_heap_impl(src_obj, src_offset_in_bytes, src_raw, dst_obj, dst_offset_in_bytes, dst_raw, length);
+    }
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, objArrayOop* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, objArrayOop* dst_raw,
+                                      size_t length) {
+      return oop_arraycopy_in_heap_impl(src_obj, src_offset_in_bytes, src_raw, dst_obj, dst_offset_in_bytes, dst_raw, length);
+    }
+    static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, typeArrayOop* src_raw,
+                                      arrayOop dst_obj, size_t dst_offset_in_bytes, typeArrayOop* dst_raw,
+                                      size_t length) {
+      return oop_arraycopy_in_heap_impl(src_obj, src_offset_in_bytes, src_raw, dst_obj, dst_offset_in_bytes, dst_raw, length);
     }
 
     template <typename T>
