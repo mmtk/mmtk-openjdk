@@ -8,7 +8,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-18.04
-    timeout-minutes: 120
     steps:
       # Checkout repos and submodules
       - uses: actions/checkout@v2
@@ -22,7 +21,11 @@ jobs:
 
       # Run the tests
       - name: Dacapo Tests
-        run: ./.github/scripts/ci-test.sh
+        run: ./.github/scripts/ci-test-normal.sh
+
+      # Run the tests with assertions
+      - name: Dacapo Test (with extreme_assertions)
+        run: ./.github/scripts/ci-test-assertions.sh
 
       # Style check
       - name: Style checks

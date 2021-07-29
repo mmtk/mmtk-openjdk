@@ -26,6 +26,7 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "f50ac55df1b4819a0
 
 [features]
 default = []
+mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
 
