@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  test:
+  test-assertions:
     runs-on: ubuntu-18.04
     steps:
       # Checkout repos and submodules
@@ -19,10 +19,6 @@ jobs:
       - name: Setup Environments
         run: ./.github/scripts/ci-setup.sh
 
-      # Run the tests
-      - name: Dacapo Tests
-        run: ./.github/scripts/ci-test-normal.sh
-
-      # Style check
-      - name: Style checks
-        run: ./.github/scripts/ci-style.sh
+      # Run the tests with assertions
+      - name: Dacapo Test (with extreme_assertions)
+        run: ./.github/scripts/ci-test-assertions.sh
