@@ -119,7 +119,7 @@ $ wget https://sourceforge.net/projects/dacapobench/files/9.12-bach-MR1/dacapo-9
 Run a DaCapo benchmark (e.g. `lusearch`):
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
+$ MMTK_PLAN=MarkSweep ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
 ===== DaCapo 9.12-MR1 lusearch starting =====
 4 query batches completed
@@ -141,4 +141,7 @@ Using scaled threading model. 24 processors detected, 24 threads used to drive t
 ===== DaCapo 9.12-MR1 lusearch PASSED in 822 msec =====
 ```
 
-**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to
+enable MMTk. `MMTK_PLAN` env variable selects the collector to use. Available
+values are: `NoGC` (panics on gc), `SemiSpace`, `GenCopy`, `MarkSweep`,
+`PageProtect`. Default is `NoGC`.
