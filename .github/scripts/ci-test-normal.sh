@@ -3,7 +3,8 @@ set -xe
 unset JAVA_TOOL_OPTIONS
 
 # To OpenJDK folder
-cd repos/openjdk
+root_dir=$(dirname "$0")/../../
+cd $root_dir/repos/openjdk
 
 # Choose build: use slowdebug for shorter build time (32m user time for release vs. 20m user time for slowdebug)
 export DEBUG_LEVEL=fastdebug

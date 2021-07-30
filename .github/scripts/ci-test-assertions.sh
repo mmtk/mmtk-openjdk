@@ -2,7 +2,9 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
-cd repos/openjdk
+# To OpenJDK folder
+root_dir=$(dirname "$0")/../../
+cd $root_dir/repos/openjdk
 
 export DEBUG_LEVEL=fastdebug
 export MMTK_EXTREME_ASSERTIONS=1
