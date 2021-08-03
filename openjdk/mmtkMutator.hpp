@@ -51,14 +51,9 @@ struct ImmixAllocator {
     void* large_cursor;
     void* large_limit;
     uint8_t request_for_large;
-    uint8_t straddle;
-    uintptr_t line_use_count;
-    void* mark_table;
-    uint8_t recyclable_block_opt_tag;
-    void* recyclable_block_opt;
+    uint8_t _align[7];
     uint8_t line_opt_tag;
     uintptr_t line_opt;
-    uint8_t recyclable_exhausted;
 };
 
 struct MallocAllocator {
