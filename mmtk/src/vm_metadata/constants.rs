@@ -31,10 +31,7 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
 /// 1 bit per object
 #[cfg(feature = "mark_bit_in_header")]
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
-    VMLocalMarkBitSpec::side(match LOS_METADATA_SPEC.get_spec() {
-        MetadataSpec::OnSide(side) => side.accumulated_size(),
-        _ => LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize()
-    });
+    VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
 
 #[cfg(not(feature = "mark_bit_in_header"))]
 pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
