@@ -44,7 +44,7 @@
 class GCMemoryManager;
 class MemoryPool;
 //class mmtkGCTaskManager;
-
+class MMTkVMCompanionThread;
 class MMTkHeap : public CollectedHeap {
   MMTkCollectorPolicy* _collector_policy;
   SoftRefPolicy* _soft_ref_policy;
@@ -57,6 +57,7 @@ class MMTkHeap : public CollectedHeap {
   Monitor* _gc_lock;
   ContiguousSpace* _space;
   int _num_root_scan_tasks;
+  MMTkVMCompanionThread* _companion_thread;
 public:
 
   MMTkHeap(MMTkCollectorPolicy* policy);
@@ -75,6 +76,9 @@ public:
   virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
   HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);
 
+  MMTkVMCompanionThread* companion_thread() const {
+    return _companion_thread;
+  }
 
 
   Name kind() const {
