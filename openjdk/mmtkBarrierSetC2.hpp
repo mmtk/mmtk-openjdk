@@ -84,7 +84,7 @@ class MMTkIdealKit: public IdealKit {
   template<class T, class... Types>
   inline void build_type_func_helper(const Type** fields, T t, Types... ts) {
     fields[0] = t;
-    build_type_func_helper(fields + 1);
+    build_type_func_helper(fields + 1, ts...);
   }
 public:
   using IdealKit::IdealKit;
@@ -97,9 +97,10 @@ public:
 
   template<class... Types>
   inline const TypeFunc* func_type(Types... types) {
-    const Type** fields = TypeTuple::fields(sizeof...(types));
+    const int num_types = sizeof...(types);
+    const Type** fields = TypeTuple::fields(num_types);
     build_type_func_helper(fields + TypeFunc::Parms, types...);
-    const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+    const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+num_types, fields);
     fields = TypeTuple::fields(0);
     const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
     return TypeFunc::make(domain, range);

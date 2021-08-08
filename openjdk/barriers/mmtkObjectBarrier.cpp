@@ -175,11 +175,7 @@ const TypeFunc* record_modified_node_entry_Type() {
   return TypeFunc::make(domain, range);
 }
 
-void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* val) const {
-  if (val != NULL && val->is_Con()) {
-    const Type* t = val->bottom_type();
-    if (t == TypePtr::NULL_PTR) return;
-  }
+void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
 
   MMTkIdealKit ideal(kit, true);
 
@@ -200,8 +196,8 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
       Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
   } __ end_if();
 #else
-  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
