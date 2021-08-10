@@ -1,3 +1,11 @@
+0.6.0 (2021-08-10)
+===
+
+* Supports the `Immix` plan.
+* Uses side mark bit by default. Adds a feature 'mark_bit_in_header' to switch to in-header mark bit.
+* Adds a size check for allocation so over-sized objects will be allocated to large object space.
+* Updates to mmtk-core 0.6.0.
+
 0.5.0 (2021-06-28)
 ===
 

@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.5.0"
+version = "0.6.0"
 authors = [" <>"]
 
 [lib]
@@ -20,7 +20,7 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "093da769a71067dcd4f37db6f453213e7dace660" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "8465b166cecfffed5615753c46bc8e9d032a5b82" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
