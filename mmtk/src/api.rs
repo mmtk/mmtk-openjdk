@@ -19,17 +19,18 @@ use std::lazy::SyncLazy;
 // Supported barriers:
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+static FIELD_LOGGING_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("FieldLoggingBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
-    // match SINGLETON.get_plan().constraints().barrier {
-    //     BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
-    //     BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
-    //     // In case we have more barriers in mmtk-core.
-    //     #[allow(unreachable_patterns)]
-    //     _ => unimplemented!(),
-    // }
-    OBJECT_BARRIER.as_ptr()
+    match SINGLETON.get_plan().constraints().barrier {
+        BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
+        BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+        BarrierSelector::FieldLoggingBarrier => FIELD_LOGGING_BARRIER.as_ptr(),
+        // In case we have more barriers in mmtk-core.
+        #[allow(unreachable_patterns)]
+        _ => unimplemented!(),
+    }
 }
 
 /// # Safety

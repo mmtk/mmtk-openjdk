@@ -37,6 +37,9 @@
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#define MMTK_ENABLE_BARRIER_FASTPATH false
+
+const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:

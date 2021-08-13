@@ -1,11 +1,11 @@
-#include "mmtkObjectBarrier.hpp"
+#include "mmtkFieldLoggingBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* src, void* slot, void* val) {
+void MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow(void* src, void* slot, void* val) {
   ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, val);
 }
 
-void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset, oop val) {
+void MMTkFieldLoggingBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset, oop val) {
 #if MMTK_ENABLE_BARRIER_FASTPATH
     intptr_t addr = (intptr_t) (void*) src;
     uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
@@ -21,7 +21,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset
 
 #define __ masm->
 
-void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
+void MMTkFieldLoggingBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
   bool in_heap = (decorators & IN_HEAP) != 0;
   bool as_normal = (decorators & AS_NORMAL) != 0;
   assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
@@ -36,7 +36,7 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 }
 
-void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2) {
+void MMTkFieldLoggingBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2) {
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
 
@@ -66,7 +66,7 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
 
   assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), 1);
 
   __ bind(done);
 #else
@@ -79,7 +79,7 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
   } else {
     __ movptr(c_rarg2, val);
   }
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), 3);
   __ popa();
 #endif
 }
@@ -92,7 +92,7 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
+void MMTkFieldLoggingBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
@@ -126,7 +126,7 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  CodeStub* slow = new MMTkObjectBarrierStub(src, slot, new_val);
+  CodeStub* slow = new MMTkFieldLoggingBarrierStub(src, slot, new_val);
 
 #if MMTK_ENABLE_BARRIER_FASTPATH
   LIR_Opr addr = src;
@@ -175,7 +175,7 @@ static const TypeFunc* record_modified_node_entry_Type() {
   return TypeFunc::make(domain, range);
 }
 
-void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
+void MMTkFieldLoggingBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
 
   MMTkIdealKit ideal(kit, true);
 
@@ -193,11 +193,11 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
       const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+      Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
