@@ -12,7 +12,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset
     intptr_t shift = (addr >> 3) & 0b111;
     uint8_t byte_val = *meta_addr;
     if (((byte_val >> shift) & 1) == 1) {
-      record_modified_node_slow((void*) src);
+      record_modified_node_slow((void*) src, (void*) (((intptr_t) (void*) src) + offset), (void*) val);
     }
 #else
     record_modified_node_slow((void*) src, (void*) (((intptr_t) (void*) src) + offset), (void*) val);
@@ -42,7 +42,8 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
 
   Register tmp3 = rscratch1;
   Register tmp4 = rscratch2;
-  assert_different_registers(obj, tmp2, tmp3);
+  Register obj = dst.base();
+  // assert_different_registers(obj, tmp2, tmp3);
   assert_different_registers(tmp4, rcx);
 
   // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
@@ -165,15 +166,6 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
 #undef __
 
 #define __ ideal.
-
-static const TypeFunc* record_modified_node_entry_Type() {
-  const Type **fields = TypeTuple::fields(1);
-  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-  fields = TypeTuple::fields(0);
-  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-  return TypeFunc::make(domain, range);
-}
 
 void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
 
