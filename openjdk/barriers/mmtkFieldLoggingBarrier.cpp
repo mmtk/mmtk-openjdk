@@ -182,16 +182,16 @@ void MMTkFieldLoggingBarrierSetC2::record_modified_node(GraphKit* kit, Node* src
   float unlikely  = PROB_UNLIKELY(0.999);
 
   Node* zero  = __ ConI(0);
-  Node* addr = __ CastPX(__ ctrl(), src);
+  Node* addr = __ CastPX(__ ctrl(), slot);
   Node* meta_addr = __ AddP(no_base, __ ConP(SIDE_METADATA_BASE_ADDRESS), __ URShiftX(addr, __ ConI(6)));
   Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
   Node* shift = __ URShiftX(addr, __ ConI(3));
   shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
-  __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+  __ if_then(result, BoolTest::eq, zero, unlikely); {
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
