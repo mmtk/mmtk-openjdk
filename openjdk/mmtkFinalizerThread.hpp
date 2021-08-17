@@ -41,6 +41,7 @@ private:
     guarantee(false, "VMThread deletion must fix the race with VM termination");
   }
 public:
+  bool is_scheduled;
   Monitor* m;
   static MMTkFinalizerThread* instance;
   static void initialize();
