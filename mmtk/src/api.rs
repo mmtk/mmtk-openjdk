@@ -240,13 +240,33 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(
+pub extern "C" fn mmtk_object_reference_write(
     mutator: &'static mut Mutator<OpenJDK>,
     src: ObjectReference,
     slot: Address,
     val: ObjectReference,
 ) {
-    mutator.record_modified_node(src, slot, val);
+    mutator.object_reference_write(src, slot, val);
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_object_reference_arraycopy(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: Address,
+    dst: Address,
+    len: usize,
+) {
+    mutator.object_reference_arraycopy(src, dst, len);
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_object_reference_clone(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: ObjectReference,
+    dst: ObjectReference,
+    size: usize,
+) {
+    mutator.object_reference_clone(src, dst, size);
 }
 
 // finalization

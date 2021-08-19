@@ -165,12 +165,7 @@ public:
                                       size_t length) {
       T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
       T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
-      char* base = reinterpret_cast<char*>((void*) src_obj);
-      for (const T* const end = src + length; src < end; src++, dst++) {
-        int offset = reinterpret_cast<char*>((void*) src) - base;
-        runtime()->record_modified_node(dst_obj, offset, (oop) *dst);
-      }
-
+      ::mmtk_object_reference_arraycopy((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) dst, length);
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
@@ -208,23 +203,14 @@ public:
     static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
-      // T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
-      // T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
-      // char* base = reinterpret_cast<char*>((void*) src_obj);
-      // for (const T* const end = src + length; src < end; src++, dst++) {
-      //   int offset = reinterpret_cast<char*>((void*) src) - base;
-      //   runtime()->record_modified_node(dst_obj, offset, (oop) *dst);
-      // }
-
-      bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
+      return Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                 dst_obj, dst_offset_in_bytes, dst_raw,
                                 length);
-      return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       Raw::clone(src, dst, size);
-      // runtime()->record_modified_node(dst);
+      ::mmtk_object_reference_clone((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) dst, size);
     }
   };
 

@@ -2,7 +2,7 @@
 #include "runtime/interfaceSupport.inline.hpp"
 
 void MMTkFieldLoggingBarrierSetRuntime::record_modified_node_slow(void* src, void* slot, void* val) {
-  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, val);
+  ::mmtk_object_reference_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, val);
 }
 
 void MMTkFieldLoggingBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset, oop val) {
