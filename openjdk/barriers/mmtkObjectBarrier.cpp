@@ -26,7 +26,7 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   bool as_normal = (decorators & AS_NORMAL) != 0;
   assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
 
-  if (!in_heap) {
+  if (!in_heap || val == noreg) {
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     return;
   }
@@ -43,7 +43,6 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
   Register tmp3 = rscratch1;
   Register tmp4 = rscratch2;
   Register obj = dst.base();
-  // assert_different_registers(obj, tmp2, tmp3);
   assert_different_registers(tmp4, rcx);
 
   // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
@@ -65,13 +64,19 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
   __ cmpptr(tmp2, 1);
   __ jcc(Assembler::notEqual, done);
 
-  assert_different_registers(c_rarg0, obj);
-  __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+  __ pusha();
+  __ movptr(c_rarg0, dst.base());
+  __ lea(c_rarg1, dst);
+  if (val == noreg) {
+    __ movptr(c_rarg2, (int32_t) NULL_WORD);
+  } else {
+    __ movptr(c_rarg2, val);
+  }
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+  __ popa();
 
   __ bind(done);
 #else
-  // assert_different_registers(c_rarg0, val);
   __ pusha();
   __ movptr(c_rarg0, dst.base());
   __ lea(c_rarg1, dst);

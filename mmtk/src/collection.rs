@@ -33,7 +33,6 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-
     fn stop_all_mutators2(tls: VMWorkerThread) {
         unsafe {
             ((*UPCALLS).stop_mutators)(tls);
