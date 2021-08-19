@@ -22,9 +22,9 @@
  *
  */
 
+#include "precompiled.hpp"
 #include "mmtkFinalizerThread.hpp"
 #include "mmtk.h"
-#include "precompiled.hpp"
 #include "classfile/stringTable.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/javaCalls.hpp"
@@ -86,8 +86,12 @@ void MMTkFinalizerThread::finalizer_thread_entry(JavaThread* thread, TRAPS) {
   while (true) {
       // Wait until scheduled
       {
-        MutexLocker mu(this_thread->m);
-        this_thread->m->wait();
+        ThreadBlockInVM tbivm(thread);
+        MutexLockerEx mu(this_thread->m, Mutex::_no_safepoint_check_flag);
+        while (!this_thread->is_scheduled) {
+          this_thread->m->wait(Mutex::_no_safepoint_check_flag);
+        }
+        this_thread->is_scheduled = false; // Consume this request so we can accept the next.
       }
 
       // finalize objects
@@ -114,10 +118,15 @@ void MMTkFinalizerThread::finalizer_thread_entry(JavaThread* thread, TRAPS) {
 }
 
 MMTkFinalizerThread::MMTkFinalizerThread(ThreadFunction entry_point) : JavaThread(entry_point) {
-  this->m = new Monitor(Mutex::suspend_resume, "mmtk-finalizer-monitor", true, Monitor::_safepoint_check_always);
+  this->is_scheduled = false;
+  this->m = new Monitor(Mutex::suspend_resume, "mmtk-finalizer-monitor", true, Monitor::_safepoint_check_never);
 }
 
 void MMTkFinalizerThread::schedule() {
-    MutexLocker mu(this->m);
-    this->m->notify();
+    assert(!Thread::current()->is_Java_thread(), "Supposed to be called by GC thread. Actually called by JavaThread.");
+    MutexLockerEx mu(this->m, Mutex::_no_safepoint_check_flag);
+    if (!this->is_scheduled) {
+      this->is_scheduled = true;
+      this->m->notify();
+    }
 }

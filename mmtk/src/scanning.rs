@@ -50,7 +50,7 @@ impl Scanning<OpenJDK> for VMScanning {
         objects: &[ObjectReference],
         worker: &mut GCWorker<OpenJDK>,
     ) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects, worker);
+        crate::object_scanning::scan_objects_and_create_edges_work::<W>(objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
