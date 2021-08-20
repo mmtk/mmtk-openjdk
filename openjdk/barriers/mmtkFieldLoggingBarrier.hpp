@@ -25,6 +25,7 @@ public:
   }
 
   virtual void record_modified_node(oop src, ptrdiff_t offset, oop val);
+  virtual void record_arraycopy(arrayOop src_obj, size_t src_offset_in_bytes, oop* src_raw, arrayOop dst_obj, size_t dst_offset_in_bytes, oop* dst_raw, size_t length);
 };
 
 class MMTkFieldLoggingBarrierSetC1;

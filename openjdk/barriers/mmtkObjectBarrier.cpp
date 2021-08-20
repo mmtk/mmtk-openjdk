@@ -5,6 +5,10 @@ void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* src, void* slo
   ::mmtk_object_reference_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, val);
 }
 
+void MMTkObjectBarrierSetRuntime::record_clone_slow(void* src, void* dst, size_t size) {
+  ::mmtk_object_reference_clone((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, size);
+}
+
 void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset, oop val) {
 #if MMTK_ENABLE_BARRIER_FASTPATH
     intptr_t addr = (intptr_t) (void*) src;
@@ -16,6 +20,34 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t offset
     }
 #else
     record_modified_node_slow((void*) src, (void*) (((intptr_t) (void*) src) + offset), (void*) val);
+#endif
+}
+
+void MMTkObjectBarrierSetRuntime::record_clone(oop src, oop dst, size_t size) {
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  intptr_t addr = (intptr_t) (void*) dst;
+  uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
+  intptr_t shift = (addr >> 3) & 0b111;
+  uint8_t byte_val = *meta_addr;
+  if (((byte_val >> shift) & 1) == 1) {
+    record_clone_slow((void*) src, (void*) dst, size);
+  }
+#else
+  record_clone_slow((void*) src, (void*) dst, size);
+#endif
+}
+
+void MMTkObjectBarrierSetRuntime::record_arraycopy(arrayOop src_obj, size_t src_offset_in_bytes, oop* src_raw, arrayOop dst_obj, size_t dst_offset_in_bytes, oop* dst_raw, size_t length) {
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  intptr_t addr = (intptr_t) (void*) dst_obj;
+  uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
+  intptr_t shift = (addr >> 3) & 0b111;
+  uint8_t byte_val = *meta_addr;
+  if (((byte_val >> shift) & 1) == 1) {
+    ::mmtk_object_reference_arraycopy((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src_obj, src_offset_in_bytes, (void*) dst_obj, dst_offset_in_bytes, length);
+  }
+#else
+  ::mmtk_object_reference_arraycopy((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src_obj, src_offset_in_bytes, (void*) dst_obj, dst_offset_in_bytes, length);
 #endif
 }
 
@@ -42,26 +74,25 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, A
 
   Register tmp3 = rscratch1;
   Register tmp4 = rscratch2;
-  Register obj = dst.base();
-  assert_different_registers(tmp4, rcx);
+  Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
 
-  // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
-  __ movptr(tmp3, obj);
+  // tmp5 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
+  __ movptr(tmp3, dst.base());
   __ shrptr(tmp3, 6);
-  __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
-  __ movb(tmp2, Address(tmp2, tmp3));
+  __ movptr(tmp5, SIDE_METADATA_BASE_ADDRESS);
+  __ movb(tmp5, Address(tmp5, tmp3));
   // tmp3 = (obj >> 3) & 7
-  __ movptr(tmp3, obj);
+  __ movptr(tmp3, dst.base());
   __ shrptr(tmp3, 3);
   __ andptr(tmp3, 7);
-  // tmp2 = tmp2 >> tmp3
+  // tmp5 = tmp5 >> tmp3
   __ movptr(tmp4, rcx);
   __ movl(rcx, tmp3);
-  __ shrptr(tmp2);
+  __ shrptr(tmp5);
   __ movptr(rcx, tmp4);
-  // if ((tmp2 & 1) == 1) goto slowpath;
-  __ andptr(tmp2, 1);
-  __ cmpptr(tmp2, 1);
+  // if ((tmp5 & 1) == 0) goto slowpath;
+  __ andptr(tmp5, 1);
+  __ cmpptr(tmp5, 1);
   __ jcc(Assembler::notEqual, done);
 
   __ pusha();
@@ -113,13 +144,23 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
   }
   assert(src->is_register(), "must be a register at this point");
   if (!slot->is_register()) {
-    LIR_Opr reg = gen->new_pointer_register();
-    if (slot->is_constant()) {
-      __ move(slot, reg);
+    // LIR_Opr reg = gen->new_pointer_register();
+    // if (slot->is_constant()) {
+    //   __ move(slot, reg);
+    // } else {
+    //   __ leal(slot, reg);
+    // }
+    // slot = reg;
+
+    LIR_Address* address = slot->as_address_ptr();
+    LIR_Opr ptr = gen->new_pointer_register();
+    if (!address->index()->is_valid() && address->disp() == 0) {
+      __ move(address->base(), ptr);
     } else {
-      __ leal(slot, reg);
+      assert(address->disp() != max_jint, "lea doesn't support patched addresses!");
+      __ leal(slot, ptr);
     }
-    slot = reg;
+    slot = ptr;
   }
   assert(slot->is_register(), "must be a register at this point");
   if (!new_val->is_register()) {
@@ -189,8 +230,34 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+  } __ end_if();
+#else
+  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+#endif
+
+  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+}
+
+void MMTkObjectBarrierSetC2::record_clone(GraphKit* kit, Node* src, Node* dst, Node* size) const {
+  MMTkIdealKit ideal(kit, true);
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  Node* no_base = __ top();
+  float unlikely  = PROB_UNLIKELY(0.999);
+
+  Node* zero  = __ ConI(0);
+  Node* addr = __ CastPX(__ ctrl(), src);
+  Node* meta_addr = __ AddP(no_base, __ ConP(SIDE_METADATA_BASE_ADDRESS), __ URShiftX(addr, __ ConI(6)));
+  Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+  Node* shift = __ URShiftX(addr, __ ConI(3));
+  shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
+  Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
+
+  __ if_then(result, BoolTest::ne, zero, unlikely); {
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeInt::INT);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_clone_slow), "record_clone", src, dst, size);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);

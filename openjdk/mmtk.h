@@ -35,7 +35,7 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
 extern void mmtk_object_reference_write(MMTk_Mutator mutator, void* src, void* slot, void* val);
-extern void mmtk_object_reference_arraycopy(MMTk_Mutator mutator, void* src, void* dst, size_t len);
+extern void mmtk_object_reference_arraycopy(MMTk_Mutator mutator, void* src, size_t src_offset, void* dst, size_t dst_offset, size_t len);
 extern void mmtk_object_reference_clone(MMTk_Mutator mutator, void* src, void* dst, size_t len);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);

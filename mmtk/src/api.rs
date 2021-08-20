@@ -252,11 +252,13 @@ pub extern "C" fn mmtk_object_reference_write(
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_arraycopy(
     mutator: &'static mut Mutator<OpenJDK>,
-    src: Address,
-    dst: Address,
+    src: ObjectReference,
+    src_offset: usize,
+    dst: ObjectReference,
+    dst_offset: usize,
     len: usize,
 ) {
-    mutator.object_reference_arraycopy(src, dst, len);
+    mutator.object_reference_arraycopy(src, src_offset, dst, dst_offset, len);
 }
 
 #[no_mangle]
@@ -266,7 +268,7 @@ pub extern "C" fn mmtk_object_reference_clone(
     dst: ObjectReference,
     size: usize,
 ) {
-    mutator.object_reference_clone(src, dst, size);
+    mutator.object_reference_clone(src, dst);
 }
 
 // finalization
