@@ -37,6 +37,9 @@
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#define MMTK_ENABLE_GLOBAL_ALLOC_BIT false
+// hard coded for now
+const intptr_t ALLOC_BIT_BASE_ADDRESS = 0x0000060000000000;
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
