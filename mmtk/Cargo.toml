@@ -29,6 +29,7 @@ default = []
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+global_alloc_bit = ["mmtk/global_alloc_bit"]
 
 # This compile time constant places the mark bit in the header of the object instead of on the side.
 mark_bit_in_header = []

@@ -281,7 +281,7 @@ void MMTkBarrierSetC2::expand_allocate(
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
-#if MMTK_ENABLE_GLOBAL_ALLOC_BIT
+#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
     Node *obj_addr = new CastP2XNode(fast_oop_ctrl, fast_oop);
     x->transform_later(obj_addr);
 
