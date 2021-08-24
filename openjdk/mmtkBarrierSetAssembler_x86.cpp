@@ -111,7 +111,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // lab.cursor = end
     __ movptr(cursor, end);
 
-#if MMTK_ENABLE_GLOBAL_ALLOC_BIT
+#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
     Register tmp3 = rscratch2;
     Register tmp2 = rscratch1;
     Register tmp4 = t1;
