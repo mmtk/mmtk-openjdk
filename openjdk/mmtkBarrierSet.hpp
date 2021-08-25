@@ -38,7 +38,7 @@
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
-const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_SIDE_METADATA_BASE_ADDRESS;
+const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_ALLOC_BIT_ADDRESS;
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
