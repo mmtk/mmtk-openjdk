@@ -22,6 +22,7 @@
  *
  */
 
+#include "precompiled.hpp"
 #include "mmtkContextThread.hpp"
 #include "mmtk.h"
 

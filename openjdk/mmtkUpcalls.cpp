@@ -29,6 +29,7 @@
  * Created on 30 November 2018, 5:45 PM
  */
 
+#include "precompiled.hpp"
 #include "mmtkUpcalls.hpp"
 #include "mmtkRootsClosure.hpp"
 #include "mmtkHeap.hpp"

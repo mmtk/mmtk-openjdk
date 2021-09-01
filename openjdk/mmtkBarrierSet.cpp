@@ -22,6 +22,7 @@
  *
  */
 
+#include "precompiled.hpp"
 #include <cstring>
 #include "runtime/interfaceSupport.inline.hpp"
 #include "mmtkBarrierSet.hpp"
