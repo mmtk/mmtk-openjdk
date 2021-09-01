@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef MMTK_BARRIERSETC2_HPP
-#define MMTK_BARRIERSETC2_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 
 #include "opto/arraycopynode.hpp"
 #include "opto/convertnode.hpp"
@@ -106,4 +106,4 @@ public:
   }
 };
 
-#endif // MMTK_BARRIERSETC2_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP

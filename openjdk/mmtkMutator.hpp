@@ -1,6 +1,6 @@
 
-#ifndef SHARE_VM_GC_MMTK_MMTKMUTATOR_HPP
-#define SHARE_VM_GC_MMTK_MMTKMUTATOR_HPP
+#ifndef MMTK_OPENJDK_MMTK_MUTATOR_HPP
+#define MMTK_OPENJDK_MMTK_MUTATOR_HPP
 
 #include "mmtk.h"
 #include "utilities/globalDefinitions.hpp"
@@ -92,5 +92,4 @@ struct MMTkMutatorContext {
     // Max object size that does not need to go into LOS. We get the value from mmtk-core, and cache its value here.
     static size_t max_non_los_default_alloc_bytes;
 };
-
-#endif
+#endif // MMTK_OPENJDK_MMTK_MUTATOR_HPP

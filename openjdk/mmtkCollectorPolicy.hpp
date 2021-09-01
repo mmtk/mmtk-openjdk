@@ -1,5 +1,5 @@
-#ifndef MMTK_COLLECTOR_POLICY_HPP
-#define MMTK_COLLECTOR_POLICY_HPP
+#ifndef MMTK_OPENJDK_MMTK_COLLECTOR_POLICY_HPP
+#define MMTK_OPENJDK_MMTK_COLLECTOR_POLICY_HPP
 
 class MMTkCollectorPolicy : public CollectorPolicy {
 protected:
@@ -10,5 +10,4 @@ protected:
 public:
     MMTkCollectorPolicy() {}
 };
-
-#endif
+#endif // MMTK_OPENJDK_MMTK_COLLECTOR_POLICY_HPP

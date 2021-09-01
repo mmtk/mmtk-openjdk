@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_GC_MMTK_MMTKHEAP_HPP
-#define SHARE_VM_GC_MMTK_MMTKHEAP_HPP
+#ifndef MMTK_OPENJDK_MMTK_HEAP_HPP
+#define MMTK_OPENJDK_MMTK_HEAP_HPP
 
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/collectorPolicy.hpp"
@@ -208,4 +208,4 @@ public:
 };
 
 
-#endif // SHARE_VM_GC_MMTK_MMTKHEAP_HPP
+#endif // MMTK_OPENJDK_MMTK_HEAP_HPP

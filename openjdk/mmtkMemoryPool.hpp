@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_SERVICES_MMTKMEMORYPOOL_HPP
-#define SHARE_VM_SERVICES_MMTKMEMORYPOOL_HPP
+#ifndef MMTK_OPENJDK_MMTK_MEMORY_POOL_HPP
+#define MMTK_OPENJDK_MMTK_MEMORY_POOL_HPP
 
 #include "services/memoryPool.hpp"
 #include "services/memoryUsage.hpp"
@@ -43,4 +43,4 @@ public:
 };
 
 
-#endif // SHARE_VM_SERVICES_MMTKMEMORYPOOL_HPP
+#endif // MMTK_OPENJDK_MMTK_MEMORY_POOL_HPP

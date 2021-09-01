@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_GC_MMTK_NOBARRIER_HPP
-#define SHARE_VM_GC_MMTK_NOBARRIER_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_HPP
 
 #include "gc/shared/accessBarrierSupport.hpp"
 #include "gc/shared/barrierSet.hpp"
@@ -187,4 +187,4 @@ struct BarrierSet::GetType<BarrierSet::ThirdPartyHeapBarrierSet> {
 };
 
 
-#endif // SHARE_VM_GC_MMTK_NOBARRIER_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_HPP

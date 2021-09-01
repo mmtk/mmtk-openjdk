@@ -1,5 +1,5 @@
-#ifndef MMTK_BARRIERS_OBJECT_BARRIER
-#define MMTK_BARRIERS_OBJECT_BARRIER
+#ifndef MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP
+#define MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP
 
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
@@ -204,4 +204,4 @@ struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetC2
 > {};
 
-#endif
+#endif // MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP

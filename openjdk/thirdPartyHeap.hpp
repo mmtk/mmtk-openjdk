@@ -1,5 +1,5 @@
-#ifndef MMTK_THIRDPARTYHEAP_HPP
-#define MMTK_THIRDPARTYHEAP_HPP
+#ifndef MMTK_OPENJDK_THIRD_PARTY_HEAP_HPP
+#define MMTK_OPENJDK_THIRD_PARTY_HEAP_HPP
 
 #include "mmtkHeap.hpp"
 #include "mmtkMutator.hpp"
@@ -12,5 +12,4 @@ namespace third_party_heap {
 typedef MMTkMutatorContext MutatorContext;
 
 }
-
-#endif
+#endif // MMTK_OPENJDK_THIRD_PARTY_HEAP_HPP

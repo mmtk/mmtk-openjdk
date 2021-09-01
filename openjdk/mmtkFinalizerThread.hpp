@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_GC_MMTK_FINALIZERTHREAD_HPP
-#define SHARE_GC_MMTK_FINALIZERTHREAD_HPP
+#ifndef MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
+#define MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
 
 #include "runtime/perfData.hpp"
 #include "runtime/thread.hpp"
@@ -50,4 +50,4 @@ public:
   void schedule();
 };
 
-#endif // SHARE_VM_RUNTIME_VMTHREAD_HPP
+#endif // MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
