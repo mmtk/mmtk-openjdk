@@ -133,10 +133,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ movptr(tmp4, 1);
     __ shlptr(tmp4);
     __ movptr(rcx, tmp3);
-    // tmp3 = tmp4
-    __ movptr(tmp3, tmp4);
-    // tmp2 = tmp2 | tmp3
-    __ orptr(tmp2, tmp3);
+    // tmp2 = tmp2 | tmp4
+    __ orptr(tmp2, tmp4);
 
     // store-byte tmp2 (SIDE_METADATA_BASE_ADDRESS + (obj >> 6))
     __ movptr(tmp3, obj);
