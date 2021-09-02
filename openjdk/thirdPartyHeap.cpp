@@ -8,11 +8,11 @@
 namespace third_party_heap {
 
 GCArguments* new_gc_arguments() {
-    return NULL;
+  return NULL;
 }
 
 void register_finalizer(void* obj) {
-    add_finalizer(obj);
+  add_finalizer(obj);
 }
 
 };

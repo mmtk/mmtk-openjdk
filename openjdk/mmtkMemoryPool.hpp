@@ -30,9 +30,9 @@
 
 class MMTkMemoryPool : public CollectedMemoryPool {
 private:
-    HeapWord* _start;
-    HeapWord* _end;
-    size_t _used_in_bytes;
+  HeapWord* _start;
+  HeapWord* _end;
+  size_t _used_in_bytes;
 
 public:
   MMTkMemoryPool(HeapWord* start, HeapWord* end, const char* name, size_t init_size,  bool support_usage_threshold);

@@ -46,17 +46,17 @@ class MemoryPool;
 //class mmtkGCTaskManager;
 
 class MMTkHeap : public CollectedHeap {
-    MMTkCollectorPolicy* _collector_policy;
-    SoftRefPolicy* _soft_ref_policy;
-    MMTkMemoryPool* _mmtk_pool;
-    GCMemoryManager* _mmtk_manager;
-    HeapWord* _start;
-    HeapWord* _end;
-    static MMTkHeap* _heap;
-    size_t _n_workers;
-    Monitor* _gc_lock;
-    ContiguousSpace* _space;
-    int _num_root_scan_tasks;
+  MMTkCollectorPolicy* _collector_policy;
+  SoftRefPolicy* _soft_ref_policy;
+  MMTkMemoryPool* _mmtk_pool;
+  GCMemoryManager* _mmtk_manager;
+  HeapWord* _start;
+  HeapWord* _end;
+  static MMTkHeap* _heap;
+  size_t _n_workers;
+  Monitor* _gc_lock;
+  ContiguousSpace* _space;
+  int _num_root_scan_tasks;
 public:
 
   MMTkHeap(MMTkCollectorPolicy* policy);
@@ -148,11 +148,11 @@ public:
   void prepare_for_verify() ;
 
 
- private:
+private:
 
   void initialize_serviceability() ;
 
- public:
+public:
 
   // Print heap information on the given outputStream.
   void print_on(outputStream* st) const ;
