@@ -282,6 +282,13 @@ void MMTkBarrierSetC2::expand_allocate(
     fast_oop_rawmem = store_eden_top;
 
 #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+    // set the alloc bit:          
+    // intptr_t addr = (intptr_t) (void*) fast_oop;
+    // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
+    // intptr_t shift = (addr >> 3) & 0b111;
+    // uint8_t byte_val = *meta_addr;
+    // uint8_t new_byte_val = byte_val | (1 << shift);
+    // *meta_addr = new_byte_val;  
     Node *obj_addr = new CastP2XNode(fast_oop_ctrl, fast_oop);
     x->transform_later(obj_addr);
 
