@@ -25,18 +25,18 @@
 #ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 #define MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 
+#include "gc/shared/c2/barrierSetC2.hpp"
+#include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
+#include "opto/callnode.hpp"
+#include "opto/compile.hpp"
 #include "opto/convertnode.hpp"
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
-#include "opto/narrowptrnode.hpp"
 #include "opto/macro.hpp"
-#include "opto/type.hpp"
-#include "opto/addnode.hpp"
-#include "opto/callnode.hpp"
-#include "opto/compile.hpp"
+#include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
-#include "gc/shared/c2/barrierSetC2.hpp"
+#include "opto/type.hpp"
 
 class TypeOopPtr;
 class PhaseMacroExpand;

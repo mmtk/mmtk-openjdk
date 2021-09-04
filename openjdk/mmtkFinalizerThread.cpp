@@ -23,20 +23,20 @@
  */
 
 #include "precompiled.hpp"
-#include "mmtkFinalizerThread.hpp"
-#include "mmtk.h"
 #include "classfile/stringTable.hpp"
+#include "mmtk.h"
+#include "mmtkFinalizerThread.hpp"
+#include "prims/jvmtiImpl.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/javaCalls.hpp"
-#include "runtime/serviceThread.hpp"
+#include "runtime/mutex.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
-#include "prims/jvmtiImpl.hpp"
+#include "runtime/serviceThread.hpp"
 #include "services/diagnosticArgument.hpp"
 #include "services/diagnosticFramework.hpp"
 #include "services/gcNotifier.hpp"
 #include "services/lowMemoryDetector.hpp"
-#include "runtime/mutex.hpp"
 
 MMTkFinalizerThread* MMTkFinalizerThread::instance = NULL;
 

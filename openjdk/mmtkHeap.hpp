@@ -27,19 +27,19 @@
 
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/collectorPolicy.hpp"
-#include "gc/shared/oopStorage.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
 #include "gc/shared/gcWhen.hpp"
+#include "gc/shared/oopStorage.hpp"
+#include "gc/shared/oopStorageParState.hpp"
 #include "gc/shared/strongRootsScope.hpp"
+#include "gc/shared/workgroup.hpp"
+#include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
+#include "mmtkCollectorPolicy.hpp"
+#include "mmtkFinalizerThread.hpp"
+#include "mmtkMemoryPool.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/ostream.hpp"
-#include "mmtkMemoryPool.hpp"
-#include "memory/iterator.hpp"
-#include "gc/shared/workgroup.hpp"
-#include "mmtkCollectorPolicy.hpp"
-#include "gc/shared/oopStorageParState.hpp"
-#include "mmtkFinalizerThread.hpp"
 
 class GCMemoryManager;
 class MemoryPool;

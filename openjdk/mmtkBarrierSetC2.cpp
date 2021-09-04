@@ -23,22 +23,21 @@
  */
 
 #include "precompiled.hpp"
-#include "opto/arraycopynode.hpp"
-#include "opto/graphKit.hpp"
-#include "opto/idealKit.hpp"
-#include "opto/narrowptrnode.hpp"
-#include "opto/macro.hpp"
-#include "opto/type.hpp"
+#include "mmtk.h"
+#include "mmtkBarrierSet.hpp"
+#include "mmtkBarrierSetC2.hpp"
+#include "mmtkMutator.hpp"
 #include "opto/addnode.hpp"
+#include "opto/arraycopynode.hpp"
 #include "opto/callnode.hpp"
 #include "opto/compile.hpp"
+#include "opto/graphKit.hpp"
+#include "opto/idealKit.hpp"
+#include "opto/macro.hpp"
+#include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
+#include "opto/type.hpp"
 #include "utilities/macros.hpp"
-#include "mmtkBarrierSetC2.hpp"
-#include "mmtkBarrierSet.hpp"
-#include "mmtk.h"
-#include "mmtkMutator.hpp"
-
 
 void MMTkBarrierSetC2::expand_allocate(
     PhaseMacroExpand* x,

@@ -1,9 +1,8 @@
 #include "precompiled.hpp"
 #include "gc/shared/thirdPartyHeap.hpp"
 #include "mmtk.h"
-#include "thirdPartyHeapArguments.hpp"
 #include "thirdPartyHeap.hpp"
-#include "stdio.h"
+#include "thirdPartyHeapArguments.hpp"
 
 namespace third_party_heap {
 

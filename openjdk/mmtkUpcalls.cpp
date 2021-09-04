@@ -23,21 +23,21 @@
  */
 
 #include "precompiled.hpp"
-#include "mmtkUpcalls.hpp"
-#include "mmtkRootsClosure.hpp"
-#include "mmtkHeap.hpp"
-#include "mmtkContextThread.hpp"
-#include "mmtkCollectorThread.hpp"
-#include "runtime/os.hpp"
-#include "runtime/vmThread.hpp"
-#include "runtime/safepoint.hpp"
-#include "runtime/mutexLocker.hpp"
-#include "runtime/thread.hpp"
-#include "runtime/threadSMR.hpp"
-#include "memory/resourceArea.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
+#include "memory/resourceArea.hpp"
+#include "mmtkCollectorThread.hpp"
+#include "mmtkContextThread.hpp"
+#include "mmtkHeap.hpp"
+#include "mmtkRootsClosure.hpp"
+#include "mmtkUpcalls.hpp"
+#include "runtime/mutexLocker.hpp"
+#include "runtime/os.hpp"
+#include "runtime/safepoint.hpp"
+#include "runtime/thread.hpp"
+#include "runtime/threadSMR.hpp"
+#include "runtime/vmThread.hpp"
 
 static bool gcInProgress = false;
 

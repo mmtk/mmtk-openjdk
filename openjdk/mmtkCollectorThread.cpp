@@ -23,8 +23,8 @@
  */
 
 #include "precompiled.hpp"
-#include "mmtkCollectorThread.hpp"
 #include "mmtk.h"
+#include "mmtkCollectorThread.hpp"
 
 MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
   third_party_heap_collector = context;

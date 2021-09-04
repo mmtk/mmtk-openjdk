@@ -25,9 +25,9 @@
 #ifndef MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
 #define MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
 
+#include "runtime/mutex.hpp"
 #include "runtime/perfData.hpp"
 #include "runtime/thread.hpp"
-#include "runtime/mutex.hpp"
 
 // This mimics the example of hotspot/share/runtime/ServiceThread.hpp
 

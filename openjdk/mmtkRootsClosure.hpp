@@ -1,8 +1,8 @@
 #include "memory/iterator.hpp"
+#include "mmtk.h"
 #include "oops/oop.hpp"
 #include "oops/oop.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
-#include "mmtk.h"
 
 #define ROOTS_BUFFER_SIZE 4096
 

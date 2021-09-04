@@ -23,18 +23,17 @@
  */
 
 #include "precompiled.hpp"
-#include <cstring>
-#include "runtime/interfaceSupport.inline.hpp"
+#include "barriers/mmtkNoBarrier.hpp"
+#include "barriers/mmtkObjectBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
+#include "mmtkBarrierSetAssembler_x86.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
 #endif
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
-#include "mmtkBarrierSetAssembler_x86.hpp"
-#include "barriers/mmtkNoBarrier.hpp"
-#include "barriers/mmtkObjectBarrier.hpp"
 
 MMTkBarrierBase* get_selected_barrier() {
   static MMTkBarrierBase* selected_barrier = NULL;
