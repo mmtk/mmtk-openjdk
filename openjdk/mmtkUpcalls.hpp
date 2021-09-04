@@ -21,12 +21,6 @@
  * questions.
  *
  */
-/* 
- * File:   mmtkUpcalls.hpp
- * Author: pavel
- *
- * Created on 30 November 2018, 5:55 PM
- */
 
 #ifndef MMTK_OPENJDK_MMTK_UPCALLS_HPP
 #define MMTK_OPENJDK_MMTK_UPCALLS_HPP
