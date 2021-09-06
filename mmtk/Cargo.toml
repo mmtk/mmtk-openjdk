@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.5.0"
+version = "0.6.0"
 authors = [" <>"]
 
 [lib]
@@ -20,12 +20,13 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "b961048429920db323fb74ecbef3747477579e77" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "5047dffbee4d716ad5c5fd1a006e35d3232b64f2" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = []
+mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
 
@@ -41,3 +42,4 @@ semispace = []
 gencopy = []
 marksweep = []
 pageprotect = []
+immix = []

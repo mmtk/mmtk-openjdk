@@ -14,6 +14,14 @@ ifeq ($(MARK_IN_HEADER), 1)
   endif
 endif
 
+ifeq ($(MMTK_EXTREME_ASSERTIONS), 1)
+  ifndef GC_FEATURES
+    GC_FEATURES=--features mmtk_extreme_assertions
+  else
+    GC_FEATURES:=$(strip $(GC_FEATURES))",mmtk_extreme_assertions"
+  endif
+endif
+
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)
@@ -23,15 +31,9 @@ else
   CARGO_PROFILE = debug
 endif
 
-ifndef RUSTUP_TOOLCHAIN
-  CARGO_VERSION=+nightly
-else
-  CARGO_VERSION=+$(RUSTUP_TOOLCHAIN)
-endif
-
 $(LIB_MMTK): FORCE
-	echo "cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
-	cargo $(CARGO_VERSION) build --manifest-path=$(MMTK_RUST_ROOT)/Cargo.toml $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
+	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
+	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
