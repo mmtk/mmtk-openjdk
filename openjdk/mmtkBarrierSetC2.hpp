@@ -69,13 +69,11 @@ public:
   virtual bool is_gc_barrier_node(Node* node) const {
     return BarrierSetC2::is_gc_barrier_node(node);
   }
-  static void expand_allocate(
-            PhaseMacroExpand* x,
-            AllocateNode* alloc, // allocation node to be expanded
-            Node* length,  // array length for an array allocation
-            const TypeFunc* slow_call_type, // Type of slow call
-            address slow_call_address  // Address of slow call
-    );
+  static void expand_allocate(PhaseMacroExpand* x,
+                              AllocateNode* alloc, // allocation node to be expanded
+                              Node* length,  // array length for an array allocation
+                              const TypeFunc* slow_call_type, // Type of slow call
+                              address slow_call_address);  // Address of slow call
 };
 
 class MMTkIdealKit: public IdealKit {

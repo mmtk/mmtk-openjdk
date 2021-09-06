@@ -50,12 +50,11 @@ void MMTkFinalizerThread::initialize() {
 
   // Initialize thread_oop to put it into the system threadGroup
   Handle thread_group (THREAD, Universe::system_thread_group());
-  Handle thread_oop = JavaCalls::construct_new_instance(
-      SystemDictionary::Thread_klass(),
-      vmSymbols::threadgroup_string_void_signature(),
-      thread_group,
-      string,
-      CHECK);
+  Handle thread_oop = JavaCalls::construct_new_instance(SystemDictionary::Thread_klass(),
+                                                        vmSymbols::threadgroup_string_void_signature(),
+                                                        thread_group,
+                                                        string,
+                                                        CHECK);
 
   {
     MutexLocker mu(Threads_lock);
@@ -67,7 +66,7 @@ void MMTkFinalizerThread::initialize() {
     // exceptions anyway, check and abort if this fails.
     if (thread == NULL || thread->osthread() == NULL) {
       vm_exit_during_initialization("java.lang.OutOfMemoryError",
-          os::native_thread_creation_failed_msg());
+                                    os::native_thread_creation_failed_msg());
     }
 
     java_lang_Thread::set_thread(thread_oop(), thread);

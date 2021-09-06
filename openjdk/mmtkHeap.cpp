@@ -280,7 +280,7 @@ jlong MMTkHeap::millis_since_last_gc() {//later when gc is implemented in rust
   jlong ret_val = (os::javaTimeNanos() / NANOSECS_PER_MILLISEC) - _last_gc_time;
   if (ret_val < 0) {
     log_warning(gc)("millis_since_last_gc() would return : " JLONG_FORMAT
-        ". returning zero instead.", ret_val);
+                    ". returning zero instead.", ret_val);
     return 0;
   }
   return ret_val;
