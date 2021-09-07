@@ -1,3 +1,6 @@
+#ifndef MMTK_OPENJDK_MMTK_ROOTS_CLOSURE_HPP
+#define MMTK_OPENJDK_MMTK_ROOTS_CLOSURE_HPP
+
 #include "memory/iterator.hpp"
 #include "mmtk.h"
 #include "oops/oop.hpp"
@@ -134,4 +137,7 @@ public:
 //   virtual void do_cld(ClassLoaderData* cld) {
 
 //     printf("CLD: %p", p);
-// };//   }
+//   }
+// };
+
+#endif // MMTK_OPENJDK_MMTK_ROOTS_CLOSURE_HPP
