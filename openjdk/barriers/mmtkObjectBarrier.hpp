@@ -22,7 +22,7 @@ public:
   static void record_clone_slow(void* src, void* dst, size_t size);
 
   virtual bool is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
+    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow) || call == CAST_FROM_FN_PTR(address, record_clone_slow);
   }
 
   virtual void record_modified_node(oop src, ptrdiff_t offset, oop val);

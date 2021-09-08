@@ -20,13 +20,20 @@ use std::lazy::SyncLazy;
 static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
 static FIELD_LOGGING_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("FieldLoggingBarrier").unwrap());
+static FIELD_LOGGING_BARRIER_GEN: SyncLazy<CString> = SyncLazy::new(|| CString::new("FieldLoggingBarrier-GEN").unwrap());
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
     match SINGLETON.get_plan().constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
         BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
-        BarrierSelector::FieldLoggingBarrier => FIELD_LOGGING_BARRIER.as_ptr(),
+        BarrierSelector::FieldLoggingBarrier => {
+            if std::env::var("MMTK_PLAN") == Ok("GenCopy".to_owned()) {
+                FIELD_LOGGING_BARRIER_GEN.as_ptr()
+            } else {
+                FIELD_LOGGING_BARRIER.as_ptr()
+            }
+        }
         // In case we have more barriers in mmtk-core.
         #[allow(unreachable_patterns)]
         _ => unimplemented!(),

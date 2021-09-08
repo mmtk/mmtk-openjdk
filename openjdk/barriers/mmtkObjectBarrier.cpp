@@ -260,8 +260,8 @@ void MMTkObjectBarrierSetC2::record_clone(GraphKit* kit, Node* src, Node* dst, N
     Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_clone_slow), "record_clone", src, dst, size);
   } __ end_if();
 #else
-  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeInt::INT);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_clone_slow), "record_clone", src, dst, size);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
