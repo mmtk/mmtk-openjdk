@@ -1,5 +1,5 @@
-#ifndef MMTK_MMTKBARRIERSETASSEMBLER_X86_HPP
-#define MMTK_MMTKBARRIERSETASSEMBLER_X86_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
 
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
@@ -11,5 +11,4 @@ public:
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
   }
 };
-
-#endif // MMTK_MMTKBARRIERSETASSEMBLER_X86_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

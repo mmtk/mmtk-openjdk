@@ -24,12 +24,12 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
+#include "interpreter/interp_masm.hpp"
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetAssembler_x86.hpp"
-#include "interpreter/interp_masm.hpp"
+#include "mmtkMutator.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
-#include "mmtkMutator.hpp"
 
 #define __ masm->
 

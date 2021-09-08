@@ -1,5 +1,5 @@
-#ifndef MMTK_BARRIERS_NO_BARRIER
-#define MMTK_BARRIERS_NO_BARRIER
+#ifndef MMTK_OPENJDK_BARRIERS_MMTK_NO_BARRIER_HPP
+#define MMTK_OPENJDK_BARRIERS_MMTK_NO_BARRIER_HPP
 
 #include "../mmtkBarrierSet.hpp"
 #include "../mmtkBarrierSetAssembler_x86.hpp"
@@ -21,4 +21,4 @@ struct MMTkNoBarrier: MMTkBarrierImpl<
   MMTkNoBarrierSetC2
 > {};
 
-#endif
+#endif // MMTK_OPENJDK_BARRIERS_MMTK_NO_BARRIER_HPP

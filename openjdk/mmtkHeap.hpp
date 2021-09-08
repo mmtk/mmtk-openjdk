@@ -22,41 +22,41 @@
  *
  */
 
-#ifndef SHARE_VM_GC_MMTK_MMTKHEAP_HPP
-#define SHARE_VM_GC_MMTK_MMTKHEAP_HPP
+#ifndef MMTK_OPENJDK_MMTK_HEAP_HPP
+#define MMTK_OPENJDK_MMTK_HEAP_HPP
 
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/collectorPolicy.hpp"
-#include "gc/shared/oopStorage.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
 #include "gc/shared/gcWhen.hpp"
+#include "gc/shared/oopStorage.hpp"
+#include "gc/shared/oopStorageParState.hpp"
 #include "gc/shared/strongRootsScope.hpp"
+#include "gc/shared/workgroup.hpp"
+#include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
+#include "mmtkCollectorPolicy.hpp"
+#include "mmtkFinalizerThread.hpp"
+#include "mmtkMemoryPool.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/ostream.hpp"
-#include "mmtkMemoryPool.hpp"
-#include "memory/iterator.hpp"
-#include "gc/shared/workgroup.hpp"
-#include "mmtkCollectorPolicy.hpp"
-#include "gc/shared/oopStorageParState.hpp"
-#include "mmtkFinalizerThread.hpp"
 
 class GCMemoryManager;
 class MemoryPool;
 //class mmtkGCTaskManager;
 
 class MMTkHeap : public CollectedHeap {
-    MMTkCollectorPolicy* _collector_policy;
-    SoftRefPolicy* _soft_ref_policy;
-    MMTkMemoryPool* _mmtk_pool;
-    GCMemoryManager* _mmtk_manager;
-    HeapWord* _start;
-    HeapWord* _end;
-    static MMTkHeap* _heap;
-    size_t _n_workers;
-    Monitor* _gc_lock;
-    ContiguousSpace* _space;
-    int _num_root_scan_tasks;
+  MMTkCollectorPolicy* _collector_policy;
+  SoftRefPolicy* _soft_ref_policy;
+  MMTkMemoryPool* _mmtk_pool;
+  GCMemoryManager* _mmtk_manager;
+  HeapWord* _start;
+  HeapWord* _end;
+  static MMTkHeap* _heap;
+  size_t _n_workers;
+  Monitor* _gc_lock;
+  ContiguousSpace* _space;
+  int _num_root_scan_tasks;
 public:
 
   MMTkHeap(MMTkCollectorPolicy* policy);
@@ -148,11 +148,11 @@ public:
   void prepare_for_verify() ;
 
 
- private:
+private:
 
   void initialize_serviceability() ;
 
- public:
+public:
 
   // Print heap information on the given outputStream.
   void print_on(outputStream* st) const ;
@@ -208,4 +208,4 @@ public:
 };
 
 
-#endif // SHARE_VM_GC_MMTK_MMTKHEAP_HPP
+#endif // MMTK_OPENJDK_MMTK_HEAP_HPP
