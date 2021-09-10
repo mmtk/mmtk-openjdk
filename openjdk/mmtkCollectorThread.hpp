@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_GC_MMTK_COLLECTORTHREAD_HPP
-#define SHARE_GC_MMTK_COLLECTORTHREAD_HPP
+#ifndef MMTK_OPENJDK_MMTK_COLLECTOR_THREAD_HPP
+#define MMTK_OPENJDK_MMTK_COLLECTOR_THREAD_HPP
 
 #include "runtime/perfData.hpp"
 #include "runtime/thread.hpp"
@@ -51,4 +51,4 @@ public:
   virtual void run();
 };
 
-#endif // SHARE_VM_RUNTIME_VMTHREAD_HPP
+#endif // MMTK_OPENJDK_MMTK_COLLECTOR_THREAD_HPP

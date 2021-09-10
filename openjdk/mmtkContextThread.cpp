@@ -22,8 +22,9 @@
  *
  */
 
-#include "mmtkContextThread.hpp"
+#include "precompiled.hpp"
 #include "mmtk.h"
+#include "mmtkContextThread.hpp"
 
 MMTkContextThread::MMTkContextThread() : NamedThread() {
   set_name("Controller Context Thread");

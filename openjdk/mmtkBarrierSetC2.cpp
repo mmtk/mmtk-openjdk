@@ -23,31 +23,27 @@
  */
 
 #include "precompiled.hpp"
-#include "opto/arraycopynode.hpp"
-#include "opto/graphKit.hpp"
-#include "opto/idealKit.hpp"
-#include "opto/narrowptrnode.hpp"
-#include "opto/macro.hpp"
-#include "opto/type.hpp"
+#include "mmtk.h"
+#include "mmtkBarrierSet.hpp"
+#include "mmtkBarrierSetC2.hpp"
+#include "mmtkMutator.hpp"
 #include "opto/addnode.hpp"
+#include "opto/arraycopynode.hpp"
 #include "opto/callnode.hpp"
 #include "opto/compile.hpp"
+#include "opto/graphKit.hpp"
+#include "opto/idealKit.hpp"
+#include "opto/macro.hpp"
+#include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
+#include "opto/type.hpp"
 #include "utilities/macros.hpp"
-#include "mmtkBarrierSetC2.hpp"
-#include "mmtkBarrierSet.hpp"
-#include "mmtk.h"
-#include "mmtkMutator.hpp"
 
-
-void MMTkBarrierSetC2::expand_allocate(
-            PhaseMacroExpand* x,
-            AllocateNode* alloc, // allocation node to be expanded
-            Node* length,  // array length for an array allocation
-            const TypeFunc* slow_call_type, // Type of slow call
-            address slow_call_address  // Address of slow call
-    )
-{
+void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
+                                       AllocateNode* alloc, // allocation node to be expanded
+                                       Node* length,  // array length for an array allocation
+                                       const TypeFunc* slow_call_type, // Type of slow call
+                                       address slow_call_address) {  // Address of slow call
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
   Node* i_o  = alloc->in(TypeFunc::I_O);
@@ -130,8 +126,8 @@ void MMTkBarrierSetC2::expand_allocate(
   AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
 
   if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
-    // Malloc allocator has no fastpath
-    || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT)) {
+      // Malloc allocator has no fastpath
+      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;
@@ -276,15 +272,15 @@ void MMTkBarrierSetC2::expand_allocate(
     // memory state.
     Node* store_eden_top =
       new StorePNode(needgc_false, contended_phi_rawmem, eden_top_adr,
-                            TypeRawPtr::BOTTOM, new_eden_top, MemNode::unordered);
+                     TypeRawPtr::BOTTOM, new_eden_top, MemNode::unordered);
     x->transform_later(store_eden_top);
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
     InitializeNode* init = alloc->initialization();
     fast_oop_rawmem = x->initialize_object(alloc,
-                                        fast_oop_ctrl, fast_oop_rawmem, fast_oop,
-                                        klass_node, length, size_in_bytes);
+                                           fast_oop_ctrl, fast_oop_rawmem, fast_oop,
+                                           klass_node, length, size_in_bytes);
 
     // If initialization is performed by an array copy, any required
     // MemBarStoreStore was already added. If the object does not
@@ -393,9 +389,9 @@ void MMTkBarrierSetC2::expand_allocate(
 
   // Generate slow-path call
   CallNode *call = new CallStaticJavaNode(slow_call_type, slow_call_address,
-                               OptoRuntime::stub_name(slow_call_address),
-                               alloc->jvms()->bci(),
-                               TypePtr::BOTTOM);
+                                          OptoRuntime::stub_name(slow_call_address),
+                                          alloc->jvms()->bci(),
+                                          TypePtr::BOTTOM);
   call->init_req( TypeFunc::Control, slow_region );
   call->init_req( TypeFunc::I_O    , x->top() )     ;   // does no i/o
   call->init_req( TypeFunc::Memory , slow_mem ); // may gc ptrs

@@ -23,17 +23,17 @@
  */
 
 #include "precompiled.hpp"
-#include "thirdPartyHeapArguments.hpp"
-#include "mmtkHeap.hpp"
 #include "gc/shared/adaptiveSizePolicy.hpp"
 #include "gc/shared/collectorPolicy.hpp"
 #include "gc/shared/gcArguments.inline.hpp"
-#include "runtime/globals.hpp"
+#include "mmtkCollectorPolicy.hpp"
+#include "mmtkHeap.hpp"
 #include "runtime/globals_extension.hpp"
+#include "runtime/globals.hpp"
 #include "runtime/java.hpp"
 #include "runtime/vm_version.hpp"
+#include "thirdPartyHeapArguments.hpp"
 #include "utilities/defaultStream.hpp"
-#include "mmtkCollectorPolicy.hpp"
 
 size_t ThirdPartyHeapArguments::conservative_max_heap_alignment() {
   return CollectorPolicy::compute_heap_alignment();

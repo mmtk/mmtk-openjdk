@@ -1,16 +1,16 @@
-#ifndef MMTK_BARRIERS_OBJECT_BARRIER
-#define MMTK_BARRIERS_OBJECT_BARRIER
+#ifndef MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP
+#define MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP
 
-#include "opto/callnode.hpp"
-#include "opto/idealKit.hpp"
-#include "c1/c1_LIRAssembler.hpp"
-#include "c1/c1_MacroAssembler.hpp"
-#include "gc/shared/barrierSet.hpp"
 #include "../mmtk.h"
 #include "../mmtkBarrierSet.hpp"
 #include "../mmtkBarrierSetAssembler_x86.hpp"
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
+#include "c1/c1_LIRAssembler.hpp"
+#include "c1/c1_MacroAssembler.hpp"
+#include "gc/shared/barrierSet.hpp"
+#include "opto/callnode.hpp"
+#include "opto/idealKit.hpp"
 
 #define MMTK_ENABLE_OBJECT_BARRIER_FASTPATH true
 
@@ -204,4 +204,4 @@ struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetC2
 > {};
 
-#endif
+#endif // MMTK_OPENJDK_BARRIERS_MMTK_OBJECT_BARRIER_HPP
