@@ -27,7 +27,7 @@ void MMTkFieldLoggingBarrierSetRuntime::record_modified_node(oop src, ptrdiff_t 
 
 void MMTkFieldLoggingBarrierSetRuntime::record_clone(oop src, oop dst, size_t size) {
   if (unlogged_value == 0) return;
-#if MMTK_ENABLE_BARRIER_FASTPATH || true
+#if MMTK_ENABLE_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) dst;
   uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   intptr_t shift = (addr >> 3) & 0b111;
