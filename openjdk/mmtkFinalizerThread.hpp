@@ -22,12 +22,12 @@
  *
  */
 
-#ifndef SHARE_GC_MMTK_FINALIZERTHREAD_HPP
-#define SHARE_GC_MMTK_FINALIZERTHREAD_HPP
+#ifndef MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
+#define MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP
 
+#include "runtime/mutex.hpp"
 #include "runtime/perfData.hpp"
 #include "runtime/thread.hpp"
-#include "runtime/mutex.hpp"
 
 // This mimics the example of hotspot/share/runtime/ServiceThread.hpp
 
@@ -50,4 +50,4 @@ public:
   void schedule();
 };
 
-#endif // SHARE_VM_RUNTIME_VMTHREAD_HPP
+#endif // MMTK_OPENJDK_MMTK_FINALIZER_THREAD_HPP

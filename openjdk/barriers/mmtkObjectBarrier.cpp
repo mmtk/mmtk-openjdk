@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 

@@ -22,21 +22,21 @@
  *
  */
 
-#ifndef MMTK_BARRIERSETC2_HPP
-#define MMTK_BARRIERSETC2_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 
+#include "gc/shared/c2/barrierSetC2.hpp"
+#include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
+#include "opto/callnode.hpp"
+#include "opto/compile.hpp"
 #include "opto/convertnode.hpp"
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
-#include "opto/narrowptrnode.hpp"
 #include "opto/macro.hpp"
-#include "opto/type.hpp"
-#include "opto/addnode.hpp"
-#include "opto/callnode.hpp"
-#include "opto/compile.hpp"
+#include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
-#include "gc/shared/c2/barrierSetC2.hpp"
+#include "opto/type.hpp"
 
 class TypeOopPtr;
 class PhaseMacroExpand;
@@ -69,13 +69,11 @@ public:
   virtual bool is_gc_barrier_node(Node* node) const {
     return BarrierSetC2::is_gc_barrier_node(node);
   }
-  static void expand_allocate(
-            PhaseMacroExpand* x,
-            AllocateNode* alloc, // allocation node to be expanded
-            Node* length,  // array length for an array allocation
-            const TypeFunc* slow_call_type, // Type of slow call
-            address slow_call_address  // Address of slow call
-    );
+  static void expand_allocate(PhaseMacroExpand* x,
+                              AllocateNode* alloc, // allocation node to be expanded
+                              Node* length,  // array length for an array allocation
+                              const TypeFunc* slow_call_type, // Type of slow call
+                              address slow_call_address);  // Address of slow call
 };
 
 class MMTkIdealKit: public IdealKit {
@@ -107,4 +105,4 @@ public:
   }
 };
 
-#endif // MMTK_BARRIERSETC2_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP

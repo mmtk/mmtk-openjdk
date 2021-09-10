@@ -1,5 +1,5 @@
-#ifndef MMTK_MMTKBARRIERSETC1_HPP
-#define MMTK_MMTKBARRIERSETC1_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
 
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
@@ -27,4 +27,4 @@ public:
   }
 };
 
-#endif // MMTK_MMTKBARRIERSETC1_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP

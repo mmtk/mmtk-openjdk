@@ -1,18 +1,17 @@
-
+#include "precompiled.hpp"
 #include "gc/shared/thirdPartyHeap.hpp"
 #include "mmtk.h"
-#include "thirdPartyHeapArguments.hpp"
 #include "thirdPartyHeap.hpp"
-#include "stdio.h"
+#include "thirdPartyHeapArguments.hpp"
 
 namespace third_party_heap {
 
 GCArguments* new_gc_arguments() {
-    return NULL;
+  return NULL;
 }
 
 void register_finalizer(void* obj) {
-    add_finalizer(obj);
+  add_finalizer(obj);
 }
 
 };
