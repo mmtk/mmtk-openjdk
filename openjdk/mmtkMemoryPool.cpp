@@ -26,8 +26,8 @@
 #include "mmtkMemoryPool.hpp"
 
 MMTkMemoryPool::MMTkMemoryPool(HeapWord* start, HeapWord* end,
-                                   const char* name, size_t init_size,
-                                   bool support_usage_threshold) :
+                               const char* name, size_t init_size,
+                               bool support_usage_threshold) :
   CollectedMemoryPool(name, init_size,
                       pointer_delta(start, end)*HeapWordSize, support_usage_threshold),
             

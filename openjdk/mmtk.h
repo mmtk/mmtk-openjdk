@@ -1,5 +1,5 @@
-#ifndef MMTK_H
-#define MMTK_H
+#ifndef MMTK_OPENJDK_MMTK_H
+#define MMTK_OPENJDK_MMTK_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -164,4 +164,4 @@ extern void harness_end();
 }
 #endif
 
-#endif // MMTK_H
+#endif // MMTK_OPENJDK_MMTK_H
