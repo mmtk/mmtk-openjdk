@@ -18,6 +18,11 @@ struct RustDynPtr {
   void* vtable;
 };
 
+struct RustHashMap {
+    void* hash_builder;
+    void* table;
+};
+
 // These constants should match the constants defind in mmtk::util::alloc::allocators
 const int MAX_BUMP_ALLOCATORS = 5;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 1;
