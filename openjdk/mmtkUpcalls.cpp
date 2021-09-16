@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "classfile/stringTable.hpp"
+#include "classfile/vmSymbols.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
 #include "memory/resourceArea.hpp"
@@ -38,7 +39,7 @@
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
-#include "utilities/debug.hpp"
+// #include "utilities/debug.hpp"
 
 static bool gcInProgress = false;
 
@@ -89,7 +90,9 @@ static void mmtk_block_for_gc() {
 }
 
 static void mmtk_out_of_memory() {
-  vm_exit_out_of_memory(0 /* size */, OOM_MALLOC_ERROR, "MMTk: Out of memory!");
+  // vm_exit_out_of_memory(0 /* size */, OOM_MALLOC_ERROR, "MMTk: Out of memory!");
+  JavaThread* THREAD = JavaThread::current();
+  THROW_MSG(vmSymbols::java_lang_OutOfMemoryError(), "MMTk: Out of memory!");
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
