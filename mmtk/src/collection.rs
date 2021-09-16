@@ -64,9 +64,9 @@ impl Collection<OpenJDK> for VMCollection {
         // unimplemented!()
     }
 
-    fn out_of_memory(_tls: VMThread) {
+    fn out_of_memory(tls: VMThread) {
         unsafe {
-            ((*UPCALLS).out_of_memory)();
+            ((*UPCALLS).out_of_memory)(tls);
         }
     }
 
