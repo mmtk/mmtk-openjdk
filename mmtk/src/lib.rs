@@ -47,6 +47,7 @@ pub struct OpenJDK_Upcalls {
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_worker_thread: extern "C" fn(tls: VMThread, ctx: *mut GCWorker<OpenJDK>),
     pub block_for_gc: extern "C" fn(),
+    pub out_of_memory: extern "C" fn(),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),

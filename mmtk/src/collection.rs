@@ -64,6 +64,12 @@ impl Collection<OpenJDK> for VMCollection {
         // unimplemented!()
     }
 
+    fn out_of_memory(_tls: VMThread) {
+        unsafe {
+            ((*UPCALLS).out_of_memory)();
+        }
+    }
+
     fn schedule_finalization(_tls: VMWorkerThread) {
         unsafe {
             ((*UPCALLS).schedule_finalizer)();

@@ -38,6 +38,7 @@
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
+#include "utilities/debug.hpp"
 
 static bool gcInProgress = false;
 
@@ -85,6 +86,10 @@ static void mmtk_block_for_gc() {
       gc_lock->wait();
     }
   }
+}
+
+static void mmtk_out_of_memory() {
+  vm_exit_out_of_memory(0 /* size */, OOM_MALLOC_ERROR, "MMTk: Out of memory!");
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
@@ -251,6 +256,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_resume_mutators,
   mmtk_spawn_collector_thread,
   mmtk_block_for_gc,
+  mmtk_out_of_memory,
   mmtk_get_next_mutator,
   mmtk_reset_mutator_iterator,
   mmtk_compute_static_roots,

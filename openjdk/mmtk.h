@@ -97,6 +97,7 @@ typedef struct {
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
+    void (*out_of_memory) ();
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
     void (*compute_static_roots) (void* trace, void* tls);
