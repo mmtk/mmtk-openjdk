@@ -12,7 +12,9 @@ extern "C" {
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
+extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
 
 /**
  * Allocation

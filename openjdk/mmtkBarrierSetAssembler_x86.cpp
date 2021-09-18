@@ -110,6 +110,39 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ jcc(Assembler::above, slow_case);
     // lab.cursor = end
     __ movptr(cursor, end);
+
+#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+    Register tmp3 = rscratch2;
+    Register tmp2 = rscratch1;
+    Register tmp4 = t1;
+    assert_different_registers(obj, tmp2, tmp3, tmp4, rcx);
+
+    // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
+    __ movptr(tmp3, obj);
+    __ shrptr(tmp3, 6);
+    __ movptr(tmp2, ALLOC_BIT_BASE_ADDRESS);
+    __ movb(tmp2, Address(tmp2, tmp3));
+    // tmp3 = 1 << ((obj >> 3) & 7)
+    //   1. tmp4 = (obj >> 3) & 7
+    __ movptr(tmp4, obj);
+    __ shrptr(tmp4, 3);
+    __ andptr(tmp4, 7);
+    //   2. tmp4 = 1 << tmp4
+    __ movptr(tmp3, rcx);
+    __ movl(rcx, tmp4);
+    __ movptr(tmp4, 1);
+    __ shlptr(tmp4);
+    __ movptr(rcx, tmp3);
+    // tmp2 = tmp2 | tmp4
+    __ orptr(tmp2, tmp4);
+
+    // store-byte tmp2 (SIDE_METADATA_BASE_ADDRESS + (obj >> 6))
+    __ movptr(tmp3, obj);
+    __ shrptr(tmp3, 6);
+    __ movptr(tmp4, ALLOC_BIT_BASE_ADDRESS);
+    __ movb(Address(tmp4, tmp3), tmp2);  
+#endif
+
     // BarrierSetAssembler::incr_allocated_bytes
     if (var_size_in_bytes->is_valid()) {
       __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), var_size_in_bytes);

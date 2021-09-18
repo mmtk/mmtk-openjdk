@@ -23,6 +23,8 @@ jobs:
       # Run the tests
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test-normal.sh
+      - name: DaCapo Tests for Global Allocation Bit
+        run: ./.github/scripts/ci-test-global-alloc-bit.sh
 
       # Style check
       - name: Style checks
