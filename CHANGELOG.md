@@ -5,6 +5,7 @@
 * Supports the `global_alloc_bit` feature in mmtk-core.
 * Fixes monitor misuse in the finalizer thread.
 * Fixes style for C++ code to match OpenJDK style guidelines.
+* Updates to mmtk-core 0.7.0.
 
 0.6.0 (2021-08-10)
 ===
