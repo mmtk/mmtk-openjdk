@@ -25,6 +25,12 @@ export MMTK_PLAN=Immix
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar fop
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
 
+# --- GenImmix ---
+export MMTK_PLAN=GenImmix
+
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar fop
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
+
 # -- GenCopy --
 export MMTK_PLAN=GenCopy
 

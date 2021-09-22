@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-18.04
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       # Checkout repos and submodules
       - uses: actions/checkout@v2
