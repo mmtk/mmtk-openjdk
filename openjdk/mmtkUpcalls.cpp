@@ -279,6 +279,17 @@ static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();
 }
 
+static void mmtk_prepare_for_roots_scanning() {
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+  DerivedPointerTable::clear();
+#endif
+}
+
+static int mmtk_object_alignment() {
+  return ObjectAlignmentInBytes;
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -318,4 +329,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_scan_vm_thread_roots,
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
+  mmtk_prepare_for_roots_scanning,
+  mmtk_object_alignment,
 };

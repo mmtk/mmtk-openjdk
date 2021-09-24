@@ -4,6 +4,7 @@
 #include "mmtkMutator.hpp"
 
 size_t MMTkMutatorContext::max_non_los_default_alloc_bytes = 0;
+size_t MMTkMutatorContext::extra_header_bytes = 0;
 
 MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
   return *((MMTkMutatorContext*) ::bind_mutator((void*) current));

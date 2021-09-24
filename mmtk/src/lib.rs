@@ -81,6 +81,8 @@ pub struct OpenJDK_Upcalls {
     pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
+    pub prepare_for_roots_scanning: extern "C" fn(),
+    pub object_alignment: extern "C" fn() -> i32,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
@@ -118,6 +120,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "GenCopy");
         #[cfg(feature = "marksweep")]
         std::env::set_var("MMTK_PLAN", "MarkSweep");
+        #[cfg(feature = "markcompact")]
+        std::env::set_var("MMTK_PLAN", "MarkCompact");
         #[cfg(feature = "pageprotect")]
         std::env::set_var("MMTK_PLAN", "PageProtect");
         #[cfg(feature = "immix")]

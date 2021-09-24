@@ -57,6 +57,7 @@ struct AllocatorSelector {
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 extern size_t get_max_non_los_default_alloc_bytes();
+extern size_t get_extra_header_bytes();
 
 /**
  * Finalization
@@ -133,6 +134,8 @@ typedef struct {
     void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
+    void (*prepare_for_roots_scanning)();
+    int (*object_alignment)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

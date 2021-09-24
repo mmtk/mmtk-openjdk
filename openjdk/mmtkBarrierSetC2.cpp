@@ -78,11 +78,12 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // The max non-los bytes from MMTk
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
   size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
+  size_t extra_header = MMTkMutatorContext::extra_header_bytes;
   // Check if allocation size is constant
   long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {
     // Constant alloc size. We know it is non-negative, it is safe to cast to unsigned long and compare with size_t
-    if (((unsigned long)const_size) > max_non_los_bytes) {
+    if (((unsigned long)const_size) > max_non_los_bytes - extra_header) {
       // We know at JIT time that we need to go to slowpath
       always_slow = true;
       initial_slow_test = NULL;
@@ -91,7 +92,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     // Variable alloc size
 
     // Create a node for the constant and compare with size_in_bytes
-    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes);
+    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes - extra_header);
     x->transform_later(max_non_los_bytes_node);
     Node *mmtk_size_cmp = new CmpLNode(size_in_bytes, max_non_los_bytes_node);
     x->transform_later(mmtk_size_cmp);
@@ -229,8 +230,15 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     Node *old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
 
     x->transform_later(old_eden_top);
+
+    Node *offset = ConLNode::make(extra_header);
+    x->transform_later(offset);
+
+    Node *old_eden_top_plus_offset =  new AddPNode(x->top(), old_eden_top, offset);
+    x->transform_later(old_eden_top_plus_offset);
+
     // Add to heap top to get a new heap top
-    Node *new_eden_top = new AddPNode(x->top(), old_eden_top, size_in_bytes);
+    Node *new_eden_top = new AddPNode(x->top(), old_eden_top_plus_offset, size_in_bytes);
     x->transform_later(new_eden_top);
     // Check for needing a GC; compare against heap end
     Node *needgc_cmp = new CmpPNode(new_eden_top, eden_end);
@@ -263,7 +271,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     //                           old_eden_top, new_eden_top, length);
 
     // Name successful fast-path variables
-    Node* fast_oop = old_eden_top;
+    Node* fast_oop = old_eden_top_plus_offset;
     Node* fast_oop_ctrl;
     Node* fast_oop_rawmem;
 

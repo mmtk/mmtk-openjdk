@@ -47,15 +47,16 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // default space.
     assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
     size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
+    size_t extra_header = MMTkMutatorContext::extra_header_bytes;
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
-      if ((size_t)con_size_in_bytes > max_non_los_bytes) {
+      if ((size_t)con_size_in_bytes > max_non_los_bytes - extra_header) {
         __ jmp(slow_case);
         return;
       }
     } else {
       // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
-      __ cmpptr(var_size_in_bytes, max_non_los_bytes);
+      __ cmpptr(var_size_in_bytes, max_non_los_bytes - extra_header);
       __ jcc(Assembler::aboveEqual, slow_case);
     }
 
@@ -94,6 +95,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
     }
     // obj = load lab.cursor
+    __ addptr(cursor, extra_header);
     __ movptr(obj, cursor);
     // end = obj + size
     Register end = t1;
