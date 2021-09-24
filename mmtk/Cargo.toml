@@ -29,6 +29,8 @@ default = []
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+# Use the env var GLOBAL_ALLOC_BIT=1 when building OpenJDK so the fastpath for setting the alloc bit will be compiled in.
+# See README.
 global_alloc_bit = ["mmtk/global_alloc_bit"]
 
 # This compile time constant places the mark bit in the header of the object instead of on the side.
