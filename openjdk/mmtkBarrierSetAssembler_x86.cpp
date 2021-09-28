@@ -112,12 +112,9 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ movptr(cursor, end);
 
 #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-    Register tmp3 = rscratch2;
+    Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);
-
-    __ push(tmp2);
-    __ push(tmp3);
 
     // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
     __ movptr(tmp3, obj);
@@ -141,8 +138,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ movptr(rcx, ALLOC_BIT_BASE_ADDRESS);
     __ movb(Address(rcx, tmp3), tmp2);  
 
-    __ pop(tmp3);
-    __ pop(tmp2);
 #endif
 
     // BarrierSetAssembler::incr_allocated_bytes
