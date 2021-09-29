@@ -20,6 +20,10 @@ extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
 }
 
 impl Collection<OpenJDK> for VMCollection {
+    /// With the presence of the "VM companion thread",
+    /// the OpenJDK binding allows any MMTk GC thread to stop/start the world.
+    const COORDINATOR_ONLY_STW: bool = false;
+
     fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: VMWorkerThread) {
         let f = {
             if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
