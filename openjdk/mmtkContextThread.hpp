@@ -38,10 +38,6 @@ public:
     guarantee(false, "VMThread deletion must fix the race with VM termination");
   }
 
-  // Tester
-  bool is_VM_thread() const                      { return true; }
-  bool is_GC_thread() const                      { return true; }
-
   // Entry for starting vm thread
   virtual void run();
 };
