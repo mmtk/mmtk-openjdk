@@ -49,6 +49,12 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
 
+  ClassLoaderDataGraph::clear_claimed_marks();
+  CodeCache::gc_prologue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::clear();
+#endif
+
   {
     JavaThreadIteratorWithHandle jtiwh;
     while (JavaThread *cur = jtiwh.next()) {
@@ -59,6 +65,13 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 }
 
 static void mmtk_resume_mutators(void *tls) {
+  ClassLoaderDataGraph::purge();
+  CodeCache::gc_epilogue();
+  JvmtiExport::gc_epilogue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+#endif
+
   MMTkHeap::_create_stack_scan_work = NULL;
 
   log_debug(gc)("Requesting the VM to resume all mutators...");
@@ -266,6 +279,16 @@ static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();
 }
 
+static void mmtk_prepare_for_sanity_roots_scanning() {
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+#endif
+
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::clear();
+#endif
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -305,4 +328,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_scan_vm_thread_roots,
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
+  mmtk_prepare_for_sanity_roots_scanning,
 };
