@@ -25,6 +25,7 @@
 #ifndef MMTK_OPENJDK_MMTK_HEAP_HPP
 #define MMTK_OPENJDK_MMTK_HEAP_HPP
 
+#include "mmtkBarrierSet.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/collectorPolicy.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
@@ -97,6 +98,10 @@ public:
   bool is_in(const void* p) const;
   bool is_in_reserved(const void* p) const;
   bool supports_tlab_allocation() const;
+
+  bool supports_inline_contig_alloc() const {
+    return MMTK_ENABLE_ALLOCATION_FASTPATH;
+  }
 
   // The amount of space available for thread-local allocation buffers.
   size_t tlab_capacity(Thread *thr) const;
