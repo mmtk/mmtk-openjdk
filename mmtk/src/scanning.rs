@@ -22,7 +22,7 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
         memory_manager::add_work_packet(
             &SINGLETON,
             WorkBucketStage::Closure,
-            W::new(buf, false, &SINGLETON),
+            W::new(buf, true, &SINGLETON),
         );
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
@@ -100,11 +100,5 @@ impl Scanning<OpenJDK> for VMScanning {
 
     fn supports_return_barrier() -> bool {
         unimplemented!()
-    }
-
-    fn prepare_for_sanity_roots_scanning() {
-        unsafe {
-            ((*UPCALLS).prepare_for_sanity_roots_scanning)();
-        }
     }
 }
