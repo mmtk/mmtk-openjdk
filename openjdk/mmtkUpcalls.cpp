@@ -45,6 +45,12 @@ static size_t mmtk_start_the_world_count = 0;
 static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
   MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
 
+  ClassLoaderDataGraph::clear_claimed_marks();
+  CodeCache::gc_prologue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::clear();
+#endif
+
   log_debug(gc)("Requesting the VM to suspend all mutators...");
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
@@ -59,6 +65,13 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 }
 
 static void mmtk_resume_mutators(void *tls) {
+  ClassLoaderDataGraph::purge();
+  CodeCache::gc_epilogue();
+  JvmtiExport::gc_epilogue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+#endif
+
   MMTkHeap::_create_stack_scan_work = NULL;
 
   log_debug(gc)("Requesting the VM to resume all mutators...");
