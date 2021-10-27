@@ -124,8 +124,8 @@ pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJD
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(tls: VMThread) {
-    memory_manager::enable_collection(&SINGLETON, tls)
+pub extern "C" fn initialize_collection(tls: VMThread) {
+    memory_manager::initialize_collection(&SINGLETON, tls)
 }
 
 #[no_mangle]
