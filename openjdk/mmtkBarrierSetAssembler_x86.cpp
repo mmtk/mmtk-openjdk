@@ -95,8 +95,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
     }
     // obj = load lab.cursor
-    __ addptr(cursor, extra_header);
     __ movptr(obj, cursor);
+    __ addptr(obj, extra_header);
     // end = obj + size
     Register end = t1;
     if (var_size_in_bytes == noreg) {
