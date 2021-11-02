@@ -174,7 +174,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
 
     {
       // Only bump pointer allocator fastpath is implemented.
-      if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
+      if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_BUMP_POINTER_ALLOC_BIT && selector.tag != TAG_IMMIX) {
         fatal("unimplemented allocator fastpath\n");
       }
 
@@ -285,7 +285,8 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
-#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+// #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  if(selector.tag == TAG_BUMP_POINTER_ALLOC_BIT) {
     // set the alloc bit:          
     // intptr_t addr = (intptr_t) (void*) fast_oop;
     // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
@@ -342,7 +343,8 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     x->transform_later(set_alloc_bit);
 
     fast_oop_rawmem = set_alloc_bit;
-#endif
+  }
+// #endif
 
     InitializeNode* init = alloc->initialization();
     fast_oop_rawmem = x->initialize_object(alloc,

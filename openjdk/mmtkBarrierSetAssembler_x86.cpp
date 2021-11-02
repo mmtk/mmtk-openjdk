@@ -71,7 +71,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     }
 
     // Only bump pointer allocator is implemented.
-    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
+    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_BUMP_POINTER_ALLOC_BIT && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
 
@@ -113,7 +113,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // lab.cursor = end
     __ movptr(cursor, end);
 
-#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+// #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  if(selector.tag == TAG_BUMP_POINTER_ALLOC_BIT) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);
@@ -139,8 +140,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ shrptr(tmp3, 6);
     __ movptr(rcx, ALLOC_BIT_BASE_ADDRESS);
     __ movb(Address(rcx, tmp3), tmp2);  
-
-#endif
+  }
+// #endif
 
     // BarrierSetAssembler::incr_allocated_bytes
     if (var_size_in_bytes->is_valid()) {
