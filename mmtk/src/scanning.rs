@@ -102,9 +102,9 @@ impl Scanning<OpenJDK> for VMScanning {
         unimplemented!()
     }
 
-    fn prepare_for_roots_scanning() {
+    fn prepare_for_roots_re_scanning() {
         unsafe {
-            ((*UPCALLS).prepare_for_roots_scanning)();
+            ((*UPCALLS).prepare_for_roots_re_scanning)();
         }
     }
 }
