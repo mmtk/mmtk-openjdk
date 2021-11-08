@@ -149,6 +149,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     } else {
       __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), con_size_in_bytes);
     }
+    __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), extra_header);
   }
 }
 
