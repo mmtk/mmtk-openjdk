@@ -71,7 +71,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     }
 
     // Only bump pointer allocator is implemented.
-    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_BUMP_POINTER_ALLOC_BIT && selector.tag != TAG_IMMIX) {
+    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_MARK_COMPACT && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
 
@@ -86,13 +86,24 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
         + selector.index * sizeof(ImmixAllocator);
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit)));
-    } else {
+    } else if(selector.tag == TAG_BUMP_POINTER) {
       allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
         + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
         + in_bytes(byte_offset_of(Allocators, bump_pointer))
         + selector.index * sizeof(BumpAllocator);
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
+    } else if (selector.tag == TAG_MARK_COMPACT) {
+      allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        + in_bytes(byte_offset_of(Allocators, markcompact))
+        + selector.index * sizeof(MarkCompactAllocator)
+        + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
+      cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
+      limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
+    } else {
+      // should never come here
+      fatal("unimplemented allocator fastpath\n");
     }
     // obj = load lab.cursor
     __ movptr(obj, cursor);
@@ -114,7 +125,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ movptr(cursor, end);
 
 // #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-  if(selector.tag == TAG_BUMP_POINTER_ALLOC_BIT) {
+  if(selector.tag == TAG_MARK_COMPACT) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);

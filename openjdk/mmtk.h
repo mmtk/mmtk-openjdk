@@ -55,6 +55,7 @@ struct AllocatorSelector {
 #define TAG_MALLOC                    2
 #define TAG_IMMIX                     3
 #define TAG_BUMP_POINTER_ALLOC_BIT    4
+#define TAG_MARK_COMPACT              5
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 extern size_t get_max_non_los_default_alloc_bytes();

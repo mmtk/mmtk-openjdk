@@ -174,7 +174,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
 
     {
       // Only bump pointer allocator fastpath is implemented.
-      if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_BUMP_POINTER_ALLOC_BIT && selector.tag != TAG_IMMIX) {
+      if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_MARK_COMPACT && selector.tag != TAG_IMMIX) {
         fatal("unimplemented allocator fastpath\n");
       }
 
@@ -188,10 +188,17 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
           + selector.index * sizeof(ImmixAllocator);
         tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor));
         tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit));
-      } else {
+      } else if (selector.tag == TAG_BUMP_POINTER) {
         int allocator_base_offset = allocators_base_offset
           + in_bytes(byte_offset_of(Allocators, bump_pointer))
           + selector.index * sizeof(BumpAllocator);
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
+      } else if (selector.tag == TAG_MARK_COMPACT) {
+        int allocator_base_offset = allocators_base_offset
+          + in_bytes(byte_offset_of(Allocators, bump_pointer))
+          + selector.index * sizeof(MarkCompactAllocator)
+          + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
         tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
         tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
       }
@@ -286,7 +293,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     fast_oop_rawmem = store_eden_top;
 
 // #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-  if(selector.tag == TAG_BUMP_POINTER_ALLOC_BIT) {
+  if(selector.tag == TAG_MARK_COMPACT) {
     // set the alloc bit:          
     // intptr_t addr = (intptr_t) (void*) fast_oop;
     // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
