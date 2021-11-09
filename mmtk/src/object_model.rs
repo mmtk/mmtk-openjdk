@@ -2,6 +2,7 @@ use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
+use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
@@ -102,8 +103,23 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         to_obj
     }
 
-    fn copy_to(_from: ObjectReference, _to: ObjectReference, _region: Address) -> Address {
-        unimplemented!()
+    fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
+        let need_copy = from != to;
+        let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
+        if need_copy {
+            // copy obj to target
+            let dst = to.to_address();
+            // Copy
+            let src = from.to_address();
+            for i in 0..bytes {
+                unsafe { (dst + i).store((src + i).load::<u8>()) };
+            }
+        }
+        let start = Self::object_start_ref(to);
+        if region != Address::ZERO {
+            fill_alignment_gap::<OpenJDK>(region, start);
+        }
+        start + bytes
     }
 
     fn get_reference_when_copied_to(_from: ObjectReference, _to: Address) -> ObjectReference {
