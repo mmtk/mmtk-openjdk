@@ -114,6 +114,19 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unsafe { ((*UPCALLS).get_object_size)(object) }
     }
 
+    fn get_size_when_copied(object: ObjectReference) -> usize {
+        Self::get_current_size(object)
+    }
+
+    fn get_align_when_copied(_object: ObjectReference) -> usize {
+        // FIXME figure out the proper alignment
+        ::std::mem::size_of::<usize>()
+    }
+
+    fn get_align_offset_when_copied(_object: ObjectReference) -> isize {
+        0
+    }
+
     fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }
