@@ -160,8 +160,4 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
             ((*UPCALLS).dump_object)(object);
         }
     }
-
-    fn object_alignment() -> i32 {
-        unsafe { ((*UPCALLS).object_alignment)() }
-    }
 }
