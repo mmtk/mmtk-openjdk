@@ -123,9 +123,12 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ jcc(Assembler::above, slow_case);
     // lab.cursor = end
     __ movptr(cursor, end);
-
+  bool enable_global_alloc_bit = false;
+  #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  enable_global_alloc_bit = true;
+  #endif
 // #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-  if(selector.tag == TAG_MARK_COMPACT) {
+  if(enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);

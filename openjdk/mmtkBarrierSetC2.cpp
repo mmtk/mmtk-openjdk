@@ -292,8 +292,12 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
+    bool enable_global_alloc_bit = false;
+    #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+    enable_global_alloc_bit = true;
+    #endif
 // #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-  if(selector.tag == TAG_MARK_COMPACT) {
+  if(enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
     // set the alloc bit:          
     // intptr_t addr = (intptr_t) (void*) fast_oop;
     // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
