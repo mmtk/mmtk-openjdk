@@ -15,6 +15,7 @@ typedef void* MMTk_TraceLocal;
 extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
+extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 
 /**
  * Allocation
@@ -58,7 +59,6 @@ struct AllocatorSelector {
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 extern size_t get_max_non_los_default_alloc_bytes();
-extern size_t get_extra_header_bytes();
 
 /**
  * Finalization

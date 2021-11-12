@@ -47,7 +47,13 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // default space.
     assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
     size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
-    size_t extra_header = MMTkMutatorContext::extra_header_bytes;
+    size_t extra_header = 0;
+    // fastpath, we only use default allocator
+    Allocator allocator = AllocatorDefault;
+    // We need to figure out which allocator we are using by querying MMTk.
+    AllocatorSelector selector = get_allocator_mapping(allocator);
+    if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
       if ((size_t)con_size_in_bytes > max_non_los_bytes - extra_header) {
@@ -59,11 +65,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
       __ cmpptr(var_size_in_bytes, max_non_los_bytes - extra_header);
       __ jcc(Assembler::aboveEqual, slow_case);
     }
-
-    // fastpath, we only use default allocator
-    Allocator allocator = AllocatorDefault;
-    // We need to figure out which allocator we are using by querying MMTk.
-    AllocatorSelector selector = get_allocator_mapping(allocator);
 
     if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
       __ jmp(slow_case);

@@ -78,7 +78,12 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // The max non-los bytes from MMTk
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
   size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
-  size_t extra_header = MMTkMutatorContext::extra_header_bytes;
+  size_t extra_header = 0;
+  // We always use the default allocator.
+  // But we need to figure out which allocator we are using by querying MMTk.
+  AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+  if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+
   // Check if allocation size is constant
   long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {
@@ -121,10 +126,6 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
       initial_slow_test = BoolNode::make_predicate(new_slow_test, &x->_igvn);
     }
   }
-
-  // We always use the default allocator.
-  // But we need to figure out which allocator we are using by querying MMTk.
-  AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
 
   if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
       // Malloc allocator has no fastpath

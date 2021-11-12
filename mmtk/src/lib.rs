@@ -129,3 +129,7 @@ lazy_static! {
         MMTK::new()
     };
 }
+
+#[no_mangle]
+pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
+    mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
