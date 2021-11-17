@@ -235,18 +235,20 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
 
     // Load(-locked) the heap top.
     // See note above concerning the control input when using a TLAB
-    Node *old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+    Node *old_eden_top; 
 
+    if (selector.tag == TAG_MARK_COMPACT) {
+      Node *offset = ConLNode::make(extra_header);
+      x->transform_later(offset);
+      Node *node = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+      x->transform_later(node);
+      old_eden_top = new AddPNode(x->top(), node, offset);
+    } else {
+      old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+    }
     x->transform_later(old_eden_top);
-
-    Node *offset = ConLNode::make(extra_header);
-    x->transform_later(offset);
-
-    Node *old_eden_top_plus_offset =  new AddPNode(x->top(), old_eden_top, offset);
-    x->transform_later(old_eden_top_plus_offset);
-
     // Add to heap top to get a new heap top
-    Node *new_eden_top = new AddPNode(x->top(), old_eden_top_plus_offset, size_in_bytes);
+    Node *new_eden_top = new AddPNode(x->top(), old_eden_top, size_in_bytes);
     x->transform_later(new_eden_top);
     // Check for needing a GC; compare against heap end
     Node *needgc_cmp = new CmpPNode(new_eden_top, eden_end);
@@ -279,7 +281,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     //                           old_eden_top, new_eden_top, length);
 
     // Name successful fast-path variables
-    Node* fast_oop = old_eden_top_plus_offset;
+    Node* fast_oop = old_eden_top;
     Node* fast_oop_ctrl;
     Node* fast_oop_rawmem;
 

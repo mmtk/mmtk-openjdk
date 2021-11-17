@@ -108,7 +108,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     }
     // obj = load lab.cursor
     __ movptr(obj, cursor);
-    __ addptr(obj, extra_header);
+    if (selector.tag == TAG_MARK_COMPACT) __ addptr(obj, extra_header);
     // end = obj + size
     Register end = t1;
     if (var_size_in_bytes == noreg) {
