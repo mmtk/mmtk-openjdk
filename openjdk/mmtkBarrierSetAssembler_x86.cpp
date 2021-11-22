@@ -94,7 +94,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
         + selector.index * sizeof(BumpAllocator);
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
-    } else if (selector.tag == TAG_MARK_COMPACT) {
+    } else {
+      // markcompact allocator
       allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
         + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
         + in_bytes(byte_offset_of(Allocators, markcompact))
@@ -102,9 +103,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
         + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
-    } else {
-      // should never come here
-      fatal("unimplemented allocator fastpath\n");
     }
     // obj = load lab.cursor
     __ movptr(obj, cursor);

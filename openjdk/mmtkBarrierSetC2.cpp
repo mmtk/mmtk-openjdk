@@ -195,7 +195,8 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
           + selector.index * sizeof(BumpAllocator);
         tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
         tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
-      } else if (selector.tag == TAG_MARK_COMPACT) {
+      } else {
+        // markcompact allocator
         int allocator_base_offset = allocators_base_offset
           + in_bytes(byte_offset_of(Allocators, bump_pointer))
           + selector.index * sizeof(MarkCompactAllocator)
