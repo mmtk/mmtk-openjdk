@@ -2,10 +2,10 @@ use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
+use mmtk::util::copy::*;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
-use mmtk::util::copy::*;
 
 pub struct VMObjectModel {}
 
@@ -89,8 +89,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         copy_context: &mut GCWorkerCopyContext<OpenJDK>,
     ) -> ObjectReference {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
-        let dst =
-            copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
         // Copy
         let src = from.to_address();
         for i in 0..bytes {
