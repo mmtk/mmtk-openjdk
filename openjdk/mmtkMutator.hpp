@@ -19,7 +19,7 @@ struct RustDynPtr {
 };
 
 // These constants should match the constants defind in mmtk::util::alloc::allocators
-const int MAX_BUMP_ALLOCATORS = 5;
+const int MAX_BUMP_ALLOCATORS = 6;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 2;
 const int MAX_MALLOC_ALLOCATORS = 1;
 const int MAX_IMMIX_ALLOCATORS = 1;
