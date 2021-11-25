@@ -12,7 +12,9 @@ extern "C" {
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
+extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
 
 /**
  * Allocation
@@ -66,7 +68,7 @@ extern void* get_finalized_object();
  * Misc
  */
 extern char* mmtk_active_barrier();
-extern void enable_collection(void *tls);
+extern void initialize_collection(void *tls);
 extern void gc_init(size_t heap_size);
 extern bool will_never_move(void* object);
 extern bool process(char* name, char* value);

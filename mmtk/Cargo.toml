@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.6.0"
+version = "0.8.0"
 authors = [" <>"]
 
 [lib]
@@ -20,7 +20,7 @@ lazy_static = "1.1"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "5047dffbee4d716ad5c5fd1a006e35d3232b64f2" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "8e50e2c3fa8b45f7e4cd4b9e87e986fb5c17b07e" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
@@ -29,6 +29,9 @@ default = []
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
+# Use the env var GLOBAL_ALLOC_BIT=1 when building OpenJDK so the fastpath for setting the alloc bit will be compiled in.
+# See README.
+global_alloc_bit = ["mmtk/global_alloc_bit"]
 
 # This compile time constant places the mark bit in the header of the object instead of on the side.
 mark_bit_in_header = []

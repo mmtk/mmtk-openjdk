@@ -277,6 +277,65 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
+#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+    // set the alloc bit:          
+    // intptr_t addr = (intptr_t) (void*) fast_oop;
+    // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
+    // intptr_t shift = (addr >> 3) & 0b111;
+    // uint8_t byte_val = *meta_addr;
+    // uint8_t new_byte_val = byte_val | (1 << shift);
+    // *meta_addr = new_byte_val;  
+    Node *obj_addr = new CastP2XNode(fast_oop_ctrl, fast_oop);
+    x->transform_later(obj_addr);
+
+    Node *addr_shift = ConINode::make(6);
+    x->transform_later(addr_shift);
+
+    Node *meta_offset = new URShiftLNode(obj_addr, addr_shift);
+    x->transform_later(meta_offset);
+
+    Node *meta_base = ConLNode::make(ALLOC_BIT_BASE_ADDRESS);
+    x->transform_later(meta_base);
+
+    Node *meta_addr = new AddLNode(meta_base, meta_offset);
+    x->transform_later(meta_addr);
+
+    Node *meta_addr_p = new CastX2PNode(meta_addr);
+    x->transform_later(meta_addr_p);
+
+    Node *meta_val = new LoadUBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypePtr::BOTTOM, TypeInt::BYTE, MemNode::unordered);
+    x->transform_later(meta_val);
+
+    Node *meta_val_shift = ConINode::make(3);
+    x->transform_later(meta_val_shift);
+
+    Node *shifted_addr = new URShiftLNode(obj_addr, meta_val_shift);
+    x->transform_later(shifted_addr);
+
+    Node *meta_val_mask = ConLNode::make(0b111);
+    x->transform_later(meta_val_mask);
+
+    Node *shifted_masked_addr = new AndLNode(shifted_addr, meta_val_mask);
+    x->transform_later(shifted_masked_addr);
+
+    Node *const_one =  ConINode::make(1);
+    x->transform_later(const_one);
+
+    Node *shifted_masked_addr_i = new ConvL2INode(shifted_masked_addr);   
+    x->transform_later(shifted_masked_addr_i);
+
+    Node *set_bit = new LShiftINode(const_one, shifted_masked_addr_i);
+    x->transform_later(set_bit);
+
+    Node *new_meta_val = new OrINode(meta_val, set_bit);
+    x->transform_later(new_meta_val);
+
+    Node *set_alloc_bit = new StoreBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypeRawPtr::BOTTOM, new_meta_val, MemNode::unordered);
+    x->transform_later(set_alloc_bit);
+
+    fast_oop_rawmem = set_alloc_bit;
+#endif
+
     InitializeNode* init = alloc->initialization();
     fast_oop_rawmem = x->initialize_object(alloc,
                                            fast_oop_ctrl, fast_oop_rawmem, fast_oop,

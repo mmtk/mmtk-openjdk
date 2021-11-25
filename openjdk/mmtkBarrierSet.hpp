@@ -38,6 +38,8 @@
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 
+const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_ALLOC_BIT_ADDRESS;
+
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
   virtual void record_modified_node(oop object) {};

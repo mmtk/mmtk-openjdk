@@ -86,8 +86,16 @@ pub struct OpenJDK_Upcalls {
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
 #[no_mangle]
+pub static GLOBAL_SIDE_METADATA_BASE_ADDRESS: uintptr_t =
+    crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize();
+
+#[no_mangle]
 pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
     crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
+
+#[no_mangle]
+pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
+    crate::mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
 
 #[derive(Default)]
 pub struct OpenJDK;

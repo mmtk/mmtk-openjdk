@@ -36,6 +36,7 @@
 #include "mmtkHeap.hpp"
 #include "mmtkMutator.hpp"
 #include "mmtkUpcalls.hpp"
+#include "mmtkVMCompanionThread.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/handles.inline.hpp"
@@ -105,6 +106,12 @@ jint MMTkHeap::initialize() {
   //barrier_set->initialize();
   BarrierSet::set_barrier_set(barrier_set);
 
+  _companion_thread = new MMTkVMCompanionThread();
+  if (!os::create_thread(_companion_thread, os::pgc_thread)) {
+    printf("Failed to create thread");
+    guarantee(false, "panic");
+  }
+  os::start_thread(_companion_thread);
   // Set up the GCTaskManager
   //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
   return JNI_OK;
@@ -124,7 +131,7 @@ void MMTkHeap::enable_collection() {
   // Otherwise it is possible that we schedule finalizer (during a GC) before the finalizer thread is ready.
   MMTkFinalizerThread::initialize();
 
-  ::enable_collection(0);
+  ::initialize_collection(0);
 }
 
 ////Previously pure abstract methods--
