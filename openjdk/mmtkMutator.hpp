@@ -23,6 +23,7 @@ const int MAX_BUMP_ALLOCATORS = 6;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 2;
 const int MAX_MALLOC_ALLOCATORS = 1;
 const int MAX_IMMIX_ALLOCATORS = 1;
+const int MAX_MARK_COMPACT_ALLOCATORS = 1;
 
 // The following types should have the same layout as the types with the same name in MMTk core (Rust)
 
@@ -63,11 +64,16 @@ struct MallocAllocator {
   RustDynPtr plan;
 };
 
+struct MarkCompactAllocator {
+  struct BumpAllocator bump_allocator;
+};
+
 struct Allocators {
   BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];
   LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
   MallocAllocator malloc[MAX_MALLOC_ALLOCATORS];
   ImmixAllocator immix[MAX_IMMIX_ALLOCATORS];
+  MarkCompactAllocator markcompact[MAX_MARK_COMPACT_ALLOCATORS];
 };
 
 struct MutatorConfig {

@@ -47,22 +47,24 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // default space.
     assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
     size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
+    size_t extra_header = 0;
+    // fastpath, we only use default allocator
+    Allocator allocator = AllocatorDefault;
+    // We need to figure out which allocator we are using by querying MMTk.
+    AllocatorSelector selector = get_allocator_mapping(allocator);
+    if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
-      if ((size_t)con_size_in_bytes > max_non_los_bytes) {
+      if ((size_t)con_size_in_bytes > max_non_los_bytes - extra_header) {
         __ jmp(slow_case);
         return;
       }
     } else {
       // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
-      __ cmpptr(var_size_in_bytes, max_non_los_bytes);
+      __ cmpptr(var_size_in_bytes, max_non_los_bytes - extra_header);
       __ jcc(Assembler::aboveEqual, slow_case);
     }
-
-    // fastpath, we only use default allocator
-    Allocator allocator = AllocatorDefault;
-    // We need to figure out which allocator we are using by querying MMTk.
-    AllocatorSelector selector = get_allocator_mapping(allocator);
 
     if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
       __ jmp(slow_case);
@@ -70,7 +72,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     }
 
     // Only bump pointer allocator is implemented.
-    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_IMMIX) {
+    if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_MARK_COMPACT && selector.tag != TAG_IMMIX) {
       fatal("unimplemented allocator fastpath\n");
     }
 
@@ -85,16 +87,26 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
         + selector.index * sizeof(ImmixAllocator);
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit)));
-    } else {
+    } else if(selector.tag == TAG_BUMP_POINTER) {
       allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
         + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
         + in_bytes(byte_offset_of(Allocators, bump_pointer))
         + selector.index * sizeof(BumpAllocator);
       cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
       limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
+    } else {
+      // markcompact allocator
+      allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
+        + in_bytes(byte_offset_of(Allocators, markcompact))
+        + selector.index * sizeof(MarkCompactAllocator)
+        + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
+      cursor = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor)));
+      limit = Address(r15_thread, allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit)));
     }
     // obj = load lab.cursor
     __ movptr(obj, cursor);
+    if (selector.tag == TAG_MARK_COMPACT) __ addptr(obj, extra_header);
     // end = obj + size
     Register end = t1;
     if (var_size_in_bytes == noreg) {
@@ -110,8 +122,12 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ jcc(Assembler::above, slow_case);
     // lab.cursor = end
     __ movptr(cursor, end);
-
-#ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  bool enable_global_alloc_bit = false;
+  #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  enable_global_alloc_bit = true;
+  #endif
+// #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  if(enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);
@@ -137,8 +153,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ shrptr(tmp3, 6);
     __ movptr(rcx, ALLOC_BIT_BASE_ADDRESS);
     __ movb(Address(rcx, tmp3), tmp2);  
-
-#endif
+  }
+// #endif
 
     // BarrierSetAssembler::incr_allocated_bytes
     if (var_size_in_bytes->is_valid()) {
@@ -146,6 +162,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     } else {
       __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), con_size_in_bytes);
     }
+    __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), extra_header);
   }
 }
 
