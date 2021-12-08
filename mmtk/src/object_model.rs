@@ -2,8 +2,8 @@ use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
-use mmtk::util::copy::*;
 use mmtk::util::alloc::fill_alignment_gap;
+use mmtk::util::copy::*;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
