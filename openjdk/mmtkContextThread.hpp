@@ -26,7 +26,7 @@
 #define MMTK_OPENJDK_MMTK_CONTEXT_THREAD_HPP
 
 #include "runtime/perfData.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/nonJavaThread.hpp"
 
 class MMTkContextThread: public NamedThread {
 public:

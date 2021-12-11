@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
@@ -46,7 +47,6 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
   MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
 
   ClassLoaderDataGraph::clear_claimed_marks();
-  CodeCache::gc_prologue();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
 #endif
@@ -65,9 +65,8 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 }
 
 static void mmtk_resume_mutators(void *tls) {
-  ClassLoaderDataGraph::purge();
-  CodeCache::gc_epilogue();
-  JvmtiExport::gc_epilogue();
+  ClassLoaderDataGraph::purge(true);
+  MMTkHeap::heap()->prune_scavengable_nmethods();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
@@ -79,7 +78,7 @@ static void mmtk_resume_mutators(void *tls) {
   log_debug(gc)("Mutators resumed. Now notify any mutators waiting for GC to finish...");
 
   {
-    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), true);
+    MutexLocker locker(MMTkHeap::heap()->gc_lock());
     mmtk_start_the_world_count++;
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
@@ -246,11 +245,11 @@ static size_t compute_klass_mem_layout_checksum() {
 }
 
 static int referent_offset() {
-  return java_lang_ref_Reference::referent_offset;
+  return java_lang_ref_Reference::referent_offset();
 }
 
 static int discovered_offset() {
-  return java_lang_ref_Reference::discovered_offset;
+  return java_lang_ref_Reference::discovered_offset();
 }
 
 static char* dump_object_string(void* object) {
@@ -262,15 +261,9 @@ static void mmtk_schedule_finalizer() {
   MMTkHeap::heap()->schedule_finalizer();
 }
 
-static void mmtk_scan_universe_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_universe_roots(cl); }
 static void mmtk_scan_jni_handle_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
-static void mmtk_scan_object_synchronizer_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
-static void mmtk_scan_management_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_management_roots(cl); }
-static void mmtk_scan_jvmti_export_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
-static void mmtk_scan_aot_loader_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
-static void mmtk_scan_system_dictionary_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
+static void mmtk_scan_vm_global_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_global_roots(cl); }
 static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_string_table_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
 static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
 static void mmtk_scan_weak_processor_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
 static void mmtk_scan_vm_thread_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
@@ -311,15 +304,9 @@ OpenJDK_Upcalls mmtk_upcalls = {
   dump_object_string,
   mmtk_scan_thread_roots,
   mmtk_scan_thread_root,
-  mmtk_scan_universe_roots,
   mmtk_scan_jni_handle_roots,
-  mmtk_scan_object_synchronizer_roots,
-  mmtk_scan_management_roots,
-  mmtk_scan_jvmti_export_roots,
-  mmtk_scan_aot_loader_roots,
-  mmtk_scan_system_dictionary_roots,
+  mmtk_scan_vm_global_roots,
   mmtk_scan_code_cache_roots,
-  mmtk_scan_string_table_roots,
   mmtk_scan_class_loader_data_graph_roots,
   mmtk_scan_weak_processor_roots,
   mmtk_scan_vm_thread_roots,

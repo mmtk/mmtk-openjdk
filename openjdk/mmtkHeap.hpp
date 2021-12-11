@@ -27,16 +27,15 @@
 
 #include "mmtkBarrierSet.hpp"
 #include "gc/shared/collectedHeap.hpp"
-#include "gc/shared/collectorPolicy.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/oopStorage.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+#include "gc/shared/space.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/workgroup.hpp"
 #include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
-#include "mmtkCollectorPolicy.hpp"
 #include "mmtkFinalizerThread.hpp"
 #include "mmtkMemoryPool.hpp"
 #include "utilities/growableArray.hpp"
@@ -47,7 +46,6 @@ class MemoryPool;
 //class mmtkGCTaskManager;
 class MMTkVMCompanionThread;
 class MMTkHeap : public CollectedHeap {
-  MMTkCollectorPolicy* _collector_policy;
   SoftRefPolicy* _soft_ref_policy;
   MMTkMemoryPool* _mmtk_pool;
   GCMemoryManager* _mmtk_manager;
@@ -61,7 +59,7 @@ class MMTkHeap : public CollectedHeap {
   MMTkVMCompanionThread* _companion_thread;
 public:
 
-  MMTkHeap(MMTkCollectorPolicy* policy);
+  MMTkHeap();
 
   void schedule_finalizer();
 
@@ -131,9 +129,6 @@ public:
   void do_full_collection(bool clear_all_soft_refs);
 
 
-  // Return the CollectorPolicy for the heap
-  CollectorPolicy* collector_policy() const ;
-
   SoftRefPolicy* soft_ref_policy();
 
   GrowableArray<GCMemoryManager*> memory_managers() ;
@@ -178,6 +173,13 @@ public:
   // Default implementation does nothing.
   void print_tracing_info() const ;
 
+  bool print_location(outputStream* st, void* addr) const;
+
+  void register_nmethod(nmethod* nm);
+  void unregister_nmethod(nmethod* nm);
+
+  void flush_nmethod(nmethod* nm);
+  void verify_nmethod(nmethod* nm);
 
   // An object is scavengable if its location may move during a scavenge.
   // (A scavenge is a GC which is not a full GC.)
@@ -196,15 +198,9 @@ public:
   void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
 
-  void scan_universe_roots(OopClosure& cl);
   void scan_jni_handle_roots(OopClosure& cl);
-  void scan_object_synchronizer_roots(OopClosure& cl);
-  void scan_management_roots(OopClosure& cl);
-  void scan_jvmti_export_roots(OopClosure& cl);
-  void scan_aot_loader_roots(OopClosure& cl);
-  void scan_system_dictionary_roots(OopClosure& cl);
+  void scan_vm_global_roots(OopClosure& cl);
   void scan_code_cache_roots(OopClosure& cl);
-  void scan_string_table_roots(OopClosure& cl);
   void scan_class_loader_data_graph_roots(OopClosure& cl);
   void scan_weak_processor_roots(OopClosure& cl);
   void scan_vm_thread_roots(OopClosure& cl);
@@ -214,6 +210,8 @@ public:
   static void (*_create_stack_scan_work)(void* mutator);
 
   jlong _last_gc_time;
+
+  void prune_scavengable_nmethods();
 };
 
 

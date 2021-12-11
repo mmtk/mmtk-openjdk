@@ -24,9 +24,7 @@
 
 #include "precompiled.hpp"
 #include "gc/shared/adaptiveSizePolicy.hpp"
-#include "gc/shared/collectorPolicy.hpp"
-#include "gc/shared/gcArguments.inline.hpp"
-#include "mmtkCollectorPolicy.hpp"
+#include "gc/shared/gcArguments.hpp"
 #include "mmtkHeap.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/globals.hpp"
@@ -36,7 +34,7 @@
 #include "utilities/defaultStream.hpp"
 
 size_t ThirdPartyHeapArguments::conservative_max_heap_alignment() {
-  return CollectorPolicy::compute_heap_alignment();
+  return compute_heap_alignment();
 }
 
 void ThirdPartyHeapArguments::initialize() {
@@ -47,6 +45,11 @@ void ThirdPartyHeapArguments::initialize() {
   FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
 }
 
+void ThirdPartyHeapArguments::initialize_alignments() {
+    SpaceAlignment =  1 << 19;
+    HeapAlignment = SpaceAlignment;
+}
+
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {
-  return create_heap_with_policy<MMTkHeap, MMTkCollectorPolicy>();
+  return new MMTkHeap();
 }

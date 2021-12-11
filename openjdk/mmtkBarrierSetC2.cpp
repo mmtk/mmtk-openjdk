@@ -34,8 +34,10 @@
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
 #include "opto/macro.hpp"
+#include "opto/movenode.hpp"
 #include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
+#include "opto/runtime.hpp"
 #include "opto/type.hpp"
 #include "utilities/macros.hpp"
 
@@ -474,7 +476,6 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // Generate slow-path call
   CallNode *call = new CallStaticJavaNode(slow_call_type, slow_call_address,
                                           OptoRuntime::stub_name(slow_call_address),
-                                          alloc->jvms()->bci(),
                                           TypePtr::BOTTOM);
   call->init_req( TypeFunc::Control, slow_region );
   call->init_req( TypeFunc::I_O    , x->top() )     ;   // does no i/o
@@ -489,7 +490,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
 
   // Copy debug information and adjust JVMState information, then replace
   // allocate node with the call
-  x->copy_call_debug_info((CallNode *) alloc,  call);
+  call->copy_call_debug_info(&(x->_igvn), (SafePointNode*) alloc);
   if (!always_slow) {
     call->set_cnt(PROB_UNLIKELY_MAG(4));  // Same effect as RC_UNCOMMON.
   } else {
@@ -510,37 +511,37 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   //
   //  We are interested in the CatchProj nodes.
   //
-  x->extract_call_projections(call);
+  call->extract_projections(&x->_callprojs, false, false);
 
   // An allocate node has separate memory projections for the uses on
   // the control and i_o paths. Replace the control memory projection with
   // result_phi_rawmem (unless we are only generating a slow call when
   // both memory projections are combined)
-  if (!always_slow && x->_memproj_fallthrough != NULL) {
-    for (DUIterator_Fast imax, i = x->_memproj_fallthrough->fast_outs(imax); i < imax; i++) {
-      Node *use = x->_memproj_fallthrough->fast_out(i);
+  if (!always_slow && x->_callprojs.fallthrough_memproj!= NULL) {
+    for (DUIterator_Fast imax, i = x->_callprojs.fallthrough_memproj->fast_outs(imax); i < imax; i++) {
+      Node *use = x->_callprojs.fallthrough_memproj->fast_out(i);
       x->_igvn.rehash_node_delayed(use);
-      imax -= x->replace_input(use, x->_memproj_fallthrough, result_phi_rawmem);
+      imax -= x->replace_input(use, x->_callprojs.fallthrough_memproj, result_phi_rawmem);
       // back up iterator
       --i;
     }
   }
   // Now change uses of _memproj_catchall to use _memproj_fallthrough and delete
   // _memproj_catchall so we end up with a call that has only 1 memory projection.
-  if (x->_memproj_catchall != NULL ) {
-    if (x->_memproj_fallthrough == NULL) {
-      x->_memproj_fallthrough = new ProjNode(call, TypeFunc::Memory);
-      x->transform_later(x->_memproj_fallthrough);
+  if (x->_callprojs.catchall_memproj != NULL ) {
+    if (x->_callprojs.fallthrough_memproj == NULL) {
+      x->_callprojs.fallthrough_memproj = new ProjNode(call, TypeFunc::Memory);
+      x->transform_later(x->_callprojs.fallthrough_memproj);
     }
-    for (DUIterator_Fast imax, i = x->_memproj_catchall->fast_outs(imax); i < imax; i++) {
-      Node *use = x->_memproj_catchall->fast_out(i);
+    for (DUIterator_Fast imax, i = x->_callprojs.catchall_memproj->fast_outs(imax); i < imax; i++) {
+      Node *use = x->_callprojs.catchall_memproj->fast_out(i);
       x->_igvn.rehash_node_delayed(use);
-      imax -= x->replace_input(use, x->_memproj_catchall, x->_memproj_fallthrough);
+      imax -= x->replace_input(use, x->_callprojs.catchall_memproj, x->_callprojs.fallthrough_memproj);
       // back up iterator
       --i;
     }
-    assert(x->_memproj_catchall->outcnt() == 0, "all uses must be deleted");
-    x->_igvn.remove_dead_node(x->_memproj_catchall);
+    assert(x->_callprojs.catchall_memproj->outcnt() == 0, "all uses must be deleted");
+    x->_igvn.remove_dead_node(x->_callprojs.catchall_memproj);
   }
 
   // An allocate node has separate i_o projections for the uses on the control
@@ -548,31 +549,31 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // otherwise incoming i_o become dead when only a slow call is generated
   // (it is different from memory projections where both projections are
   // combined in such case).
-  if (x->_ioproj_fallthrough != NULL) {
-    for (DUIterator_Fast imax, i = x->_ioproj_fallthrough->fast_outs(imax); i < imax; i++) {
-      Node *use = x->_ioproj_fallthrough->fast_out(i);
+  if (x->_callprojs.fallthrough_ioproj != NULL) {
+    for (DUIterator_Fast imax, i = x->_callprojs.fallthrough_ioproj->fast_outs(imax); i < imax; i++) {
+      Node *use = x->_callprojs.fallthrough_ioproj->fast_out(i);
       x->_igvn.rehash_node_delayed(use);
-      imax -= x->replace_input(use, x->_ioproj_fallthrough, result_phi_i_o);
+      imax -= x->replace_input(use, x->_callprojs.fallthrough_ioproj, result_phi_i_o);
       // back up iterator
       --i;
     }
   }
   // Now change uses of _ioproj_catchall to use _ioproj_fallthrough and delete
   // _ioproj_catchall so we end up with a call that has only 1 i_o projection.
-  if (x->_ioproj_catchall != NULL ) {
-    if (x->_ioproj_fallthrough == NULL) {
-      x->_ioproj_fallthrough = new ProjNode(call, TypeFunc::I_O);
-      x->transform_later(x->_ioproj_fallthrough);
+  if (x->_callprojs.catchall_ioproj != NULL ) {
+    if (x->_callprojs.fallthrough_ioproj == NULL) {
+      x->_callprojs.fallthrough_ioproj = new ProjNode(call, TypeFunc::I_O);
+      x->transform_later(x->_callprojs.fallthrough_ioproj);
     }
-    for (DUIterator_Fast imax, i = x->_ioproj_catchall->fast_outs(imax); i < imax; i++) {
-      Node *use = x->_ioproj_catchall->fast_out(i);
+    for (DUIterator_Fast imax, i = x->_callprojs.catchall_ioproj->fast_outs(imax); i < imax; i++) {
+      Node *use = x->_callprojs.catchall_ioproj->fast_out(i);
       x->_igvn.rehash_node_delayed(use);
-      imax -= x->replace_input(use, x->_ioproj_catchall, x->_ioproj_fallthrough);
+      imax -= x->replace_input(use, x->_callprojs.catchall_ioproj, x->_callprojs.fallthrough_ioproj);
       // back up iterator
       --i;
     }
-    assert(x->_ioproj_catchall->outcnt() == 0, "all uses must be deleted");
-    x->_igvn.remove_dead_node(x->_ioproj_catchall);
+    assert(x->_callprojs.catchall_ioproj->outcnt() == 0, "all uses must be deleted");
+    x->_igvn.remove_dead_node(x->_callprojs.catchall_ioproj);
   }
 
   // if we generated only a slow call, we are done
@@ -592,27 +593,27 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   }
 
 
-  if (x->_fallthroughcatchproj != NULL) {
-    ctrl = x->_fallthroughcatchproj->clone();
+  if (x->_callprojs.fallthrough_catchproj != NULL) {
+    ctrl = x->_callprojs.fallthrough_catchproj->clone();
     x->transform_later(ctrl);
-    x->_igvn.replace_node(x->_fallthroughcatchproj, result_region);
+    x->_igvn.replace_node(x->_callprojs.fallthrough_catchproj, result_region);
   } else {
     ctrl = x->top();
   }
   Node *slow_result;
-  if (x->_resproj == NULL) {
+  if (x->_callprojs.resproj == NULL) {
     // no uses of the allocation result
     slow_result = x->top();
   } else {
-    slow_result = x->_resproj->clone();
+    slow_result = x->_callprojs.resproj->clone();
     x->transform_later(slow_result);
-    x->_igvn.replace_node(x->_resproj, result_phi_rawoop);
+    x->_igvn.replace_node(x->_callprojs.resproj, result_phi_rawoop);
   }
 
   // Plug slow-path into result merge point
   result_region    ->init_req( slow_result_path, ctrl );
   result_phi_rawoop->init_req( slow_result_path, slow_result);
-  result_phi_rawmem->init_req( slow_result_path, x->_memproj_fallthrough );
+  result_phi_rawmem->init_req( slow_result_path, x->_callprojs.fallthrough_memproj );
   x->transform_later(result_region);
   x->transform_later(result_phi_rawoop);
   x->transform_later(result_phi_rawmem);

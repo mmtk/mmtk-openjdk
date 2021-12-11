@@ -135,25 +135,25 @@ public:
     }
 
     template <typename T>
-    static oop oop_atomic_cmpxchg_in_heap(oop new_value, T* addr, oop compare_value) {
+    static oop oop_atomic_cmpxchg_in_heap(T* addr, oop compare_value, oop new_value) {
       UNREACHABLE();
       return NULL;
     }
 
-    static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
-      oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
+    static oop oop_atomic_cmpxchg_in_heap_at(oop base, ptrdiff_t offset, oop compare_value, oop new_value) {
+      oop result = Raw::oop_atomic_cmpxchg_at(base, offset, compare_value, new_value);
       runtime()->record_modified_node(base);
       return result;
     }
 
     template <typename T>
-    static oop oop_atomic_xchg_in_heap(oop new_value, T* addr) {
+    static oop oop_atomic_xchg_in_heap(T* addr, oop new_value) {
       UNREACHABLE();
       return NULL;
     }
 
-    static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
-      oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
+    static oop oop_atomic_xchg_in_heap_at(oop base, ptrdiff_t offset, oop new_value) {
+      oop result = Raw::oop_atomic_xchg_at(base, offset, new_value);
       runtime()->record_modified_node(base);
       return result;
     }

@@ -121,15 +121,9 @@ typedef struct {
     char* (*dump_object_string) (void* object);
     void (*scan_thread_roots)(ProcessEdgesFn process_edges);
     void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
-    void (*scan_universe_roots) (ProcessEdgesFn process_edges);
     void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
-    void (*scan_object_synchronizer_roots) (ProcessEdgesFn process_edges);
-    void (*scan_management_roots) (ProcessEdgesFn process_edges);
-    void (*scan_jvmti_export_roots) (ProcessEdgesFn process_edges);
-    void (*scan_aot_loader_roots) (ProcessEdgesFn process_edges);
-    void (*scan_system_dictionary_roots) (ProcessEdgesFn process_edges);
+    void (*scan_vm_global_roots) (ProcessEdgesFn process_edges);
     void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
-    void (*scan_string_table_roots) (ProcessEdgesFn process_edges);
     void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
     void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
     void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);

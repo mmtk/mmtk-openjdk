@@ -31,6 +31,6 @@ MMTkContextThread::MMTkContextThread() : NamedThread() {
 }
 
 void MMTkContextThread::run() {
-  this->initialize_named_thread();
+  this->set_native_thread_name(this->name());
   start_control_collector((void*) this);
 }

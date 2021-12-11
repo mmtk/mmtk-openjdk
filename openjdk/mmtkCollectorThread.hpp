@@ -26,7 +26,7 @@
 #define MMTK_OPENJDK_MMTK_COLLECTOR_THREAD_HPP
 
 #include "runtime/perfData.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/nonJavaThread.hpp"
 
 class MMTkCollectorThread: public NamedThread {
   void* _context;

@@ -23,12 +23,14 @@
  */
 
 #include "precompiled.hpp"
-#include "aot/aotLoader.hpp"
 #include "classfile/stringTable.hpp"
+#include "classfile/classLoaderDataGraph.hpp"
 #include "code/codeCache.hpp"
+#include "gc/shared/gcArguments.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
+#include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "logging/log.hpp"
@@ -38,6 +40,9 @@
 #include "mmtkUpcalls.hpp"
 #include "mmtkVMCompanionThread.hpp"
 #include "oops/oop.inline.hpp"
+#include "opto/runtime.hpp"
+#include "prims/jvmtiExport.hpp"
+#include "runtime/jniHandles.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/java.hpp"
@@ -62,7 +67,7 @@ object iterator??!!
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
-MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) : CollectedHeap(), _last_gc_time(0), _collector_policy(policy),  _num_root_scan_tasks(0), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes))
+MMTkHeap::MMTkHeap() : CollectedHeap(), _last_gc_time(0),  _num_root_scan_tasks(0), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_always))
 // , _par_state_string(StringTable::weak_storage())
 {
   _heap = this;
@@ -72,7 +77,7 @@ jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
   assert(!UseCompressedOops , "should disable CompressedOops");
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
-  const size_t heap_size = collector_policy()->max_heap_byte_size();
+  const size_t heap_size = MaxHeapSize;
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
   size_t mmtk_heap_size = heap_size;
   /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
@@ -95,14 +100,13 @@ jint MMTkHeap::initialize() {
   //_start = (HeapWord*)heap_rs.base();
   //_end = (HeapWord*)(heap_rs.base() + heap_rs.size());
 
-  _start = (HeapWord*) starting_heap_address();
-  _end = (HeapWord*) last_heap_address();
+  ReservedHeapSpace heap_rs = Universe::reserve_heap(mmtk_heap_size, HeapAlignment);
   //  printf("start: %p, end: %p\n", _start, _end);
 
-  initialize_reserved_region(_start, _end);
+  initialize_reserved_region(heap_rs);
 
 
-  MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(reserved_region());
+  MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(heap_rs.region());
   //barrier_set->initialize();
   BarrierSet::set_barrier_set(barrier_set);
 
@@ -239,9 +243,6 @@ void MMTkHeap::do_full_collection(bool clear_all_soft_refs) {//later when gc is 
 }
 
 
-// Return the CollectorPolicy for the heap
-CollectorPolicy* MMTkHeap::collector_policy() const {return _collector_policy;}//OK
-
 SoftRefPolicy* MMTkHeap::soft_ref_policy() {return _soft_ref_policy;}//OK
 
 GrowableArray<GCMemoryManager*> MMTkHeap::memory_managers() {//may cause error
@@ -302,7 +303,7 @@ void MMTkHeap::prepare_for_verify() {
 void MMTkHeap::initialize_serviceability() {//OK
 
 
-  _mmtk_pool = new MMTkMemoryPool(_start, _end,  "MMTk pool",collector_policy()->min_heap_byte_size(), false);
+  _mmtk_pool = new MMTkMemoryPool(_start, _end, "MMTk pool", MinHeapSize, false);
 
   _mmtk_manager = new GCMemoryManager("MMTk GC", "end of GC");
   _mmtk_manager->add_pool(_mmtk_pool);
@@ -327,6 +328,20 @@ void MMTkHeap::print_tracing_info() const {
   //guarantee(false, "print tracing info not supported");
 }
 
+// Used to print information about locations in the hs_err file.
+bool MMTkHeap::print_location(outputStream* st, void* addr) const {
+  guarantee(false, "print location not supported");
+}
+
+// Registering and unregistering an nmethod (compiled code) with the heap.
+void MMTkHeap::register_nmethod(nmethod* nm) {}
+void MMTkHeap::unregister_nmethod(nmethod* nm) {}
+
+// Callback for when nmethod is about to be deleted.
+void MMTkHeap::flush_nmethod(nmethod* nm) {
+  guarantee(false, "flush nmethod not supported");
+}
+void MMTkHeap::verify_nmethod(nmethod* nm) {}
 
 // An object is scavengable if its location may move during a scavenge.
 // (A scavenge is a GC which is not a full GC.)
@@ -342,7 +357,7 @@ struct MMTkRootScanWorkScope {
   int* _num_root_scan_tasks;
   int _current_task_ordinal;
   MMTkRootScanWorkScope(int* num_root_scan_tasks): _num_root_scan_tasks(num_root_scan_tasks), _current_task_ordinal(0) {
-    _current_task_ordinal = Atomic::add(1, _num_root_scan_tasks);
+    _current_task_ordinal = Atomic::add(_num_root_scan_tasks, 1);
     if (_current_task_ordinal == 1) {
       nmethod::oops_do_marking_prologue();
     }
@@ -359,55 +374,25 @@ void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
 
 
-void MMTkHeap::scan_universe_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  Universe::oops_do(&cl);
-}
 void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
   ResourceMark rm;
   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JNIHandles::oops_do(&cl);
 }
-void MMTkHeap::scan_object_synchronizer_roots(OopClosure& cl) {
+void MMTkHeap::scan_vm_global_roots(OopClosure& cl) {
   ResourceMark rm;
   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  ObjectSynchronizer::oops_do(&cl);
-}
-void MMTkHeap::scan_management_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  Management::oops_do(&cl);
-}
-void MMTkHeap::scan_jvmti_export_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  JvmtiExport::oops_do(&cl);
-}
-void MMTkHeap::scan_aot_loader_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  AOTLoader::oops_do(&cl);
-}
-void MMTkHeap::scan_system_dictionary_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  SystemDictionary::oops_do(&cl);
+  Universe::vm_global()->oops_do(&cl);
 }
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
   ResourceMark rm;
   MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   CodeBlobToOopClosure cb_cl(&cl, true);
   {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    CodeCache::scavenge_root_nmethods_do(&cb_cl);
+    MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+    ScavengableNMethods::nmethods_do(&cb_cl);
     CodeCache::blobs_do(&cb_cl);
   }
-}
-void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  StringTable::oops_do(&cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
   ResourceMark rm;
@@ -433,20 +418,12 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
   CodeBlobToOopClosure cb_cl(&cl, true);
   CLDToOopClosure cld_cl(&cl, false);
 
-  Universe::oops_do(&cl);
   JNIHandles::oops_do(&cl);
-  ObjectSynchronizer::oops_do(&cl);
-  Management::oops_do(&cl);
-  JvmtiExport::oops_do(&cl);
-  AOTLoader::oops_do(&cl);
-  SystemDictionary::oops_do(&cl);
+  Universe::vm_global()->oops_do(&cl);
   {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+    MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);
   }
-
-  OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());
-  StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
 
   // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
   ClassLoaderDataGraph::cld_do(&cld_cl);
@@ -474,21 +451,11 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
   Threads::possibly_parallel_oops_do(is_parallel, &cl, &cb_cl);
 
   // Global Roots
-  Universe::oops_do(&cl);
   JNIHandles::oops_do(&cl);
-  ObjectSynchronizer::oops_do(&cl);
-  Management::oops_do(&cl);
-  JvmtiExport::oops_do(&cl);
-  if (UseAOT) AOTLoader::oops_do(&cl);
-  SystemDictionary::oops_do(&cl);
+  Universe::vm_global()->oops_do(&cl);
   {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+    MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);
-  }
-  if (is_parallel) {
-    StringTable::possibly_parallel_oops_do(NULL, &cl);
-  } else {
-    StringTable::oops_do(&cl);
   }
 
   // Weak refs (really needed???)
@@ -511,6 +478,10 @@ void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
 
 void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
   if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
+}
+
+void MMTkHeap::prune_scavengable_nmethods() {
+  ScavengableNMethods::prune_nmethods();
 }
 
 /*
