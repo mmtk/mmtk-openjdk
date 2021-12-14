@@ -23,31 +23,27 @@
  */
 
 #include "precompiled.hpp"
-#include "opto/arraycopynode.hpp"
-#include "opto/graphKit.hpp"
-#include "opto/idealKit.hpp"
-#include "opto/narrowptrnode.hpp"
-#include "opto/macro.hpp"
-#include "opto/type.hpp"
+#include "mmtk.h"
+#include "mmtkBarrierSet.hpp"
+#include "mmtkBarrierSetC2.hpp"
+#include "mmtkMutator.hpp"
 #include "opto/addnode.hpp"
+#include "opto/arraycopynode.hpp"
 #include "opto/callnode.hpp"
 #include "opto/compile.hpp"
+#include "opto/graphKit.hpp"
+#include "opto/idealKit.hpp"
+#include "opto/macro.hpp"
+#include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
+#include "opto/type.hpp"
 #include "utilities/macros.hpp"
-#include "mmtkBarrierSetC2.hpp"
-#include "mmtkBarrierSet.hpp"
-#include "mmtk.h"
-#include "mmtkMutator.hpp"
 
-
-void MMTkBarrierSetC2::expand_allocate(
-            PhaseMacroExpand* x,
-            AllocateNode* alloc, // allocation node to be expanded
-            Node* length,  // array length for an array allocation
-            const TypeFunc* slow_call_type, // Type of slow call
-            address slow_call_address  // Address of slow call
-    )
-{
+void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
+                                       AllocateNode* alloc, // allocation node to be expanded
+                                       Node* length,  // array length for an array allocation
+                                       const TypeFunc* slow_call_type, // Type of slow call
+                                       address slow_call_address) {  // Address of slow call
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
   Node* i_o  = alloc->in(TypeFunc::I_O);
@@ -82,11 +78,17 @@ void MMTkBarrierSetC2::expand_allocate(
   // The max non-los bytes from MMTk
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
   size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
+  size_t extra_header = 0;
+  // We always use the default allocator.
+  // But we need to figure out which allocator we are using by querying MMTk.
+  AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
+  if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+
   // Check if allocation size is constant
   long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {
     // Constant alloc size. We know it is non-negative, it is safe to cast to unsigned long and compare with size_t
-    if (((unsigned long)const_size) > max_non_los_bytes) {
+    if (((unsigned long)const_size) > max_non_los_bytes - extra_header) {
       // We know at JIT time that we need to go to slowpath
       always_slow = true;
       initial_slow_test = NULL;
@@ -95,7 +97,7 @@ void MMTkBarrierSetC2::expand_allocate(
     // Variable alloc size
 
     // Create a node for the constant and compare with size_in_bytes
-    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes);
+    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes - extra_header);
     x->transform_later(max_non_los_bytes_node);
     Node *mmtk_size_cmp = new CmpLNode(size_in_bytes, max_non_los_bytes_node);
     x->transform_later(mmtk_size_cmp);
@@ -125,13 +127,9 @@ void MMTkBarrierSetC2::expand_allocate(
     }
   }
 
-  // We always use the default allocator.
-  // But we need to figure out which allocator we are using by querying MMTk.
-  AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
-
   if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
-    // Malloc allocator has no fastpath
-    || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)) {
+      // Malloc allocator has no fastpath
+      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;
@@ -177,19 +175,36 @@ void MMTkBarrierSetC2::expand_allocate(
 
     {
       // Only bump pointer allocator fastpath is implemented.
-      if (selector.tag != TAG_BUMP_POINTER) {
+      if (selector.tag != TAG_BUMP_POINTER && selector.tag != TAG_MARK_COMPACT && selector.tag != TAG_IMMIX) {
         fatal("unimplemented allocator fastpath\n");
       }
 
       // Calculat offsets of top and end. We now assume we are using bump pointer.
-      int allocator_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
-        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators))
-        + in_bytes(byte_offset_of(Allocators, bump_pointer))
-        + selector.index * sizeof(BumpAllocator);
-
+      int allocators_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+        + in_bytes(byte_offset_of(MMTkMutatorContext, allocators));
+      int tlab_top_offset, tlab_end_offset;
+      if (selector.tag == TAG_IMMIX) {
+        int allocator_base_offset = allocators_base_offset
+          + in_bytes(byte_offset_of(Allocators, immix))
+          + selector.index * sizeof(ImmixAllocator);
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit));
+      } else if (selector.tag == TAG_BUMP_POINTER) {
+        int allocator_base_offset = allocators_base_offset
+          + in_bytes(byte_offset_of(Allocators, bump_pointer))
+          + selector.index * sizeof(BumpAllocator);
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
+      } else {
+        // markcompact allocator
+        int allocator_base_offset = allocators_base_offset
+          + in_bytes(byte_offset_of(Allocators, bump_pointer))
+          + selector.index * sizeof(MarkCompactAllocator)
+          + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
+        tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+        tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
+      }
       Node* thread = x->transform_later(new ThreadLocalNode());
-      int tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
-      int tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
       eden_top_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_top_offset);
       eden_end_adr = x->basic_plus_adr(x->top()/*not oop*/, thread, tlab_end_offset);
     }
@@ -221,8 +236,17 @@ void MMTkBarrierSetC2::expand_allocate(
 
     // Load(-locked) the heap top.
     // See note above concerning the control input when using a TLAB
-    Node *old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+    Node *old_eden_top; 
 
+    if (selector.tag == TAG_MARK_COMPACT) {
+      Node *offset = ConLNode::make(extra_header);
+      x->transform_later(offset);
+      Node *node = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+      x->transform_later(node);
+      old_eden_top = new AddPNode(x->top(), node, offset);
+    } else {
+      old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
+    }
     x->transform_later(old_eden_top);
     // Add to heap top to get a new heap top
     Node *new_eden_top = new AddPNode(x->top(), old_eden_top, size_in_bytes);
@@ -267,15 +291,80 @@ void MMTkBarrierSetC2::expand_allocate(
     // memory state.
     Node* store_eden_top =
       new StorePNode(needgc_false, contended_phi_rawmem, eden_top_adr,
-                            TypeRawPtr::BOTTOM, new_eden_top, MemNode::unordered);
+                     TypeRawPtr::BOTTOM, new_eden_top, MemNode::unordered);
     x->transform_later(store_eden_top);
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
+    bool enable_global_alloc_bit = false;
+    #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+    enable_global_alloc_bit = true;
+    #endif
+// #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
+  if(enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
+    // set the alloc bit:          
+    // intptr_t addr = (intptr_t) (void*) fast_oop;
+    // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
+    // intptr_t shift = (addr >> 3) & 0b111;
+    // uint8_t byte_val = *meta_addr;
+    // uint8_t new_byte_val = byte_val | (1 << shift);
+    // *meta_addr = new_byte_val;  
+    Node *obj_addr = new CastP2XNode(fast_oop_ctrl, fast_oop);
+    x->transform_later(obj_addr);
+
+    Node *addr_shift = ConINode::make(6);
+    x->transform_later(addr_shift);
+
+    Node *meta_offset = new URShiftLNode(obj_addr, addr_shift);
+    x->transform_later(meta_offset);
+
+    Node *meta_base = ConLNode::make(ALLOC_BIT_BASE_ADDRESS);
+    x->transform_later(meta_base);
+
+    Node *meta_addr = new AddLNode(meta_base, meta_offset);
+    x->transform_later(meta_addr);
+
+    Node *meta_addr_p = new CastX2PNode(meta_addr);
+    x->transform_later(meta_addr_p);
+
+    Node *meta_val = new LoadUBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypePtr::BOTTOM, TypeInt::BYTE, MemNode::unordered);
+    x->transform_later(meta_val);
+
+    Node *meta_val_shift = ConINode::make(3);
+    x->transform_later(meta_val_shift);
+
+    Node *shifted_addr = new URShiftLNode(obj_addr, meta_val_shift);
+    x->transform_later(shifted_addr);
+
+    Node *meta_val_mask = ConLNode::make(0b111);
+    x->transform_later(meta_val_mask);
+
+    Node *shifted_masked_addr = new AndLNode(shifted_addr, meta_val_mask);
+    x->transform_later(shifted_masked_addr);
+
+    Node *const_one =  ConINode::make(1);
+    x->transform_later(const_one);
+
+    Node *shifted_masked_addr_i = new ConvL2INode(shifted_masked_addr);   
+    x->transform_later(shifted_masked_addr_i);
+
+    Node *set_bit = new LShiftINode(const_one, shifted_masked_addr_i);
+    x->transform_later(set_bit);
+
+    Node *new_meta_val = new OrINode(meta_val, set_bit);
+    x->transform_later(new_meta_val);
+
+    Node *set_alloc_bit = new StoreBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypeRawPtr::BOTTOM, new_meta_val, MemNode::unordered);
+    x->transform_later(set_alloc_bit);
+
+    fast_oop_rawmem = set_alloc_bit;
+  }
+// #endif
+
     InitializeNode* init = alloc->initialization();
     fast_oop_rawmem = x->initialize_object(alloc,
-                                        fast_oop_ctrl, fast_oop_rawmem, fast_oop,
-                                        klass_node, length, size_in_bytes);
+                                           fast_oop_ctrl, fast_oop_rawmem, fast_oop,
+                                           klass_node, length, size_in_bytes);
 
     // If initialization is performed by an array copy, any required
     // MemBarStoreStore was already added. If the object does not
@@ -384,9 +473,9 @@ void MMTkBarrierSetC2::expand_allocate(
 
   // Generate slow-path call
   CallNode *call = new CallStaticJavaNode(slow_call_type, slow_call_address,
-                               OptoRuntime::stub_name(slow_call_address),
-                               alloc->jvms()->bci(),
-                               TypePtr::BOTTOM);
+                                          OptoRuntime::stub_name(slow_call_address),
+                                          alloc->jvms()->bci(),
+                                          TypePtr::BOTTOM);
   call->init_req( TypeFunc::Control, slow_region );
   call->init_req( TypeFunc::I_O    , x->top() )     ;   // does no i/o
   call->init_req( TypeFunc::Memory , slow_mem ); // may gc ptrs

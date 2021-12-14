@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_GC_MMTK_CONTEXTTHREAD_HPP
-#define SHARE_GC_MMTK_CONTEXTTHREAD_HPP
+#ifndef MMTK_OPENJDK_MMTK_CONTEXT_THREAD_HPP
+#define MMTK_OPENJDK_MMTK_CONTEXT_THREAD_HPP
 
 #include "runtime/perfData.hpp"
 #include "runtime/thread.hpp"
@@ -38,12 +38,8 @@ public:
     guarantee(false, "VMThread deletion must fix the race with VM termination");
   }
 
-  // Tester
-  bool is_VM_thread() const                      { return true; }
-  bool is_GC_thread() const                      { return true; }
-
   // Entry for starting vm thread
   virtual void run();
 };
 
-#endif // SHARE_VM_RUNTIME_VMTHREAD_HPP
+#endif // MMTK_OPENJDK_MMTK_CONTEXT_THREAD_HPP

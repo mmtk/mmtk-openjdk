@@ -22,21 +22,23 @@
  *
  */
 
-#ifndef SHARE_VM_GC_MMTK_NOBARRIER_HPP
-#define SHARE_VM_GC_MMTK_NOBARRIER_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_HPP
 
 #include "gc/shared/accessBarrierSupport.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/barrierSetConfig.hpp"
 #include "memory/memRegion.hpp"
+#include "mmtk.h"
+#include "mmtkBarrierSetAssembler_x86.hpp"
 #include "oops/access.hpp"
 #include "oops/accessBackend.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
-#include "mmtk.h"
-#include "mmtkBarrierSetAssembler_x86.hpp"
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
+
+const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_ALLOC_BIT_ADDRESS;
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
@@ -161,8 +163,8 @@ public:
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
-                                dst_obj, dst_offset_in_bytes, dst_raw,
-                                length);
+                                       dst_obj, dst_offset_in_bytes, dst_raw,
+                                       length);
       runtime()->record_modified_node((oop) dst_obj);
       return result;
     }
@@ -187,4 +189,4 @@ struct BarrierSet::GetType<BarrierSet::ThirdPartyHeapBarrierSet> {
 };
 
 
-#endif // SHARE_VM_GC_MMTK_NOBARRIER_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_HPP

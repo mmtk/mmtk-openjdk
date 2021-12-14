@@ -1,5 +1,5 @@
-#ifndef MMTK_H
-#define MMTK_H
+#ifndef MMTK_OPENJDK_MMTK_H
+#define MMTK_OPENJDK_MMTK_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,7 +12,10 @@ extern "C" {
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
+extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
+extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 
 /**
  * Allocation
@@ -48,10 +51,12 @@ struct AllocatorSelector {
     uint8_t index;
 };
 
-#define TAG_BUMP_POINTER    0
-#define TAG_LARGE_OBJECT    1
-#define TAG_MALLOC          2
-#define TAG_FREE_LIST       4
+#define TAG_BUMP_POINTER              0
+#define TAG_LARGE_OBJECT              1
+#define TAG_MALLOC                    2
+#define TAG_IMMIX                     3
+#define TAG_MARK_COMPACT              4
+#define TAG_FREE_LIST                 5
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
 extern size_t get_max_non_los_default_alloc_bytes();
@@ -66,7 +71,7 @@ extern void* get_finalized_object();
  * Misc
  */
 extern char* mmtk_active_barrier();
-extern void enable_collection(void *tls);
+extern void initialize_collection(void *tls);
 extern void gc_init(size_t heap_size);
 extern bool will_never_move(void* object);
 extern bool process(char* name, char* value);
@@ -131,6 +136,7 @@ typedef struct {
     void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
+    void (*prepare_for_roots_re_scanning)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
@@ -162,4 +168,4 @@ extern void harness_end();
 }
 #endif
 
-#endif // MMTK_H
+#endif // MMTK_OPENJDK_MMTK_H

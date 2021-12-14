@@ -22,14 +22,16 @@
  *
  */
 
-#include "mmtkCollectorThread.hpp"
+#include "precompiled.hpp"
 #include "mmtk.h"
+#include "mmtkCollectorThread.hpp"
 
 MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
   third_party_heap_collector = context;
-  set_name("Collector Thread");
+  set_name("MMTk Collector Thread");
 }
 
 void MMTkCollectorThread::run() {
+  this->initialize_named_thread();
   start_worker((void*) this, third_party_heap_collector);
 }

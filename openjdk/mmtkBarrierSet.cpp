@@ -22,68 +22,66 @@
  *
  */
 
-#include <cstring>
-#include "runtime/interfaceSupport.inline.hpp"
+#include "precompiled.hpp"
+#include "barriers/mmtkNoBarrier.hpp"
+#include "barriers/mmtkObjectBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
+#include "mmtkBarrierSetAssembler_x86.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
 #endif
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
-#include "mmtkBarrierSetAssembler_x86.hpp"
-#include "barriers/mmtkNoBarrier.hpp"
-#include "barriers/mmtkObjectBarrier.hpp"
 
 MMTkBarrierBase* get_selected_barrier() {
-    static MMTkBarrierBase* selected_barrier = NULL;
-    if (selected_barrier) return selected_barrier;
-    const char* barrier = mmtk_active_barrier();
-    if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
-    else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
-    else guarantee(false, "Unimplemented");
-    return selected_barrier;
+  static MMTkBarrierBase* selected_barrier = NULL;
+  if (selected_barrier) return selected_barrier;
+  const char* barrier = mmtk_active_barrier();
+  if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
+  else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
+  else guarantee(false, "Unimplemented");
+  return selected_barrier;
 }
 
-MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap): BarrierSet(
-      get_selected_barrier()->create_assembler(),
-      get_selected_barrier()->create_c1(),
-      get_selected_barrier()->create_c2(),
-      BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)
-    )
-    , _whole_heap(whole_heap)
-    , _runtime(get_selected_barrier()->create_runtime())
-    {}
+MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
+  BarrierSet(get_selected_barrier()->create_assembler(),
+             get_selected_barrier()->create_c1(),
+             get_selected_barrier()->create_c2(),
+             BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
+  _whole_heap(whole_heap),
+  _runtime(get_selected_barrier()->create_runtime()) {}
 
 void MMTkBarrierSet::write_ref_array_work(MemRegion mr) {
-    guarantee(false, "NoBarrier::write_ref_arrey_work not supported");
+  guarantee(false, "NoBarrier::write_ref_arrey_work not supported");
 }
 
 // Inform the BarrierSet that the the covered heap region that starts
 // with "base" has been changed to have the given size (possibly from 0,
 // for initialization.)
 void MMTkBarrierSet::resize_covered_region(MemRegion new_region) {
-    guarantee(false, "NoBarrier::resize_covered_region not supported");
+  guarantee(false, "NoBarrier::resize_covered_region not supported");
 }
 
 
 void MMTkBarrierSet::on_thread_destroy(Thread* thread) {
-    thread->third_party_heap_mutator.flush();
+  thread->third_party_heap_mutator.flush();
 }
 
 void MMTkBarrierSet::on_thread_attach(JavaThread* thread) {
-    thread->third_party_heap_mutator.flush();
+  thread->third_party_heap_mutator.flush();
 }
 
 void MMTkBarrierSet::on_thread_detach(JavaThread* thread) {
-    thread->third_party_heap_mutator.flush();
+  thread->third_party_heap_mutator.flush();
 }
 
 
 // If the barrier set imposes any alignment restrictions on boundaries
 // within the heap, this function tells whether they are met.
 bool MMTkBarrierSet::is_aligned(HeapWord* addr) {
-    return true;
+  return true;
 }
 
 // Print a description of the memory for the barrier set
@@ -92,5 +90,5 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 }
 
 bool MMTkBarrierSet::is_slow_path_call(address call) {
-    return runtime()->is_slow_path_call(call);
+  return runtime()->is_slow_path_call(call);
 }

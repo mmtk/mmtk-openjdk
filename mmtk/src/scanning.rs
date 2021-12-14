@@ -22,7 +22,7 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
         memory_manager::add_work_packet(
             &SINGLETON,
             WorkBucketStage::Closure,
-            W::new(buf, false, &SINGLETON),
+            W::new(buf, true, &SINGLETON),
         );
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
@@ -50,7 +50,7 @@ impl Scanning<OpenJDK> for VMScanning {
         objects: &[ObjectReference],
         worker: &mut GCWorker<OpenJDK>,
     ) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(&objects, worker);
+        crate::object_scanning::scan_objects_and_create_edges_work::<W>(objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
@@ -100,5 +100,11 @@ impl Scanning<OpenJDK> for VMScanning {
 
     fn supports_return_barrier() -> bool {
         unimplemented!()
+    }
+
+    fn prepare_for_roots_re_scanning() {
+        unsafe {
+            ((*UPCALLS).prepare_for_roots_re_scanning)();
+        }
     }
 }

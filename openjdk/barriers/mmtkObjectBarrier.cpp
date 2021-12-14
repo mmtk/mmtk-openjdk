@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
@@ -7,15 +8,15 @@ void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
 
 void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
-    intptr_t addr = (intptr_t) (void*) src;
-    uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
-    intptr_t shift = (addr >> 3) & 0b111;
-    uint8_t byte_val = *meta_addr;
-    if (((byte_val >> shift) & 1) == 1) {
-      record_modified_node_slow((void*) src);
-    }
-#else
+  intptr_t addr = (intptr_t) (void*) src;
+  uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
+  intptr_t shift = (addr >> 3) & 0b111;
+  uint8_t byte_val = *meta_addr;
+  if (((byte_val >> shift) & 1) == 1) {
     record_modified_node_slow((void*) src);
+  }
+#else
+  record_modified_node_slow((void*) src);
 #endif
 }
 
@@ -188,8 +189,8 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
