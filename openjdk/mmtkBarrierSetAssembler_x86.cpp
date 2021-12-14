@@ -64,7 +64,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // We need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(allocator);
 
-    if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
+    if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST) {
       __ jmp(slow_case);
       return;
     }
