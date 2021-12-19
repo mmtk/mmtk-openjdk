@@ -1,7 +1,7 @@
 use super::UPCALLS;
-use mmtk::util::ObjectReference;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
+use mmtk::util::ObjectReference;
 use mmtk::util::{Address, OpaquePointer};
 use std::ffi::CStr;
 use std::fmt;
@@ -67,10 +67,11 @@ pub struct Klass {
 impl Klass {
     pub const LH_NEUTRAL_VALUE: i32 = 0;
     pub const LH_INSTANCE_SLOW_PATH_BIT: i32 = 0x01;
+    #[allow(clippy::erasing_op)]
     pub const LH_LOG2_ELEMENT_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 0;
-    pub const LH_LOG2_ELEMENT_SIZE_MASK: i32  = BITS_IN_LONG as i32 - 1;
+    pub const LH_LOG2_ELEMENT_SIZE_MASK: i32 = BITS_IN_LONG as i32 - 1;
     pub const LH_HEADER_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 2;
-    pub const LH_HEADER_SIZE_MASK: i32 =  (1 << BITS_IN_BYTE) - 1;
+    pub const LH_HEADER_SIZE_MASK: i32 = (1 << BITS_IN_BYTE) - 1;
     pub unsafe fn cast<'a, T>(&self) -> &'a T {
         &*(self as *const _ as usize as *const T)
     }
@@ -263,9 +264,7 @@ pub struct OopDesc {
 impl OopDesc {
     #[inline(always)]
     pub fn start(&self) -> Address {
-        unsafe {
-            mem::transmute(self)
-        }
+        unsafe { mem::transmute(self) }
     }
 }
 
@@ -281,22 +280,18 @@ impl fmt::Debug for OopDesc {
 pub type Oop = &'static OopDesc;
 
 /// Convert ObjectReference to Oop
-impl From<ObjectReference> for Oop {
+impl From<ObjectReference> for &OopDesc {
     #[inline(always)]
     fn from(o: ObjectReference) -> Self {
-        unsafe {
-            mem::transmute(o)
-        }
+        unsafe { mem::transmute(o) }
     }
 }
 
 /// Convert Oop to ObjectReference
-impl Into<ObjectReference> for &OopDesc {
+impl From<&OopDesc> for ObjectReference {
     #[inline(always)]
-    fn into(self) -> ObjectReference {
-        unsafe {
-            mem::transmute::<&OopDesc, _>(self)
-        }
+    fn from(o: &OopDesc) -> Self {
+        unsafe { mem::transmute(o) }
     }
 }
 
@@ -331,7 +326,8 @@ impl OopDesc {
             if lh < Klass::LH_NEUTRAL_VALUE {
                 // Calculate array size
                 let array_length = self.as_array_oop::<()>().length();
-                let mut size_in_bytes: usize = (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
+                let mut size_in_bytes: usize =
+                    (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
                 size_in_bytes += Klass::layout_helper_header_size(lh) as usize;
                 (size_in_bytes + 0b111) & !0b111
             } else {
