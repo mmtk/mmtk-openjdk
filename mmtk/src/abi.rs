@@ -1,4 +1,5 @@
 use super::UPCALLS;
+use mmtk::util::ObjectReference;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
 use mmtk::util::{Address, OpaquePointer};
@@ -64,8 +65,26 @@ pub struct Klass {
 }
 
 impl Klass {
+    pub const LH_NEUTRAL_VALUE: i32 = 0;
+    pub const LH_INSTANCE_SLOW_PATH_BIT: i32 = 0x01;
+    pub const LH_LOG2_ELEMENT_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 0;
+    pub const LH_LOG2_ELEMENT_SIZE_MASK: i32  = BITS_IN_LONG as i32 - 1;
+    pub const LH_HEADER_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 2;
+    pub const LH_HEADER_SIZE_MASK: i32 =  (1 << BITS_IN_BYTE) - 1;
     pub unsafe fn cast<'a, T>(&self) -> &'a T {
         &*(self as *const _ as usize as *const T)
+    }
+    #[inline(always)]
+    const fn layout_helper_needs_slow_path(lh: i32) -> bool {
+        (lh & Self::LH_INSTANCE_SLOW_PATH_BIT) != 0
+    }
+    #[inline(always)]
+    const fn layout_helper_log2_element_size(lh: i32) -> i32 {
+        (lh >> Self::LH_LOG2_ELEMENT_SIZE_SHIFT) & Self::LH_LOG2_ELEMENT_SIZE_MASK
+    }
+    #[inline(always)]
+    const fn layout_helper_header_size(lh: i32) -> i32 {
+        (lh >> Self::LH_HEADER_SIZE_SHIFT) & Self::LH_HEADER_SIZE_MASK
     }
 }
 
@@ -238,6 +257,15 @@ pub struct OopDesc {
     pub klass: &'static Klass,
 }
 
+impl OopDesc {
+    #[inline(always)]
+    pub fn start(&self) -> Address {
+        unsafe {
+            mem::transmute(self)
+        }
+    }
+}
+
 impl fmt::Debug for OopDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let c_string = unsafe { ((*UPCALLS).dump_object_string)(mem::transmute(self)) };
@@ -249,6 +277,24 @@ impl fmt::Debug for OopDesc {
 
 pub type Oop = &'static OopDesc;
 
+impl From<ObjectReference> for Oop {
+    #[inline(always)]
+    fn from(o: ObjectReference) -> Self {
+        unsafe {
+            mem::transmute(o)
+        }
+    }
+}
+
+impl Into<ObjectReference> for &OopDesc {
+    #[inline(always)]
+    fn into(self) -> ObjectReference {
+        unsafe {
+            mem::transmute::<&OopDesc, _>(self)
+        }
+    }
+}
+
 impl OopDesc {
     pub unsafe fn as_array_oop<T>(&self) -> ArrayOop<T> {
         &*(self as *const OopDesc as *const ArrayOopDesc<T>)
@@ -256,6 +302,35 @@ impl OopDesc {
 
     pub fn get_field_address(&self, offset: i32) -> Address {
         Address::from_ref(self) + offset as isize
+    }
+
+    #[inline(always)]
+    unsafe fn size_slow(&self) -> usize {
+        ((*UPCALLS).get_object_size)(self.into())
+    }
+
+    #[inline(always)]
+    pub unsafe fn size(&self) -> usize {
+        let klass = self.klass;
+        let lh = klass.layout_helper;
+        if lh > Klass::LH_NEUTRAL_VALUE {
+            if !Klass::layout_helper_needs_slow_path(lh) {
+                lh as _
+            } else {
+                self.size_slow()
+            }
+        } else if lh <= Klass::LH_NEUTRAL_VALUE {
+            if lh < Klass::LH_NEUTRAL_VALUE {
+                let array_length = self.as_array_oop::<()>().length();
+                let mut size_in_bytes: usize = (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
+                size_in_bytes += Klass::layout_helper_header_size(lh) as usize;
+                (size_in_bytes + 0b111) & !0b111
+            } else {
+                self.size_slow()
+            }
+        } else {
+            unreachable!()
+        }
     }
 }
 
