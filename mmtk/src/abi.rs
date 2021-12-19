@@ -74,14 +74,17 @@ impl Klass {
     pub unsafe fn cast<'a, T>(&self) -> &'a T {
         &*(self as *const _ as usize as *const T)
     }
+    /// Force slow-path for instance size calculation?
     #[inline(always)]
     const fn layout_helper_needs_slow_path(lh: i32) -> bool {
         (lh & Self::LH_INSTANCE_SLOW_PATH_BIT) != 0
     }
+    /// Get log2 array element size
     #[inline(always)]
     const fn layout_helper_log2_element_size(lh: i32) -> i32 {
         (lh >> Self::LH_LOG2_ELEMENT_SIZE_SHIFT) & Self::LH_LOG2_ELEMENT_SIZE_MASK
     }
+    /// Get array header size
     #[inline(always)]
     const fn layout_helper_header_size(lh: i32) -> i32 {
         (lh >> Self::LH_HEADER_SIZE_SHIFT) & Self::LH_HEADER_SIZE_MASK
@@ -277,6 +280,7 @@ impl fmt::Debug for OopDesc {
 
 pub type Oop = &'static OopDesc;
 
+/// Convert ObjectReference to Oop
 impl From<ObjectReference> for Oop {
     #[inline(always)]
     fn from(o: ObjectReference) -> Self {
@@ -286,6 +290,7 @@ impl From<ObjectReference> for Oop {
     }
 }
 
+/// Convert Oop to ObjectReference
 impl Into<ObjectReference> for &OopDesc {
     #[inline(always)]
     fn into(self) -> ObjectReference {
@@ -304,15 +309,18 @@ impl OopDesc {
         Address::from_ref(self) + offset as isize
     }
 
+    /// Slow-path for calculating object instance size
     #[inline(always)]
     unsafe fn size_slow(&self) -> usize {
         ((*UPCALLS).get_object_size)(self.into())
     }
 
+    /// Calculate object instance size
     #[inline(always)]
     pub unsafe fn size(&self) -> usize {
         let klass = self.klass;
         let lh = klass.layout_helper;
+        // The (scalar) instance size is pre-recorded in the TIB?
         if lh > Klass::LH_NEUTRAL_VALUE {
             if !Klass::layout_helper_needs_slow_path(lh) {
                 lh as _
@@ -321,6 +329,7 @@ impl OopDesc {
             }
         } else if lh <= Klass::LH_NEUTRAL_VALUE {
             if lh < Klass::LH_NEUTRAL_VALUE {
+                // Calculate array size
                 let array_length = self.as_array_oop::<()>().length();
                 let mut size_in_bytes: usize = (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
                 size_in_bytes += Klass::layout_helper_header_size(lh) as usize;
