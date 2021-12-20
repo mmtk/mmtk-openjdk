@@ -1,3 +1,9 @@
+0.9.0 (2021-12-16)
+===
+
+* Supports the `MarkCompact` plan.
+* Updates to mmtk-core 0.9.0.
+
 0.8.0 (2021-11-01)
 ===
 
