@@ -64,6 +64,28 @@ struct ImmixAllocator {
   uint8_t alloc_slow_for_stress;
 };
 
+struct FLBlock {
+  void* Address;
+};
+
+struct FLBlockList {
+  FLBlock first;
+  FLBlock last;
+  size_t size;
+  char lock;
+};
+
+
+struct FreeListAllocator {
+  void* tls;
+  void* space;
+  RustDynPtr plan;
+  FLBlockList available_blocks [74];
+  FLBlockList available_blocks_stress [74];
+  FLBlockList unswept_blocks [74];
+  FLBlockList consumed_blocks [74];
+};
+
 struct MallocAllocator {
   void* tls;
   void* space;
@@ -79,7 +101,7 @@ struct Allocators {
   LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
   MallocAllocator malloc[MAX_MALLOC_ALLOCATORS];
   ImmixAllocator immix[MAX_IMMIX_ALLOCATORS];
-  RustDynPtr free_list[MAX_FREE_LIST_ALLOCATORS];
+  FreeListAllocator free_list[MAX_FREE_LIST_ALLOCATORS];
   MarkCompactAllocator markcompact[MAX_MARK_COMPACT_ALLOCATORS];
 };
 
