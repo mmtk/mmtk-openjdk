@@ -331,6 +331,7 @@ void MMTkHeap::print_tracing_info() const {
 // Used to print information about locations in the hs_err file.
 bool MMTkHeap::print_location(outputStream* st, void* addr) const {
   guarantee(false, "print location not supported");
+  return false;
 }
 
 // Registering and unregistering an nmethod (compiled code) with the heap.

@@ -42,6 +42,7 @@ pub struct Klass {
     valid: i32,
     pub layout_helper: i32,
     pub id: KlassID,
+    pub vtable_len: i32,
     pub super_check_offset: u32,
     pub name: OpaquePointer, // Symbol*
     pub secondary_super_cache: &'static Klass,
@@ -57,10 +58,11 @@ pub struct Klass {
     pub access_flags: i32, // AccessFlags
     pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
     pub last_biased_lock_bulk_revocation_time: i64,
-    pub prototype_header: Oop, // markOop,
+    pub prototype_header: u64, // markWord,
     pub biased_lock_revocation_count: i32,
-    pub vtable_len: i32,
     pub shared_class_path_index: i16,
+    pub shared_class_flags: u16,
+    pub archived_mirror_index: i32,
 }
 
 impl Klass {
@@ -78,38 +80,36 @@ pub struct InstanceKlass {
     pub constants: OpaquePointer,     // ConstantPool*
     pub inner_classes: OpaquePointer, // Array<jushort>*
     pub nest_members: OpaquePointer,  // Array<jushort>*
-    pub nest_host_index: u16,
     pub nest_host: &'static InstanceKlass,
+    pub permitted_subclasses: OpaquePointer, // Array<jushort>*
+    pub record_components: OpaquePointer,    // Array<RecordComponent*>*
     pub source_debug_extension: OpaquePointer, // const char*
-    pub array_name: OpaquePointer,             // Symbol*
     pub nonstatic_field_size: i32,
     pub static_field_size: i32,
-    pub generic_signature_index: u16,
-    pub source_file_name_index: u16,
-    pub static_oop_field_count: u16,
-    pub java_fields_count: u16,
     pub nonstatic_oop_map_size: i32,
     pub itable_len: i32,
+    pub nest_host_index: u16,
+    pub this_class_index: u16,
+    pub static_oop_field_count: u16,
+    pub java_fields_count: u16,
+    pub idnum_allocated_count: u16,
     pub is_marked_dependent: bool, // bool
-    pub is_being_redefined: bool,  // bool
+    pub init_state: u8,
+    pub reference_type: u8,
+    pub kind: u8,
     pub misc_flags: u16,
-    pub minor_version: u16,
-    pub major_version: u16,
     pub init_thread: OpaquePointer,         // Thread*
     pub oop_map_cache: OpaquePointer,       // OopMapCache*
     pub jni_ids: OpaquePointer,             // JNIid*
     pub methods_jmethod_ids: OpaquePointer, // jmethodID*
-    pub dep_context: usize,                 // intptr_t
-    pub osr_nmethods_head: OpaquePointer,   // nmethod*
+    pub dep_context: OpaquePointer,         // nmethodBucket*
+    pub dep_context_last_cleaned: u64,
+    pub osr_nmethods_head: OpaquePointer, // nmethod*
     // #if INCLUDE_JVMTI
     pub breakpoints: OpaquePointer,       // BreakpointInfo*
     pub previous_versions: OpaquePointer, // InstanceKlass*
     pub cached_class_file: OpaquePointer, // JvmtiCachedClassFileData*
     // #endif
-    pub idnum_allocated_count: u16,
-    pub init_state: u8,
-    pub reference_type: u8,
-    pub this_class_index: u16,
     // #if INCLUDE_JVMTI
     pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
     // #endif
@@ -306,5 +306,5 @@ pub fn validate_memory_layouts() {
             ^ mem::size_of::<TypeArrayKlass>()
             ^ mem::size_of::<ObjArrayKlass>()
     };
-    //assert_eq!(vm_checksum, binding_checksum);
+    assert_eq!(vm_checksum, binding_checksum);
 }
