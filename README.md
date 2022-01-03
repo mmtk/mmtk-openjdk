@@ -34,7 +34,7 @@ $ ssh-add
 First, clone this binding repo:
 
 ```console
-$ git clone --recursive --remote-submodules git@github.com:mmtk/mmtk-openjdk.git
+$ git clone --recurse-submodules https://github.com/mmtk/mmtk-openjdk.git
 ```
 
 The `mmtk-openjdk` binding repo is located under the `mmtk` folder, as a git-submodule of the OpenJDK repo.
