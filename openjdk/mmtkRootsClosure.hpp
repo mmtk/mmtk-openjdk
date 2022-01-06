@@ -54,7 +54,7 @@ class MMTkRootsClosure2 : public OopClosure {
   size_t _cursor;
 
   template <class T>
-  void do_oop_work(T* p) {
+  inline void do_oop_work(T* p) {
     // T heap_oop = RawAccess<>::oop_load(p);
     // if (!CompressedOops::is_null(heap_oop)) {
     //   oop obj = CompressedOops::decode_not_null(heap_oop);

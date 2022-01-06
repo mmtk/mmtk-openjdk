@@ -55,6 +55,7 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
 
+  nmethod::oops_do_marking_prologue();
   {
     JavaThreadIteratorWithHandle jtiwh;
     while (JavaThread *cur = jtiwh.next()) {
@@ -66,6 +67,7 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 
 static void mmtk_resume_mutators(void *tls) {
   ClassLoaderDataGraph::purge(true);
+  nmethod::oops_do_marking_epilogue();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
@@ -185,7 +187,8 @@ static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure2 cl(process_edges);
-  thread->oops_do(&cl, NULL);
+  MarkingCodeBlobClosure cb_cl(&cl, false);
+  thread->oops_do(&cl, &cb_cl);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {

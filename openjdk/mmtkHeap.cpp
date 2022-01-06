@@ -361,68 +361,34 @@ void MMTkHeap::verify_nmethod(nmethod* nm) {}
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
 
-template<int MAX_TASKS = 12>
-struct MMTkRootScanWorkScope {
-  int* _num_root_scan_tasks;
-  int _current_task_ordinal;
-  MMTkRootScanWorkScope(int* num_root_scan_tasks): _num_root_scan_tasks(num_root_scan_tasks), _current_task_ordinal(0) {
-    _current_task_ordinal = Atomic::add(_num_root_scan_tasks, 1);
-    if (_current_task_ordinal == 1) {
-      nmethod::oops_do_marking_prologue();
-    }
-  }
-  ~MMTkRootScanWorkScope() {
-    if (_current_task_ordinal == MAX_TASKS) {
-      _current_task_ordinal = 0;
-      nmethod::oops_do_marking_epilogue();
-    }
-  }
-};
-
 void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
 
 
 void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JNIHandles::oops_do(&cl);
 }
 void MMTkHeap::scan_vm_global_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Universe::vm_global()->oops_do(&cl);
 }
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  CodeBlobToOopClosure cb_cl(&cl, true);
-  {
-    MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    ScavengableNMethods::nmethods_do(&cb_cl);
-    CodeCache::blobs_do(&cb_cl);
-  }
+  MarkingCodeBlobClosure cb_cl(&cl, false);
+  ScavengableNMethods::nmethods_do(&cb_cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   CLDToOopClosure cld_cl(&cl, false);
   ClassLoaderDataGraph::cld_do(&cld_cl);
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   WeakProcessor::oops_do(&cl); // (really needed???)
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   VMThread::vm_thread()->oops_do(&cl, NULL);
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
 
   CodeBlobToOopClosure cb_cl(&cl, true);
   CLDToOopClosure cld_cl(&cl, false);
@@ -442,7 +408,6 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
 
 void MMTkHeap::scan_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Threads::possibly_parallel_oops_do(false, &cl, NULL);
 }
 
