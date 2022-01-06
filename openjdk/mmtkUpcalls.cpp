@@ -66,7 +66,6 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 
 static void mmtk_resume_mutators(void *tls) {
   ClassLoaderDataGraph::purge(true);
-  MMTkHeap::heap()->prune_scavengable_nmethods();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif

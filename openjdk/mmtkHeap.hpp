@@ -211,7 +211,6 @@ public:
 
   jlong _last_gc_time;
 
-  void prune_scavengable_nmethods();
 };
 
 

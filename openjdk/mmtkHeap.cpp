@@ -126,8 +126,19 @@ void MMTkHeap::schedule_finalizer() {
   MMTkFinalizerThread::instance->schedule();
 }
 
+class MMTkIsScavengable : public BoolObjectClosure {
+  bool do_object_b(oop obj) {
+    return false;
+  }
+};
+
+static MMTkIsScavengable _is_scavengable;
+
 void MMTkHeap::post_initialize() {
   CollectedHeap::post_initialize();
+
+
+  ScavengableNMethods::initialize(&_is_scavengable);
 }
 
 void MMTkHeap::enable_collection() {
@@ -335,18 +346,21 @@ bool MMTkHeap::print_location(outputStream* st, void* addr) const {
 }
 
 // Registering and unregistering an nmethod (compiled code) with the heap.
-void MMTkHeap::register_nmethod(nmethod* nm) {}
-void MMTkHeap::unregister_nmethod(nmethod* nm) {}
+void MMTkHeap::register_nmethod(nmethod* nm) {
+  ScavengableNMethods::register_nmethod(nm);
+}
+void MMTkHeap::unregister_nmethod(nmethod* nm) {
+  ScavengableNMethods::unregister_nmethod(nm);
+}
 
 // Callback for when nmethod is about to be deleted.
 void MMTkHeap::flush_nmethod(nmethod* nm) {
-  guarantee(false, "flush nmethod not supported");
 }
 void MMTkHeap::verify_nmethod(nmethod* nm) {}
 
 // An object is scavengable if its location may move during a scavenge.
 // (A scavenge is a GC which is not a full GC.)
-bool MMTkHeap::is_scavengable(oop obj) {return false;}
+bool MMTkHeap::is_scavengable(oop obj) {return true;}
 // Registering and unregistering an nmethod (compiled code) with the heap.
 // Override with specific mechanism for each specialized heap type.
 
@@ -479,10 +493,6 @@ void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
 
 void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
   if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
-}
-
-void MMTkHeap::prune_scavengable_nmethods() {
-  ScavengableNMethods::prune_nmethods();
 }
 
 /*
