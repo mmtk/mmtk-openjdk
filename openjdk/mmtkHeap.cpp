@@ -128,7 +128,7 @@ void MMTkHeap::schedule_finalizer() {
 
 class MMTkIsScavengable : public BoolObjectClosure {
   bool do_object_b(oop obj) {
-    return false;
+    return true;
   }
 };
 
@@ -357,12 +357,6 @@ void MMTkHeap::unregister_nmethod(nmethod* nm) {
 void MMTkHeap::flush_nmethod(nmethod* nm) {
 }
 void MMTkHeap::verify_nmethod(nmethod* nm) {}
-
-// An object is scavengable if its location may move during a scavenge.
-// (A scavenge is a GC which is not a full GC.)
-bool MMTkHeap::is_scavengable(oop obj) {return true;}
-// Registering and unregistering an nmethod (compiled code) with the heap.
-// Override with specific mechanism for each specialized heap type.
 
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
