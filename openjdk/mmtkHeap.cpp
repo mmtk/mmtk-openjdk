@@ -356,7 +356,9 @@ void MMTkHeap::unregister_nmethod(nmethod* nm) {
 // Callback for when nmethod is about to be deleted.
 void MMTkHeap::flush_nmethod(nmethod* nm) {
 }
-void MMTkHeap::verify_nmethod(nmethod* nm) {}
+void MMTkHeap::verify_nmethod(nmethod* nm) {
+  ScavengableNMethods::verify_nmethod(nm);
+}
 
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
@@ -368,9 +370,6 @@ void MMTkHeap::scan_static_roots(OopClosure& cl) {
 void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
   JNIHandles::oops_do(&cl);
 }
-void MMTkHeap::scan_vm_global_roots(OopClosure& cl) {
-  Universe::vm_global()->oops_do(&cl);
-}
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
   MarkingCodeBlobClosure cb_cl(&cl, false);
   ScavengableNMethods::nmethods_do(&cb_cl);
@@ -378,6 +377,9 @@ void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
   CLDToOopClosure cld_cl(&cl, false);
   ClassLoaderDataGraph::cld_do(&cld_cl);
+}
+void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
+    OopStorageSet::strong_oops_do(&cl);
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
   WeakProcessor::oops_do(&cl); // (really needed???)
@@ -394,7 +396,6 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
   CLDToOopClosure cld_cl(&cl, false);
 
   JNIHandles::oops_do(&cl);
-  Universe::vm_global()->oops_do(&cl);
   {
     MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);
@@ -402,6 +403,7 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
 
   // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
   ClassLoaderDataGraph::cld_do(&cld_cl);
+  OopStorageSet::strong_oops_do(&cl);
 
   WeakProcessor::oops_do(&cl); // (really needed???)
 }
@@ -426,11 +428,12 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
 
   // Global Roots
   JNIHandles::oops_do(&cl);
-  Universe::vm_global()->oops_do(&cl);
   {
     MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);
   }
+
+  OopStorageSet::strong_oops_do(&cl);
 
   // Weak refs (really needed???)
   WeakProcessor::oops_do(&cl);

@@ -52,6 +52,22 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanClassLoaderDataG
     }
 }
 
+pub struct ScanOopStorageSetRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+
+impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanOopStorageSetRoots<E> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanOopStorageSetRoots<E> {
+    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        unsafe {
+            ((*UPCALLS).scan_oop_storage_set_roots)(create_process_edges_work::<E> as _);
+        }
+    }
+}
+
 pub struct ScanWeakProcessorRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
 
 impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanWeakProcessorRoots<E> {

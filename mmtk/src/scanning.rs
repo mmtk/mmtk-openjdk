@@ -79,6 +79,7 @@ impl Scanning<OpenJDK> for VMScanning {
                 box ScanJNIHandlesRoots::<W>::new(),
                 box ScanCodeCacheRoots::<W>::new(),
                 box ScanClassLoaderDataGraphRoots::<W>::new(),
+                box ScanOopStorageSetRoots::<W>::new(),
                 box ScanWeakProcessorRoots::<W>::new(),
             ],
         );

@@ -199,9 +199,9 @@ public:
   void scan_thread_roots(OopClosure& cl);
 
   void scan_jni_handle_roots(OopClosure& cl);
-  void scan_vm_global_roots(OopClosure& cl);
   void scan_code_cache_roots(OopClosure& cl);
   void scan_class_loader_data_graph_roots(OopClosure& cl);
+  void scan_oop_storage_set_roots(OopClosure& cl);
   void scan_weak_processor_roots(OopClosure& cl);
   void scan_vm_thread_roots(OopClosure& cl);
 
