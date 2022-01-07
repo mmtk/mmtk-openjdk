@@ -222,10 +222,7 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process_bulk(options: *const c_char) -> bool {
     let options_str: &CStr = unsafe { CStr::from_ptr(options) };
-    memory_manager::process_bulk(
-        &SINGLETON,
-        options_str.to_str().unwrap(),
-    )
+    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
 }
 
 #[no_mangle]
