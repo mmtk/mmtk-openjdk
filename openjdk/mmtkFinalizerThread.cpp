@@ -27,6 +27,7 @@
 #include "classfile/symbolTable.hpp"
 #include "mmtk.h"
 #include "mmtkFinalizerThread.hpp"
+#include "oops/oop.inline.hpp"
 #include "prims/jvmtiImpl.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/java.hpp"

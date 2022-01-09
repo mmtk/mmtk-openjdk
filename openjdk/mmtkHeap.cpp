@@ -30,6 +30,7 @@
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
+#include "gc/shared/oopStorageSet.inline.hpp"
 #include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
