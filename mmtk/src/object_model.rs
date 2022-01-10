@@ -4,11 +4,10 @@ use super::UPCALLS;
 use crate::abi::Oop;
 use crate::{vm_metadata, OpenJDK};
 use mmtk::util::alloc::fill_alignment_gap;
+use mmtk::util::copy::*;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
-use mmtk::AllocationSemantics;
-use mmtk::CopyContext;
 
 pub struct VMObjectModel {}
 
@@ -88,17 +87,16 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     #[inline]
     fn copy(
         from: ObjectReference,
-        allocator: AllocationSemantics,
-        copy_context: &mut impl CopyContext,
+        copy: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<OpenJDK>,
     ) -> ObjectReference {
         let bytes = unsafe { Oop::from(from).size() };
-        let dst =
-            copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
         // Copy
         let src = from.to_address();
         unsafe { std::ptr::copy_nonoverlapping::<u8>(src.to_ptr(), dst.to_mut_ptr(), bytes) }
         let to_obj = unsafe { dst.to_object_reference() };
-        copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
+        copy_context.post_copy(to_obj, bytes, copy);
         to_obj
     }
 
