@@ -63,7 +63,7 @@ public:
   virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
     BarrierSetC2::clone(kit, src, dst, size, is_array);
   }
-  virtual bool array_copy_requires_gc_barriers(BasicType type) const {
+  virtual bool array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type, bool is_clone, bool is_clone_instance, ArrayCopyPhase phase) const {
     return true;
   }
   virtual bool is_gc_barrier_node(Node* node) const {

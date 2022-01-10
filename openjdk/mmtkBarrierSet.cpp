@@ -70,11 +70,11 @@ void MMTkBarrierSet::on_thread_destroy(Thread* thread) {
   thread->third_party_heap_mutator.flush();
 }
 
-void MMTkBarrierSet::on_thread_attach(JavaThread* thread) {
+void MMTkBarrierSet::on_thread_attach(Thread* thread) {
   thread->third_party_heap_mutator.flush();
 }
 
-void MMTkBarrierSet::on_thread_detach(JavaThread* thread) {
+void MMTkBarrierSet::on_thread_detach(Thread* thread) {
   thread->third_party_heap_mutator.flush();
 }
 

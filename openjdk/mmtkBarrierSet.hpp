@@ -90,8 +90,8 @@ public:
   }
 
   virtual void on_thread_destroy(Thread* thread);
-  virtual void on_thread_attach(JavaThread* thread);
-  virtual void on_thread_detach(JavaThread* thread);
+  virtual void on_thread_attach(Thread* thread);
+  virtual void on_thread_detach(Thread* thread);
 
   // Inform the BarrierSet that the the covered heap region that starts
   // with "base" has been changed to have the given size (possibly from 0,
