@@ -32,6 +32,5 @@ MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
 }
 
 void MMTkCollectorThread::run() {
-  this->set_native_thread_name(this->name());
   start_worker((void*) this, third_party_heap_collector);
 }

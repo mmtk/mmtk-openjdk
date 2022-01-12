@@ -41,7 +41,7 @@ endif
 
 $(LIB_MMTK): FORCE
 	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES) && mkdir $(JVM_LIB_OUTPUTDIR)
+	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES) && mkdir $(JVM_LIB_OUTPUTDIR)  # FIXME17: Somehow OpenJDK17 wouldn't create JVM_LIB_OUTPUTDIR, this is not a proper fix.
 	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
