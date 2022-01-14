@@ -113,7 +113,7 @@ pub extern "C" fn post_alloc(
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    !object.is_movable()
+    !object.is_movable::<OpenJDK>()
 }
 
 #[no_mangle]
@@ -156,7 +156,7 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 
 #[no_mangle]
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(object)
+    memory_manager::is_mapped_object::<OpenJDK>(object)
 }
 
 #[no_mangle]
