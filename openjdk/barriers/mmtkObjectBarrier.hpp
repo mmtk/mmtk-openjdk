@@ -156,8 +156,10 @@ class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
 public:
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
     Node* store = BarrierSetC2::store_at_resolved(access, val);
-    C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
-    if (access.is_oop()) record_modified_node(parse_access.kit(), access.base(), val.node());
+    if (access.is_oop() && access.is_parse_access()) {
+        C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+        record_modified_node(parse_access.kit(), access.base(), val.node());
+    }
     return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
