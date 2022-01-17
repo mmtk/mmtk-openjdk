@@ -1,3 +1,30 @@
+0.9.0 (2021-12-16)
+===
+
+* Supports the `MarkCompact` plan.
+* Updates to mmtk-core 0.9.0.
+
+0.8.0 (2021-11-01)
+===
+
+* Introduces A VM companion thread to trigger safe point synchronisation. This fixed a bug that
+  MMTk's call to `SafePointerSynchronize::begin()` may race with the OpenJDK's VM thread.
+* Changes `COORDINATOR_ONLY_STW` to `false`. Stopping and resuming mutators are done by the companion thread,
+  amd it is no longer a requirement for them to be done by the same GC thread.
+* Fixes a bug that for some allocations, both fastpath and slowpath were invoked.
+* Fixes a bug in generating code to set the alloc bit in C1 compiler.
+* Fixes a bug that some derived pointers were missing as roots.
+* Updates to mmtk-core 0.8.0.
+
+0.7.0 (2021-09-22)
+===
+
+* Supports the `GenImmix` plan.
+* Supports the `global_alloc_bit` feature in mmtk-core.
+* Fixes monitor misuse in the finalizer thread.
+* Fixes style for C++ code to match OpenJDK style guidelines.
+* Updates to mmtk-core 0.7.0.
+
 0.6.0 (2021-08-10)
 ===
 

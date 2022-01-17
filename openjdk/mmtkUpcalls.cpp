@@ -33,6 +33,7 @@
 #include "mmtkHeap.hpp"
 #include "mmtkRootsClosure.hpp"
 #include "mmtkUpcalls.hpp"
+#include "mmtkVMCompanionThread.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/safepoint.hpp"
@@ -41,21 +42,50 @@
 #include "runtime/vmThread.hpp"
 // #include "utilities/debug.hpp"
 
-static bool gcInProgress = false;
+static size_t mmtk_start_the_world_count = 0;
 
 static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
-  gcInProgress = true;
   MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
-  SafepointSynchronize::begin();
+
+  ClassLoaderDataGraph::clear_claimed_marks();
+  CodeCache::gc_prologue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::clear();
+#endif
+
+  log_debug(gc)("Requesting the VM to suspend all mutators...");
+  MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
+  log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
+
+  {
+    JavaThreadIteratorWithHandle jtiwh;
+    while (JavaThread *cur = jtiwh.next()) {
+      MMTkHeap::heap()->report_java_thread_yield(cur);
+    }
+  }
+  log_debug(gc)("Finished enumerating threads.");
 }
 
 static void mmtk_resume_mutators(void *tls) {
+  ClassLoaderDataGraph::purge();
+  CodeCache::gc_epilogue();
+  JvmtiExport::gc_epilogue();
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+#endif
+
   MMTkHeap::_create_stack_scan_work = NULL;
-  SafepointSynchronize::end();
-  MMTkHeap::heap()->gc_lock()->lock_without_safepoint_check();
-  gcInProgress = false;
-  MMTkHeap::heap()->gc_lock()->notify_all();
-  MMTkHeap::heap()->gc_lock()->unlock();
+
+  log_debug(gc)("Requesting the VM to resume all mutators...");
+  MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_resumed, true);
+  log_debug(gc)("Mutators resumed. Now notify any mutators waiting for GC to finish...");
+
+  {
+    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), true);
+    mmtk_start_the_world_count++;
+    MMTkHeap::heap()->gc_lock()->notify_all();
+  }
+  log_debug(gc)("Mutators notified.");
 }
 
 static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
@@ -78,15 +108,18 @@ static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
 }
 
 static void mmtk_block_for_gc() {
-  gcInProgress = true;
   MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
+  log_debug(gc)("Thread (id=%d) will block waiting for GC to finish.", Thread::current()->osthread()->thread_id());
   {
-    Monitor* gc_lock = MMTkHeap::heap()->gc_lock();
-    MutexLocker ml(gc_lock);
-    while (gcInProgress) {
-      gc_lock->wait();
+    MutexLocker locker(MMTkHeap::heap()->gc_lock());
+    size_t my_count = mmtk_start_the_world_count;
+    size_t next_count = my_count + 1;
+
+    while (mmtk_start_the_world_count < next_count) {
+      MMTkHeap::heap()->gc_lock()->wait();
     }
   }
+  log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
 }
 
 static void mmtk_out_of_memory(void* tls) {
@@ -182,7 +215,9 @@ static void mmtk_dump_object(void* object) {
 
 static size_t mmtk_get_object_size(void* object) {
   oop o = (oop) object;
-  return o->size() * HeapWordSize;
+  // Slow-dispatch only. The fast-path code is moved to rust.
+  auto klass = o->klass();
+  return klass->oop_size(o) << LogHeapWordSize;
 }
 
 static int mmtk_enter_vm() {
@@ -254,6 +289,13 @@ static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();
 }
 
+static void mmtk_prepare_for_roots_re_scanning() {
+#if COMPILER2_OR_JVMCI
+  DerivedPointerTable::update_pointers();
+  DerivedPointerTable::clear();
+#endif
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -294,4 +336,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_scan_vm_thread_roots,
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
+  mmtk_prepare_for_roots_re_scanning,
 };

@@ -5,3 +5,5 @@ cd $cur
 ./ci-test-normal.sh
 cd $cur
 ./ci-test-assertions.sh
+cd $cur
+./ci-test-global-alloc-bit.sh

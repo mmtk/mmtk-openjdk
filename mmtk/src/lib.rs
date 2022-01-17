@@ -82,13 +82,23 @@ pub struct OpenJDK_Upcalls {
     pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
+    pub prepare_for_roots_re_scanning: extern "C" fn(),
+    pub object_alignment: extern "C" fn() -> i32,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
 #[no_mangle]
+pub static GLOBAL_SIDE_METADATA_BASE_ADDRESS: uintptr_t =
+    crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize();
+
+#[no_mangle]
 pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
     crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
+
+#[no_mangle]
+pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
+    crate::mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
 
 #[derive(Default)]
 pub struct OpenJDK;
@@ -111,6 +121,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "GenCopy");
         #[cfg(feature = "marksweep")]
         std::env::set_var("MMTK_PLAN", "MarkSweep");
+        #[cfg(feature = "markcompact")]
+        std::env::set_var("MMTK_PLAN", "MarkCompact");
         #[cfg(feature = "pageprotect")]
         std::env::set_var("MMTK_PLAN", "PageProtect");
         #[cfg(feature = "immix")]
@@ -118,3 +130,7 @@ lazy_static! {
         MMTK::new()
     };
 }
+
+#[no_mangle]
+pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
+    mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
