@@ -77,6 +77,12 @@ jint MMTkHeap::initialize() {
   size_t mmtk_heap_size = heap_size;
   /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
+  // Set options
+  if (ThirdPartyHeapOptions != NULL) {
+    bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
+    guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
+  }
+
   openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();

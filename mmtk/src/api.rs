@@ -218,6 +218,14 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 }
 
 #[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn process_bulk(options: *const c_char) -> bool {
+    let options_str: &CStr = unsafe { CStr::from_ptr(options) };
+    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
+}
+
+#[no_mangle]
 pub extern "C" fn starting_heap_address() -> Address {
     memory_manager::starting_heap_address()
 }
