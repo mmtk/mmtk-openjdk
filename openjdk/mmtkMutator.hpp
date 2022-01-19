@@ -122,6 +122,7 @@ struct MMTkMutatorContext {
   HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 
   void flush();
+  void destroy();
 
   static MMTkMutatorContext bind(::Thread* current);
 

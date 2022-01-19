@@ -32,3 +32,7 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
 void MMTkMutatorContext::flush() {
   ::flush_mutator((MMTk_Mutator) this);
 }
+
+void MMTkMutatorContext::destroy() {
+  ::destroy_mutator((MMTk_Mutator) this);
+}
