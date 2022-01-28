@@ -1,6 +1,6 @@
 
-MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
-MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
+MMTK_RUST_ROOT = $(TOPDIR)/../mmtk-openjdk/mmtk
+MMTK_CPP_ROOT = $(TOPDIR)/../mmtk-openjdk/openjdk
 
 ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
@@ -41,8 +41,8 @@ endif
 
 $(LIB_MMTK): FORCE
 	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES) && mkdir $(JVM_LIB_OUTPUTDIR)  # FIXME17: Somehow OpenJDK17 wouldn't create JVM_LIB_OUTPUTDIR, this is not a proper fix.
-	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
+	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
