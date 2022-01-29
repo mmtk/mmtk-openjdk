@@ -78,7 +78,7 @@ extern bool process_bulk(char* options);
 extern void scan_region();
 extern void handle_user_collection_request(void *tls);
 
-extern void start_control_collector(void *tls);
+extern void start_control_collector(void *tls, void *context);
 extern void start_worker(void *tls, void* worker);
 
 /**
@@ -100,7 +100,7 @@ typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
 typedef struct {
     void (*stop_all_mutators) (void *tls, void (*create_stack_scan_work)(void* mutator));
     void (*resume_mutators) (void *tls);
-    void (*spawn_collector_thread) (void *tls, void *ctx);
+    void (*spawn_collector_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
