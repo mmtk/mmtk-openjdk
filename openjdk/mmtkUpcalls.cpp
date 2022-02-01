@@ -122,10 +122,23 @@ static void mmtk_block_for_gc() {
   log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
 }
 
-static void mmtk_out_of_memory(void* tls) {
-  // vm_exit_out_of_memory(0 /* size */, OOM_MALLOC_ERROR, "MMTk: Out of memory!");
-  JavaThread* THREAD = (JavaThread*) tls;
-  THROW_MSG(vmSymbols::java_lang_OutOfMemoryError(), "MMTk: Java heap space");
+static void mmtk_out_of_memory(void* tls, MmtkAllocationError err_kind) {
+  switch (err_kind) {
+  case HeapOutOfMemory :
+    // Note that we have to do nothing for the case that the Java heap is too small. Since mmtk-core already
+    // returns a nullptr back to the JVM, it automatically triggers an OOM exception since the JVM checks for
+    // OOM every (slowpath) allocation [1]. In fact, if we report and throw an OOM exception here, the VM will
+    // complain since a pending exception bit was already set when it was trying to check for OOM [2]. Hence,
+    // it is best to let the JVM take care of reporting OOM itself.
+    //
+    // [1]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L83
+    // [2]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L117
+    break;
+  case MmapOutOfMemory :
+    // Abort the VM immediately due to insufficient system resources.
+    vm_exit_out_of_memory(0, OOM_MMAP_ERROR, "MMTk: Unable to acquire more memory from the OS. Out of system resources.");
+    break;
+  }
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
