@@ -24,7 +24,6 @@
 
 #include "precompiled.hpp"
 #include "classfile/stringTable.hpp"
-#include "classfile/vmSymbols.hpp"
 #include "code/nmethod.hpp"
 #include "memory/iterator.inline.hpp"
 #include "memory/resourceArea.hpp"
@@ -40,7 +39,7 @@
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
-// #include "utilities/debug.hpp"
+#include "utilities/debug.hpp"
 
 static size_t mmtk_start_the_world_count = 0;
 
