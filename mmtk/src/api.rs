@@ -120,7 +120,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJDK>) {
-    memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
+    let mut worker = unsafe { Box::from_raw(worker) };
+    memory_manager::start_worker::<OpenJDK>(tls, &mut worker, &SINGLETON)
 }
 
 #[no_mangle]
@@ -215,6 +216,14 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
+}
+
+#[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn process_bulk(options: *const c_char) -> bool {
+    let options_str: &CStr = unsafe { CStr::from_ptr(options) };
+    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
 }
 
 #[no_mangle]
