@@ -9,16 +9,37 @@ jobs:
   test-assertions:
     runs-on: ubuntu-18.04
     steps:
-      # Checkout repos and submodules
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
+      - name: Setup env vars for paths
+        run: |
+          echo "OPENJDK_PATH=$PWD/openjdk" >> $GITHUB_ENV
+          echo "BINDING_PATH=$PWD/mmtk-openjdk" >> $GITHUB_ENV
 
-      - name: Setup Rust Toolchain
-        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
+      # Checkout MMTk OpenJDK - do this first so we can fetch metadata for OpenJDK repo
+      - name: Checkout binding
+        uses: actions/checkout@v2
+        with:
+          path: ${{ env.BINDING_PATH }}
+
+      - name: Setup env vars for project metadata
+        working-directory: ${{ env.BINDING_PATH }}
+        run: |
+          echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
+          echo "OPENJDK_REPO=`sed -n 's/^openjdk_repo.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
+          echo "OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
+
+      # Checkout OpenJDK
+      - name: Checkout OpenJDK
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.OPENJDK_REPO }}
+          ref: ${{ env.OPENJDK_VERSION }}
+          path: ${{ env.OPENJDK_PATH }}
+
       - name: Setup Environments
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-setup.sh
 
       # Run the tests with assertions
       - name: Dacapo Test (with extreme_assertions)
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-assertions.sh

@@ -16,7 +16,8 @@ jobs:
           echo "BINDING_PATH=$PWD/mmtk-openjdk" >> $GITHUB_ENV
 
       # Checkout MMTk OpenJDK - do this first so we can fetch metadata for OpenJDK repo
-      - uses: actions/checkout@v2
+      - name: Checkout binding
+        uses: actions/checkout@v2
         with:
           path: ${{ env.BINDING_PATH }}
 
@@ -28,7 +29,8 @@ jobs:
           echo "OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
 
       # Checkout OpenJDK
-      - uses: actions/checkout@v2
+      - name: Checkout OpenJDK
+        uses: actions/checkout@v2
         with:
           repository: ${{ env.OPENJDK_REPO }}
           ref: ${{ env.OPENJDK_VERSION }}
