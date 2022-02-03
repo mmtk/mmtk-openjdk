@@ -21,8 +21,8 @@ jobs:
           path: ${{ env.BINDING_PATH }}
 
       - name: Setup env vars for project metadata
+        working-directory: ${{ env.BINDING_PATH }}
         run: |
-          cd $BINDING_PATH
           echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
           echo "OPENJDK_REPO=`sed -n 's/^openjdk_repo.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
           echo "OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
@@ -35,14 +35,18 @@ jobs:
           path: ${{ env.OPENJDK_PATH }}
 
       - name: Setup Environments
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-setup.sh
 
       # Run the tests
       - name: Dacapo Tests
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-normal.sh
       - name: DaCapo Tests for Global Allocation Bit
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
 
       # Style check
       - name: Style checks
+        working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-style.sh
