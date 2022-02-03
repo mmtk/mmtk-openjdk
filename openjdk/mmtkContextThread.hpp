@@ -29,9 +29,10 @@
 #include "runtime/thread.hpp"
 
 class MMTkContextThread: public NamedThread {
+  void* context_;
 public:
   // Constructor
-  MMTkContextThread();
+  MMTkContextThread(void* context);
 
   // No destruction allowed
   ~MMTkContextThread() {

@@ -26,11 +26,11 @@
 #include "mmtk.h"
 #include "mmtkContextThread.hpp"
 
-MMTkContextThread::MMTkContextThread() : NamedThread() {
+MMTkContextThread::MMTkContextThread(void *context) : NamedThread(), context_(context) {
   set_name("MMTk Controller Context Thread");
 }
 
 void MMTkContextThread::run() {
   this->initialize_named_thread();
-  start_control_collector((void*) this);
+  start_control_collector((void*) this, context_);
 }

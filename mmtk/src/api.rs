@@ -5,6 +5,7 @@ use crate::UPCALLS;
 use libc::c_char;
 use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
+use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::opaque_pointer::*;
@@ -47,11 +48,6 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-}
-
-#[no_mangle]
-pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
-    memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
@@ -117,11 +113,22 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
+// We trust the gc_collector pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn start_control_collector(
+    tls: VMWorkerThread,
+    gc_controller: *mut GCController<OpenJDK>,
+) {
+    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
+    memory_manager::start_control_collector(&SINGLETON, tls, &mut gc_controller);
+}
+
+#[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJDK>) {
     let mut worker = unsafe { Box::from_raw(worker) };
-    memory_manager::start_worker::<OpenJDK>(tls, &mut worker, &SINGLETON)
+    memory_manager::start_worker::<OpenJDK>(&SINGLETON, tls, &mut worker)
 }
 
 #[no_mangle]

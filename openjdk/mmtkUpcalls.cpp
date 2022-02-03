@@ -86,22 +86,33 @@ static void mmtk_resume_mutators(void *tls) {
   log_debug(gc)("Mutators notified.");
 }
 
-static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
-  if (ctx == NULL) {
-    MMTkContextThread* t = new MMTkContextThread();
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
+static const int GC_THREAD_KIND_CONTROLLER = 0;
+static const int GC_THREAD_KIND_WORKER = 1;
+static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
+  switch (kind) {
+    case GC_THREAD_KIND_CONTROLLER: {
+      MMTkContextThread* t = new MMTkContextThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    case GC_THREAD_KIND_WORKER: {
+      MMTkHeap::heap()->new_collector_thread();
+      MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    default: {
+      printf("Unexpected thread kind: %d\n", kind);
       guarantee(false, "panic");
     }
-    os::start_thread(t);
-  } else {
-    MMTkHeap::heap()->new_collector_thread();
-    MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
-      guarantee(false, "panic");
-    }
-    os::start_thread(t);
   }
 }
 
