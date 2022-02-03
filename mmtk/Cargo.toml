@@ -24,7 +24,6 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "29afb0c2fc8896db9
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
-
 [features]
 default = []
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
