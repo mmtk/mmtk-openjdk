@@ -25,9 +25,9 @@ jobs:
       # Checkout OpenJDK
       - uses: actions/checkout@v2
         with:
-          repository: $OPENJDK_REPO
-          ref: $OPENJDK_VERSION
-          path: $OPENJDK_PATH
+          repository: ${{ env.OPENJDK_REPO }}
+          ref: ${{ env.OPENJDK_VERSION }}
+          path: ${{ env.OPENJDK_PATH }}
 
       - name: Setup Environments
         run: ./.github/scripts/ci-setup.sh
