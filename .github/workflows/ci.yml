@@ -10,14 +10,19 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 300
     steps:
-      # Checkout MMTk OpenJDK - do this first so we can fetch metadata for OpenJDK repo
-      - uses: actions/checkout@v2
-
-      - name: Setup env vars
+      - name: Setup env vars for paths
         run: |
-          echo $PWD
           echo "OPENJDK_PATH=$PWD/openjdk" >> $GITHUB_ENV
           echo "BINDING_PATH=$PWD/mmtk-openjdk" >> $GITHUB_ENV
+
+      # Checkout MMTk OpenJDK - do this first so we can fetch metadata for OpenJDK repo
+      - uses: actions/checkout@v2
+        with:
+          path: ${{ env.BINDING_PATH }}
+
+      - name: Setup env vars for project metadata
+        run: |
+          cd $BINDING_PATH
           echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
           echo "OPENJDK_REPO=`sed -n 's/^openjdk_repo.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
           echo "OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
