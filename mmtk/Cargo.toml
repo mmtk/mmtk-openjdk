@@ -11,6 +11,10 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 
+[package.metadata.openjdk]
+openjdk_repo = "mmtk/openjdk"
+openjdk_version = "67d5d2b16aacb2ea948552fab2323ebd0abbe924"
+
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
