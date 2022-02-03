@@ -13,6 +13,7 @@ jobs:
         run: |
           echo "OPENJDK_PATH=$PWD/openjdk" >> $GITHUB_ENV
           echo "BINDING_PATH=$PWD/mmtk-openjdk" >> $GITHUB_ENV
+          echo "DACAPO_PATH=$PWD/dacapo" >> $GITHUB_ENV
 
       # Checkout MMTk OpenJDK - do this first so we can fetch metadata for OpenJDK repo
       - name: Checkout binding

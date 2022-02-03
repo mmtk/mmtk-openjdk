@@ -8,8 +8,8 @@ rustup component add rustfmt --toolchain $RUSTUP_TOOLCHAIN
 rustup override set $RUSTUP_TOOLCHAIN
 
 # Download dacapo
-mkdir -p repos/openjdk/benchmarks
-wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/openjdk/benchmarks/dacapo-2006-10-MR2.jar
+mkdir -p $DACAPO_PATH
+wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
 
 # Install dependencies
 sudo apt-get update -y
