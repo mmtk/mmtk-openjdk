@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 
+# Metadata for the OpenJDK repository
 [package.metadata.openjdk]
 openjdk_repo = "mmtk/openjdk"
 openjdk_version = "67d5d2b16aacb2ea948552fab2323ebd0abbe924"
