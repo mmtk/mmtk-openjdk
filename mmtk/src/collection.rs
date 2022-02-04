@@ -1,6 +1,6 @@
 use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
-use mmtk::util::alloc::MmtkAllocationError;
+use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
@@ -69,7 +69,7 @@ impl Collection<OpenJDK> for VMCollection {
         // unimplemented!()
     }
 
-    fn out_of_memory(tls: VMThread, err_kind: MmtkAllocationError) {
+    fn out_of_memory(tls: VMThread, err_kind: AllocationError) {
         unsafe {
             ((*UPCALLS).out_of_memory)(tls, err_kind);
         }

@@ -11,10 +11,12 @@ extern "C" {
 
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
+
+// This has the same layout as mmtk::util::alloc::AllocationError
 typedef enum {
     HeapOutOfMemory,
     MmapOutOfMemory,
-} MmtkAllocationError;
+} MMTkAllocationError;
 
 extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
@@ -106,7 +108,7 @@ typedef struct {
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
-    void (*out_of_memory) (void *tls, MmtkAllocationError err_kind);
+    void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
     void (*compute_static_roots) (void* trace, void* tls);

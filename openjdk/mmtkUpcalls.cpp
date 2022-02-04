@@ -121,7 +121,7 @@ static void mmtk_block_for_gc() {
   log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
 }
 
-static void mmtk_out_of_memory(void* tls, MmtkAllocationError err_kind) {
+static void mmtk_out_of_memory(void* tls, MMTkAllocationError err_kind) {
   switch (err_kind) {
   case HeapOutOfMemory :
     // Note that we have to do nothing for the case that the Java heap is too small. Since mmtk-core already
