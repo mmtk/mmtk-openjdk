@@ -1,7 +1,8 @@
-use mmtk::scheduler::{GCWorker, WorkBucketStage};
+use mmtk::scheduler::WorkBucketStage;
 use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
+use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
-use mmtk::vm::{Collection, Scanning, VMBinding};
+use mmtk::vm::{Collection, GCThreadContext, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
 
 use crate::OpenJDK;
@@ -18,6 +19,9 @@ extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
         ScanStackRoot::<E>(mutator),
     );
 }
+
+const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
+const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
 impl Collection<OpenJDK> for VMCollection {
     /// With the presence of the "VM companion thread",
@@ -49,14 +53,18 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<Box<GCWorker<OpenJDK>>>) {
-        let ctx_ptr = if let Some(r) = ctx {
-            Box::into_raw(r)
-        } else {
-            std::ptr::null_mut()
+    fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<OpenJDK>) {
+        let (ctx_ptr, kind) = match ctx {
+            GCThreadContext::Controller(c) => (
+                Box::into_raw(c) as *mut libc::c_void,
+                GC_THREAD_KIND_CONTROLLER,
+            ),
+            GCThreadContext::Worker(w) => {
+                (Box::into_raw(w) as *mut libc::c_void, GC_THREAD_KIND_WORKER)
+            }
         };
         unsafe {
-            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
+            ((*UPCALLS).spawn_gc_thread)(tls, kind, ctx_ptr);
         }
     }
 
@@ -66,6 +74,12 @@ impl Collection<OpenJDK> for VMCollection {
         _m: &T,
     ) {
         // unimplemented!()
+    }
+
+    fn out_of_memory(tls: VMThread, err_kind: AllocationError) {
+        unsafe {
+            ((*UPCALLS).out_of_memory)(tls, err_kind);
+        }
     }
 
     fn schedule_finalization(_tls: VMWorkerThread) {
