@@ -26,7 +26,7 @@ jobs:
         working-directory: ${{ env.BINDING_PATH }}
         run: |
           echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
-          echo "OPENJDK_REPO=`sed -n 's/^openjdk_repo.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
+          echo "OPENJDK_REPO=`sed -n 's/^openjdk_repo.=."https:\/\/github.com\/\(.*\).git"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
           echo "OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk/Cargo.toml`" >> $GITHUB_ENV
 
       # Checkout OpenJDK
