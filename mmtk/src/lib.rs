@@ -13,7 +13,7 @@ extern crate lazy_static;
 use std::ptr::null_mut;
 
 use libc::{c_char, c_void, uintptr_t};
-use mmtk::scheduler::GCWorker;
+use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
@@ -45,8 +45,9 @@ pub struct OpenJDK_Upcalls {
         create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<OpenJDK>),
     ),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
-    pub spawn_worker_thread: extern "C" fn(tls: VMThread, ctx: *mut GCWorker<OpenJDK>),
+    pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
+    pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),

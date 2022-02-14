@@ -114,7 +114,7 @@ jint MMTkHeap::initialize() {
 
   _companion_thread = new MMTkVMCompanionThread();
   if (!os::create_thread(_companion_thread, os::pgc_thread)) {
-    printf("Failed to create thread");
+    fprintf(stderr, "Failed to create thread");
     guarantee(false, "panic");
   }
   os::start_thread(_companion_thread);
@@ -503,9 +503,6 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
 
 HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
   HeapWord* obj = Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize);
-  // post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
-  // printf("offset: %ld\n", ((size_t) &Thread::current()->third_party_heap_mutator) - ((size_t) Thread::current()));
-  guarantee(obj, "MMTk gave us null!");
   return obj;
 }
 

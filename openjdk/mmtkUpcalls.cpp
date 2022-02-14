@@ -39,6 +39,7 @@
 #include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
+#include "utilities/debug.hpp"
 
 static size_t mmtk_start_the_world_count = 0;
 
@@ -86,22 +87,33 @@ static void mmtk_resume_mutators(void *tls) {
   log_debug(gc)("Mutators notified.");
 }
 
-static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
-  if (ctx == NULL) {
-    MMTkContextThread* t = new MMTkContextThread();
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
+static const int GC_THREAD_KIND_CONTROLLER = 0;
+static const int GC_THREAD_KIND_WORKER = 1;
+static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
+  switch (kind) {
+    case GC_THREAD_KIND_CONTROLLER: {
+      MMTkContextThread* t = new MMTkContextThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    case GC_THREAD_KIND_WORKER: {
+      MMTkHeap::heap()->new_collector_thread();
+      MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    default: {
+      printf("Unexpected thread kind: %d\n", kind);
       guarantee(false, "panic");
     }
-    os::start_thread(t);
-  } else {
-    MMTkHeap::heap()->new_collector_thread();
-    MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
-      guarantee(false, "panic");
-    }
-    os::start_thread(t);
   }
 }
 
@@ -118,6 +130,25 @@ static void mmtk_block_for_gc() {
     }
   }
   log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
+}
+
+static void mmtk_out_of_memory(void* tls, MMTkAllocationError err_kind) {
+  switch (err_kind) {
+  case HeapOutOfMemory :
+    // Note that we have to do nothing for the case that the Java heap is too small. Since mmtk-core already
+    // returns a nullptr back to the JVM, it automatically triggers an OOM exception since the JVM checks for
+    // OOM every (slowpath) allocation [1]. In fact, if we report and throw an OOM exception here, the VM will
+    // complain since a pending exception bit was already set when it was trying to check for OOM [2]. Hence,
+    // it is best to let the JVM take care of reporting OOM itself.
+    //
+    // [1]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L83
+    // [2]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L117
+    break;
+  case MmapOutOfMemory :
+    // Abort the VM immediately due to insufficient system resources.
+    vm_exit_out_of_memory(0, OOM_MMAP_ERROR, "MMTk: Unable to acquire more memory from the OS. Out of system resources.");
+    break;
+  }
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
@@ -293,6 +324,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_resume_mutators,
   mmtk_spawn_collector_thread,
   mmtk_block_for_gc,
+  mmtk_out_of_memory,
   mmtk_get_next_mutator,
   mmtk_reset_mutator_iterator,
   mmtk_compute_static_roots,
