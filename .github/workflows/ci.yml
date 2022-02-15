@@ -7,19 +7,19 @@ on:
 
 jobs:
   test_normal:
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/tests.yml
     with:
       test_normal: true
   test_alloc_bit:
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/tests.yml
     with:
       test_alloc_bit: true
   test_assertions:
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/tests.yml
     with:
       test_assertions: true
   style_check:
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/tests.yml
     with:
       style_check: true
 

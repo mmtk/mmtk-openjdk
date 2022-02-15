@@ -9,7 +9,7 @@ on:
       test_alloc_bit:
         type: boolean
         default: false
-      test_assert:
+      test_assertions:
         type: boolean
         default: false
       style_check:
@@ -61,7 +61,7 @@ jobs:
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
       - name: Dacapo Tests for assertions enabled
-        if: ${{ inputs.test_assert }}
+        if: ${{ inputs.test_assertions }}
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-assertions.sh
 
