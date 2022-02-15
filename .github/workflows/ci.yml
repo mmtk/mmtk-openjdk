@@ -10,16 +10,19 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       test_normal: true
+      binding_ref: ${{ github.sha }}
   test_alloc_bit:
     uses: ./.github/workflows/tests.yml
     with:
       test_alloc_bit: true
+      binding_ref: ${{ github.sha }}
   test_assertions:
     uses: ./.github/workflows/tests.yml
     with:
       test_assertions: true
+      binding_ref: ${{ github.sha }}
   style_check:
     uses: ./.github/workflows/tests.yml
     with:
       style_check: true
-
+      binding_ref: ${{ github.sha }}

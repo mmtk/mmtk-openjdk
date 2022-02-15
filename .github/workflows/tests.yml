@@ -15,6 +15,9 @@ on:
       style_check:
         type: boolean
         default: false
+      binding_ref:
+        type: string
+        required: true
 
 jobs:
   test:
@@ -30,7 +33,11 @@ jobs:
       - name: Checkout binding
         uses: actions/checkout@v2
         with:
+          # We need to be explicit about the repository. Otherwise when calling this workflow from other repos,
+          # checkout will be confused.
+          repository: mmtk/mmtk-openjdk
           path: ${{ env.BINDING_PATH }}
+          ref: ${{ inputs.binding_ref }}
 
       - name: Setup env vars for project metadata
         working-directory: ${{ env.BINDING_PATH }}
