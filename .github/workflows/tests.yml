@@ -3,6 +3,9 @@ name: OpenJDK Binding Tests
 on:
   workflow_call:
     inputs:
+      run_all:
+        type: boolean
+        default: false
       test_normal:
         type: boolean
         default: false
@@ -60,20 +63,20 @@ jobs:
 
       # Run the tests
       - name: Dacapo Tests
-        if: ${{ inputs.test_normal }}
+        if: ${{ inputs.run_all || inputs.test_normal }}
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-normal.sh
       - name: DaCapo Tests for Global Allocation Bit
-        if: ${{ inputs.test_alloc_bit }}
+        if: ${{ inputs.run_all || inputs.test_alloc_bit }}
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
       - name: Dacapo Tests for assertions enabled
-        if: ${{ inputs.test_assertions }}
+        if: ${{ inputs.run_all || inputs.test_assertions }}
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-test-assertions.sh
 
       # Style check
       - name: Style checks
-        if: ${{ inputs.style_check }}
+        if: ${{ inputs.run_all || inputs.style_check }}
         working-directory: ${{ env.BINDING_PATH }}
         run: ./.github/scripts/ci-style.sh
