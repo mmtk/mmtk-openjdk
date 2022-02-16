@@ -1,3 +1,11 @@
+0.10.0 (2022-02-14)
+===
+
+* Implements a fastpath for `ObjectModel::get_current_size()` in Rust.
+* Supports setting MMTk options by `-XX:THIRD_PARTY_HEAP_OPTIONS=`
+* Supports proper OutOfMemory exceptions.
+* Upudates to mmtk-core 0.10.0.
+
 0.9.0 (2021-12-16)
 ===
 
