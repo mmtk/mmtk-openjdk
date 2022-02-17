@@ -1,5 +1,7 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 # Install nightly rust
 rustup toolchain install $RUSTUP_TOOLCHAIN
 rustup target add i686-unknown-linux-gnu --toolchain $RUSTUP_TOOLCHAIN
