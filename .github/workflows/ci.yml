@@ -6,23 +6,27 @@ on:
       - master
 
 jobs:
-  test_normal:
-    uses: ./.github/workflows/tests.yml
-    with:
-      test_normal: true
-      binding_ref: ${{ github.sha }}
-  test_alloc_bit:
-    uses: ./.github/workflows/tests.yml
-    with:
-      test_alloc_bit: true
-      binding_ref: ${{ github.sha }}
-  test_assertions:
-    uses: ./.github/workflows/tests.yml
-    with:
-      test_assertions: true
-      binding_ref: ${{ github.sha }}
-  style_check:
-    uses: ./.github/workflows/tests.yml
-    with:
-      style_check: true
-      binding_ref: ${{ github.sha }}
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Setup env vars for paths
+        run: |
+          echo "OPENJDK_PATH=$PWD/openjdk" >> $GITHUB_ENV
+          echo "BINDING_PATH=$PWD/mmtk-openjdk" >> $GITHUB_ENV
+          echo "DACAPO_PATH=$PWD/dacapo" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+        with:
+          path: ${{ env.BINDING_PATH }}
+      - name: Setup environments
+        working-directory: ${{ env.BINDING_PATH }}
+        run: |
+          .github/scripts/ci-checkout.sh
+          .github/scripts/ci-setup.sh
+      - name: Run Tests
+        working-directory: ${{ env.BINDING_PATH }}
+        run: |
+          .github/scripts/ci-test.sh
+      - name: Style check
+        working-directory: ${{ env.BINDING_PATH }}
+        run: |
+          .github/scripts/ci-style.sh
