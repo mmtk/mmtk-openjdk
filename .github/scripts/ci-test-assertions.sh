@@ -1,5 +1,7 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 unset JAVA_TOOL_OPTIONS
 
 # To OpenJDK folder
