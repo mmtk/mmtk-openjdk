@@ -22,6 +22,5 @@ jobs:
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
 
       # Style check
-      - name: Style check
-        run: |
-          ./.github/scripts/ci-style.sh
+      - name: Style checks
+        run: ./.github/scripts/ci-style.sh
