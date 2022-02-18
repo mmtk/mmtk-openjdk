@@ -4,15 +4,15 @@ set -xe
 
 export RUSTFLAGS="-D warnings"
 
-pushd $BINDGING_PATH/mmtk
+pushd $BINDING_PATH/mmtk
 cargo clippy
 cargo clippy --release
 
 cargo fmt -- --check
 popd
 
-find $BINDGING_PATH/openjdk \
-    $BINDGING_PATH/mmtk \
+find $BINDING_PATH/openjdk \
+    $BINDING_PATH/mmtk \
     -name '*.hpp' \
     -o -name '*.cpp' \
     -o -name '*.rs' \
