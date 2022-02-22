@@ -49,7 +49,6 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 
   ClassLoaderDataGraph::clear_claimed_marks();
   CodeCache::gc_prologue();
-  BiasedLocking::preserve_marks();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
 #endif
@@ -65,6 +64,7 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
     }
   }
   log_debug(gc)("Finished enumerating threads.");
+  BiasedLocking::preserve_marks();
   nmethod::oops_do_marking_prologue();
 }
 
