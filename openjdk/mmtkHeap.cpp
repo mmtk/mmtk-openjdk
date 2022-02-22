@@ -343,98 +343,50 @@ bool MMTkHeap::is_scavengable(oop obj) {return false;}
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
 
-template<int MAX_TASKS = 12>
-struct MMTkRootScanWorkScope {
-  int* _num_root_scan_tasks;
-  int _current_task_ordinal;
-  MMTkRootScanWorkScope(int* num_root_scan_tasks): _num_root_scan_tasks(num_root_scan_tasks), _current_task_ordinal(0) {
-    _current_task_ordinal = Atomic::add(1, _num_root_scan_tasks);
-    if (_current_task_ordinal == 1) {
-      nmethod::oops_do_marking_prologue();
-    }
-  }
-  ~MMTkRootScanWorkScope() {
-    if (_current_task_ordinal == MAX_TASKS) {
-      _current_task_ordinal = 0;
-      nmethod::oops_do_marking_epilogue();
-    }
-  }
-};
-
 void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
 
 
 void MMTkHeap::scan_universe_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Universe::oops_do(&cl);
 }
 void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JNIHandles::oops_do(&cl);
 }
 void MMTkHeap::scan_object_synchronizer_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   ObjectSynchronizer::oops_do(&cl);
 }
 void MMTkHeap::scan_management_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Management::oops_do(&cl);
 }
 void MMTkHeap::scan_jvmti_export_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JvmtiExport::oops_do(&cl);
 }
 void MMTkHeap::scan_aot_loader_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   AOTLoader::oops_do(&cl);
 }
 void MMTkHeap::scan_system_dictionary_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   SystemDictionary::oops_do(&cl);
-}
-void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  CodeBlobToOopClosure cb_cl(&cl, true);
-  {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    CodeCache::scavenge_root_nmethods_do(&cb_cl);
-    CodeCache::blobs_do(&cb_cl);
-  }
-}
-void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  StringTable::oops_do(&cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  CLDToOopClosure cld_cl(&cl, false);
-  ClassLoaderDataGraph::cld_do(&cld_cl);
-}
-void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  WeakProcessor::oops_do(&cl); // (really needed???)
+  CLDToOopClosure cld_cl(&cl);
+  ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   VMThread::vm_thread()->oops_do(&cl, NULL);
 }
 
 void MMTkHeap::scan_global_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
 
   CodeBlobToOopClosure cb_cl(&cl, true);
   CLDToOopClosure cld_cl(&cl, false);
@@ -462,7 +414,6 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
 
 void MMTkHeap::scan_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Threads::possibly_parallel_oops_do(false, &cl, NULL);
 }
 
@@ -515,6 +466,15 @@ void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
 void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
   if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
 }
+
+void MMTkHeap::register_nmethod(nmethod* nm) {
+  CodeCache::register_scavenge_root_nmethod(nm);
+}
+
+void MMTkHeap::verify_nmethod(nmethod* nm) {
+  CodeCache::verify_scavenge_root_nmethod(nm);
+}
+
 
 /*
  * files with prints currently:

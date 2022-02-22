@@ -40,6 +40,7 @@
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/debug.hpp"
+#include "gc/shared/weakProcessor.hpp"
 
 static size_t mmtk_start_the_world_count = 0;
 
@@ -48,6 +49,7 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
 
   ClassLoaderDataGraph::clear_claimed_marks();
   CodeCache::gc_prologue();
+  BiasedLocking::preserve_marks();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
 #endif
@@ -63,10 +65,12 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
     }
   }
   log_debug(gc)("Finished enumerating threads.");
+  nmethod::oops_do_marking_prologue();
 }
 
 static void mmtk_resume_mutators(void *tls) {
   ClassLoaderDataGraph::purge();
+  BiasedLocking::restore_marks();
   CodeCache::gc_epilogue();
   JvmtiExport::gc_epilogue();
 #if COMPILER2_OR_JVMCI
@@ -302,10 +306,7 @@ static void mmtk_scan_management_roots(ProcessEdgesFn process_edges) { MMTkRoots
 static void mmtk_scan_jvmti_export_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
 static void mmtk_scan_aot_loader_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
 static void mmtk_scan_system_dictionary_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
-static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_string_table_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_string_table_roots(cl); }
 static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
-static void mmtk_scan_weak_processor_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
 static void mmtk_scan_vm_thread_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 static size_t mmtk_number_of_mutators() {
@@ -317,6 +318,59 @@ static void mmtk_prepare_for_roots_re_scanning() {
   DerivedPointerTable::update_pointers();
   DerivedPointerTable::clear();
 #endif
+}
+
+static int32_t mmtk_object_alignment() {
+  ShouldNotReachHere();
+  return 0;
+}
+
+class MMTkIsAliveClosure : public BoolObjectClosure {
+public:
+  virtual bool do_object_b(oop p) {
+    return mmtk_is_live((void*) p) != 0;
+  }
+};
+
+class MMTkForwardClosure : public OopClosure {
+ public:
+  virtual void do_oop(oop* o) {
+    *o = (oop) mmtk_get_forwarded_ref((void*) *o);
+  }
+  virtual void do_oop(narrowOop* o) {}
+};
+
+/// Clean up the weak-ref storage and update pointers.
+static void mmtk_process_weak_ref() {
+
+  HandleMark hm;
+
+  MMTkIsAliveClosure is_alive;
+  MMTkForwardClosure forward;
+
+  nmethod::oops_do_marking_epilogue();
+
+  WeakProcessor::weak_oops_do(&is_alive, &forward);
+
+  // TODO: uncomment below to support class unloading
+  // bool purged_class = SystemDictionary::do_unloading(NULL);
+  bool purged_class = false;
+
+  CodeBlobToOopClosure adjust_from_blobs(&forward, CodeBlobToOopClosure::FixRelocations);
+  CodeCache::blobs_do(&adjust_from_blobs);
+  CodeCache::do_unloading(&is_alive, purged_class);
+  Klass::clean_weak_klass_links(purged_class);
+
+  StringTable::oops_do(&forward);
+  StringTable::unlink(&is_alive);
+
+  SymbolTable::unlink();
+
+  // TODO: Enable below to support class unloading
+  // ClassLoaderDataGraph::clear_claimed_marks();
+  // CLDToOopClosure adjust_cld_closure(&forward);
+  // ClassLoaderDataGraph::cld_do(&adjust_cld_closure);
+  // ClassLoaderDataGraph::oops_do(&forward, true);
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
@@ -352,12 +406,11 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_scan_jvmti_export_roots,
   mmtk_scan_aot_loader_roots,
   mmtk_scan_system_dictionary_roots,
-  mmtk_scan_code_cache_roots,
-  mmtk_scan_string_table_roots,
   mmtk_scan_class_loader_data_graph_roots,
-  mmtk_scan_weak_processor_roots,
   mmtk_scan_vm_thread_roots,
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
+  mmtk_object_alignment,
+  mmtk_process_weak_ref,
 };

@@ -156,6 +156,8 @@ public:
 
   void prepare_for_verify() ;
 
+  virtual void register_nmethod(nmethod* nm);
+  virtual void verify_nmethod(nmethod* nm);
 
 private:
 
