@@ -186,7 +186,7 @@ bool MMTkHeap::is_in(const void* p) const {
   //return cp >= committed_low_addr() && cp < committed_high_addr();
 
   //guarantee(false, "is in not supported");
-  return is_mapped_object(const_cast<void *>(p));
+  return is_in_mmtk_spaces(const_cast<void *>(p));
 }
 
 bool MMTkHeap::is_in_reserved(const void* p) const {
