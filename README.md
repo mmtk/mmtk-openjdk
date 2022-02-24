@@ -38,9 +38,9 @@ those repositories with the correct version.
 Your working directory/
 ├─ mmtk-openjdk/
 │  ├─ openjdk/
-│  ├─ mmtk/
+│  └─ mmtk/
 ├─ openjdk/
-├─ mmtk-core/ (optional)
+└─ mmtk-core/ (optional)
 ```
 
 #### Checkout Binding
