@@ -1,6 +1,6 @@
-
-MMTK_RUST_ROOT = $(TOPDIR)/../../mmtk
-MMTK_CPP_ROOT = $(TOPDIR)/../../openjdk
+# THIRD_PARTY_HEAP points to mmtk-openjdk/openjdk
+MMTK_RUST_ROOT = $(THIRD_PARTY_HEAP)/../mmtk
+MMTK_CPP_ROOT = $(THIRD_PARTY_HEAP)
 
 ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)

@@ -8,17 +8,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-18.04
-    timeout-minutes: 300
     steps:
-      # Checkout repos and submodules
       - uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Setup Rust Toolchain
-        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
-      - name: Setup Environments
-        run: ./.github/scripts/ci-setup.sh
+      - name: Setup environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
 
       # Run the tests
       - name: Dacapo Tests
