@@ -87,6 +87,9 @@ extern void handle_user_collection_request(void *tls);
 extern void start_control_collector(void *tls, void *context);
 extern void start_worker(void *tls, void* worker);
 
+extern size_t mmtk_is_live(void* object);
+extern void* mmtk_get_forwarded_ref(void* object);
+
 /**
  * VM Accounting
  */
@@ -136,14 +139,13 @@ typedef struct {
     void (*scan_jvmti_export_roots) (ProcessEdgesFn process_edges);
     void (*scan_aot_loader_roots) (ProcessEdgesFn process_edges);
     void (*scan_system_dictionary_roots) (ProcessEdgesFn process_edges);
-    void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
-    void (*scan_string_table_roots) (ProcessEdgesFn process_edges);
     void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
-    void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
     void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
+    int32_t (*object_alignment)();
+    void (*process_weak_ref)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);

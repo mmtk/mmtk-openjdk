@@ -1,4 +1,4 @@
-use mmtk::scheduler::WorkBucketStage;
+use mmtk::scheduler::{WorkBucketStage, GCWorker};
 use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
@@ -85,6 +85,12 @@ impl Collection<OpenJDK> for VMCollection {
     fn schedule_finalization(_tls: VMWorkerThread) {
         unsafe {
             ((*UPCALLS).schedule_finalizer)();
+        }
+    }
+
+    fn process_weak_refs<E: ProcessEdgesWork<VM = OpenJDK>>(_worker: &mut GCWorker<OpenJDK>) {
+        unsafe {
+            ((*UPCALLS).process_weak_refs)();
         }
     }
 }

@@ -75,15 +75,13 @@ pub struct OpenJDK_Upcalls {
     pub scan_jvmti_export_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_aot_loader_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_system_dictionary_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_code_cache_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_string_table_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
     pub object_alignment: extern "C" fn() -> i32,
+    pub process_weak_refs: extern "C" fn(),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
