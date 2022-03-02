@@ -80,10 +80,10 @@ struct FreeListAllocator {
   void* tls;
   void* space;
   RustDynPtr plan;
-  FLBlockList available_blocks [74];
-  FLBlockList available_blocks_stress [74];
-  FLBlockList unswept_blocks [74];
-  FLBlockList consumed_blocks [74];
+  FLBlockList available_blocks [49];
+  FLBlockList available_blocks_stress [49];
+  FLBlockList unswept_blocks [49];
+  FLBlockList consumed_blocks [49];
 };
 
 struct MallocAllocator {
