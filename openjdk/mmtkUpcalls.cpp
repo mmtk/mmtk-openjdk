@@ -319,6 +319,10 @@ static void mmtk_prepare_for_roots_re_scanning() {
 #endif
 }
 
+static void mmtk_enqueue_reference(void* object) {
+  printf("enqueue object: %p\n", object);
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -360,4 +364,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
+  mmtk_enqueue_reference,
 };

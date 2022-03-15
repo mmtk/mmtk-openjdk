@@ -9,6 +9,8 @@ extern crate libc;
 extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate log;
 
 use std::ptr::null_mut;
 
@@ -83,7 +85,7 @@ pub struct OpenJDK_Upcalls {
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
-    pub object_alignment: extern "C" fn() -> i32,
+    pub enqueue_reference: extern "C" fn(object: ObjectReference),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

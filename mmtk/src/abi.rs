@@ -131,7 +131,7 @@ pub struct InstanceKlass {
     // #endif
     pub idnum_allocated_count: u16,
     pub init_state: u8,
-    pub reference_type: u8,
+    pub reference_type: ReferenceType,
     pub this_class_index: u16,
     // #if INCLUDE_JVMTI
     pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
@@ -145,6 +145,18 @@ pub struct InstanceKlass {
     pub method_ordering: OpaquePointer,        // Array<int>*
     pub default_vtable_indices: OpaquePointer, // Array<int>*
     pub fields: OpaquePointer,                 // Array<u2>*
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+#[allow(dead_code)]
+pub enum ReferenceType {
+    None,      // Regular class
+    Other,     // Subclass of java/lang/ref/Reference, but not subclass of one of the classes below
+    Soft,      // Subclass of java/lang/ref/SoftReference
+    Weak,      // Subclass of java/lang/ref/WeakReference
+    Final,     // Subclass of java/lang/ref/FinalReference
+    Phantom    // Subclass of java/lang/ref/PhantomReference
 }
 
 impl InstanceKlass {

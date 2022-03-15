@@ -111,11 +111,24 @@ impl OopIterate for TypeArrayKlass {
 impl OopIterate for InstanceRefKlass {
     #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+        use crate::api::{add_weak_candidate, add_soft_candidate, add_phantom_candidate};
+        use crate::abi::*;
         self.instance_klass.oop_iterate(oop, closure);
-        let referent_addr = Self::referent_address(oop);
-        closure.process_edge(referent_addr);
-        let discovered_addr = Self::discovered_address(oop);
-        closure.process_edge(discovered_addr);
+
+        let reference = ObjectReference::from(oop);
+        let referent = unsafe { Self::referent_address(oop).load::<ObjectReference>() };
+        match self.instance_klass.reference_type {
+            ReferenceType::None => panic!("oop_iterate on InstanceRefKlass with reference_type as None"),
+            ReferenceType::Weak => add_weak_candidate(reference, referent),
+            ReferenceType::Soft => add_soft_candidate(reference, referent),
+            ReferenceType::Phantom => add_phantom_candidate(reference, referent),
+            _ => {
+                let referent_addr = Self::referent_address(oop);
+                closure.process_edge(referent_addr);
+                let discovered_addr = Self::discovered_address(oop);
+                closure.process_edge(discovered_addr);
+            }
+        }
     }
 }
 
