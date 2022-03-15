@@ -9,8 +9,6 @@ extern crate libc;
 extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
-extern crate log;
 
 use std::ptr::null_mut;
 

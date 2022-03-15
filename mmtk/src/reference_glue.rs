@@ -1,10 +1,8 @@
-use crate::OpenJDK;
 use crate::abi::{InstanceRefKlass, Oop};
-use mmtk::util::opaque_pointer::VMWorkerThread;
+use crate::OpenJDK;
+use crate::UPCALLS;
 use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
-use mmtk::scheduler::ProcessEdgesWork;
-use crate::UPCALLS;
 
 pub struct VMReferenceGlue {}
 

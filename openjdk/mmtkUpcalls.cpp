@@ -320,7 +320,7 @@ static void mmtk_prepare_for_roots_re_scanning() {
 }
 
 static void mmtk_enqueue_reference(void* object) {
-  printf("enqueue object: %p\n", object);
+  // printf("enqueue object: %p\n", object);
   MutexLocker x(Heap_lock);
   oop reff = (oop) object;
   oop old = Universe::swap_reference_pending_list(reff);

@@ -20,16 +20,15 @@ openjdk_version = "67d5d2b16aacb2ea948552fab2323ebd0abbe924"
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
-log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] }
 # Be very careful to commit any changes to the following mmtk dependency, as our CI scripts (including mmtk-core CI)
 # rely on matching these lines to modify them: e.g. comment out the git dependency and use the local path.
 # These changes are safe:
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-# mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "dbd152b29ff54c3f028318e73ac182d681deda9a" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "63e1fdace31caf8494c612f56e0aced7af7eb644" }
 # Uncomment the following to build locally
-mmtk = { path = "/home/yilin/Code/mmtk-core" }
+# mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = []

@@ -151,12 +151,12 @@ pub struct InstanceKlass {
 #[derive(Copy, Clone, Debug)]
 #[allow(dead_code)]
 pub enum ReferenceType {
-    None,      // Regular class
-    Other,     // Subclass of java/lang/ref/Reference, but not subclass of one of the classes below
-    Soft,      // Subclass of java/lang/ref/SoftReference
-    Weak,      // Subclass of java/lang/ref/WeakReference
-    Final,     // Subclass of java/lang/ref/FinalReference
-    Phantom    // Subclass of java/lang/ref/PhantomReference
+    None,    // Regular class
+    Other,   // Subclass of java/lang/ref/Reference, but not subclass of one of the classes below
+    Soft,    // Subclass of java/lang/ref/SoftReference
+    Weak,    // Subclass of java/lang/ref/WeakReference
+    Final,   // Subclass of java/lang/ref/FinalReference
+    Phantom, // Subclass of java/lang/ref/PhantomReference
 }
 
 impl InstanceKlass {
