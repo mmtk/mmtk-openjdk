@@ -119,8 +119,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         start + bytes
     }
 
-    fn get_reference_when_copied_to(_from: ObjectReference, _to: Address) -> ObjectReference {
-        unimplemented!()
+    fn get_reference_when_copied_to(_from: ObjectReference, to: Address) -> ObjectReference {
+        unsafe { to.to_object_reference() }
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
