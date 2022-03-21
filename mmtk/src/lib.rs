@@ -83,7 +83,7 @@ pub struct OpenJDK_Upcalls {
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
-    pub enqueue_reference: extern "C" fn(object: ObjectReference),
+    pub enqueue_references: extern "C" fn(objects: &[ObjectReference], len: usize),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

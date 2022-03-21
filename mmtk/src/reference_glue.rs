@@ -15,9 +15,9 @@ impl ReferenceGlue<OpenJDK> for VMReferenceGlue {
         let oop = Oop::from(object);
         unsafe { InstanceRefKlass::referent_address(oop).load::<ObjectReference>() }
     }
-    fn enqueue_reference(object: ObjectReference) {
+    fn enqueue_references(references: &[ObjectReference]) {
         unsafe {
-            ((*UPCALLS).enqueue_reference)(object);
+            ((*UPCALLS).enqueue_references)(references, references.len());
         }
     }
 }
