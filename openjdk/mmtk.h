@@ -47,7 +47,7 @@ extern void record_modified_node(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
-extern bool is_mapped_object(void* ref);
+extern bool is_in_mmtk_spaces(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
 
