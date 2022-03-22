@@ -163,8 +163,8 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(object)
+pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
+    memory_manager::is_in_mmtk_spaces(object)
 }
 
 #[no_mangle]
