@@ -329,7 +329,6 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
   oop prev = NULL;
   for (size_t i = 0; i < len; i++) {
     oop reff = (oop) objects[i];
-    printf("enqueue: %p\n", reff);
     if (prev != NULL) {
       HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset, reff);
     }
