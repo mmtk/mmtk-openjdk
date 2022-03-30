@@ -14,12 +14,13 @@ use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
 use mmtk::MMTK;
+use once_cell::sync;
 use std::ffi::{CStr, CString};
-use std::lazy::SyncLazy;
 
 // Supported barriers:
-static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
-static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
+static OBJECT_BARRIER: sync::Lazy<CString> =
+    sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
