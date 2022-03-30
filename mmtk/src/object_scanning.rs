@@ -6,28 +6,28 @@ use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::TransitiveClosure;
+use mmtk::vm::EdgeVisitor;
 use std::marker::PhantomData;
 use std::{mem, slice};
 
 trait OopIterate: Sized {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure);
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor);
 }
 
 impl OopIterate for OopMapBlock {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
             let edge = start + (i << LOG_BYTES_IN_ADDRESS);
-            closure.process_edge(edge);
+            closure.visit_edge(edge);
         }
     }
 }
 
 impl OopIterate for InstanceKlass {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
             map.oop_iterate(oop, closure)
@@ -37,7 +37,7 @@ impl OopIterate for InstanceKlass {
 
 impl OopIterate for InstanceMirrorKlass {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
         //     Klass* klass = java_lang_Class::as_Klass(obj);
@@ -71,14 +71,14 @@ impl OopIterate for InstanceMirrorKlass {
         let len = Self::static_oop_field_count(oop);
         let slice = unsafe { slice::from_raw_parts(start, len as _) };
         for oop in slice {
-            closure.process_edge(Address::from_ref(oop as &Oop));
+            closure.visit_edge(Address::from_ref(oop as &Oop));
         }
     }
 }
 
 impl OopIterate for InstanceClassLoaderKlass {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         self.instance_klass.oop_iterate(oop, closure);
         // if (Devirtualizer::do_metadata(closure)) {
         //     ClassLoaderData* cld = java_lang_ClassLoader::loader_data(obj);
@@ -92,17 +92,17 @@ impl OopIterate for InstanceClassLoaderKlass {
 
 impl OopIterate for ObjArrayKlass {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         let array = unsafe { oop.as_array_oop::<Oop>() };
         for oop in array.data() {
-            closure.process_edge(Address::from_ref(oop as &Oop));
+            closure.visit_edge(Address::from_ref(oop as &Oop));
         }
     }
 }
 
 impl OopIterate for TypeArrayKlass {
     #[inline]
-    fn oop_iterate(&self, _oop: Oop, _closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, _oop: Oop, _closure: &mut impl EdgeVisitor) {
         // Performance tweak: We skip processing the klass pointer since all
         // TypeArrayKlasses are guaranteed processed via the null class loader.
     }
@@ -110,24 +110,24 @@ impl OopIterate for TypeArrayKlass {
 
 impl OopIterate for InstanceRefKlass {
     #[inline]
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl TransitiveClosure) {
+    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
         self.instance_klass.oop_iterate(oop, closure);
         let referent_addr = Self::referent_address(oop);
-        closure.process_edge(referent_addr);
+        closure.visit_edge(referent_addr);
         let discovered_addr = Self::discovered_address(oop);
-        closure.process_edge(discovered_addr);
+        closure.visit_edge(discovered_addr);
     }
 }
 
 #[allow(unused)]
-fn oop_iterate_slow(oop: Oop, closure: &mut impl TransitiveClosure, tls: OpaquePointer) {
+fn oop_iterate_slow(oop: Oop, closure: &mut impl EdgeVisitor, tls: OpaquePointer) {
     unsafe {
         ((*UPCALLS).scan_object)(closure as *mut _ as _, mem::transmute(oop), tls);
     }
 }
 
 #[inline]
-fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure) {
+fn oop_iterate(oop: Oop, closure: &mut impl EdgeVisitor) {
     let klass_id = oop.klass.id;
     debug_assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < 6,
@@ -164,11 +164,7 @@ fn oop_iterate(oop: Oop, closure: &mut impl TransitiveClosure) {
 }
 
 #[inline]
-pub fn scan_object(
-    object: ObjectReference,
-    closure: &mut impl TransitiveClosure,
-    _tls: VMWorkerThread,
-) {
+pub fn scan_object(object: ObjectReference, closure: &mut impl EdgeVisitor, _tls: VMWorkerThread) {
     // println!("*****scan_object(0x{:x}) -> \n 0x{:x}, 0x{:x} \n",
     //     object,
     //     unsafe { *(object.value() as *const usize) },
@@ -183,9 +179,9 @@ pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
     PhantomData<E>,
 );
 
-impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure<'a, E> {
+impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> EdgeVisitor for ObjectsClosure<'a, E> {
     #[inline]
-    fn process_edge(&mut self, slot: Address) {
+    fn visit_edge(&mut self, slot: Address) {
         if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
@@ -198,9 +194,6 @@ impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> TransitiveClosure for ObjectsClosure
                 E::new(new_edges, false, &SINGLETON),
             );
         }
-    }
-    fn process_node(&mut self, _object: ObjectReference) {
-        unreachable!()
     }
 }
 
