@@ -1,14 +1,8 @@
-// specialization is considered as an incomplete feature.
-#![allow(incomplete_features)]
-#![feature(specialization)]
-#![feature(box_syntax)]
-#![feature(vec_into_raw_parts)]
-#![feature(once_cell)]
-
 extern crate libc;
 extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
+extern crate once_cell;
 
 use std::ptr::null_mut;
 
