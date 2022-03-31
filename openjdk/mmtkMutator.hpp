@@ -33,12 +33,14 @@ struct BumpAllocator {
   void* limit;
   RustDynPtr space;
   RustDynPtr plan;
+  uint8_t is_in_stress_test_alloc;
 };
 
 struct LargeObjectAllocator {
   void* tls;
   void* space;
   RustDynPtr plan;
+  uint8_t is_in_stress_test_alloc;
 };
 
 struct ImmixAllocator {
@@ -56,12 +58,14 @@ struct ImmixAllocator {
   uint8_t line_opt_tag;
   uintptr_t line_opt;
   uint8_t alloc_slow_for_stress;
+  uint8_t is_in_stress_test_alloc;
 };
 
 struct MallocAllocator {
   void* tls;
   void* space;
   RustDynPtr plan;
+  uint8_t is_in_stress_test_alloc;
 };
 
 struct MarkCompactAllocator {
