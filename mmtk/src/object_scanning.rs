@@ -1,13 +1,9 @@
 use super::abi::*;
 use super::UPCALLS;
-use crate::{OpenJDK, SINGLETON};
-use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::scheduler::{GCWorker, WorkBucketStage};
 use mmtk::util::constants::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::EdgeVisitor;
-use std::marker::PhantomData;
 use std::{mem, slice};
 
 trait OopIterate: Sized {
@@ -171,54 +167,4 @@ pub fn scan_object(object: ObjectReference, closure: &mut impl EdgeVisitor, _tls
     //     unsafe { *((object.value() + 8) as *const usize) }
     // );
     unsafe { oop_iterate(mem::transmute(object), closure) }
-}
-
-pub struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = OpenJDK>>(
-    Vec<Address>,
-    &'a mut GCWorker<OpenJDK>,
-    PhantomData<E>,
-);
-
-impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> EdgeVisitor for ObjectsClosure<'a, E> {
-    #[inline]
-    fn visit_edge(&mut self, slot: Address) {
-        if self.0.is_empty() {
-            self.0.reserve(E::CAPACITY);
-        }
-        self.0.push(slot);
-        if self.0.len() >= E::CAPACITY {
-            let mut new_edges = Vec::new();
-            mem::swap(&mut new_edges, &mut self.0);
-            self.1.add_work(
-                WorkBucketStage::Closure,
-                E::new(new_edges, false, &SINGLETON),
-            );
-        }
-    }
-}
-
-impl<'a, E: ProcessEdgesWork<VM = OpenJDK>> Drop for ObjectsClosure<'a, E> {
-    #[inline]
-    fn drop(&mut self) {
-        let mut new_edges = Vec::new();
-        mem::swap(&mut new_edges, &mut self.0);
-        self.1.add_work(
-            WorkBucketStage::Closure,
-            E::new(new_edges, false, &SINGLETON),
-        );
-    }
-}
-
-pub fn scan_objects_and_create_edges_work<E: ProcessEdgesWork<VM = OpenJDK>>(
-    objects: &[ObjectReference],
-    worker: &mut GCWorker<OpenJDK>,
-) {
-    let mut closure = ObjectsClosure::<E>(Vec::new(), worker, PhantomData);
-    for object in objects {
-        scan_object(
-            *object,
-            &mut closure,
-            VMWorkerThread(VMThread::UNINITIALIZED),
-        );
-    }
 }

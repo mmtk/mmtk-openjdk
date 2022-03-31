@@ -3,7 +3,7 @@ use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
 use mmtk::memory_manager;
 use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::scheduler::{GCWorker, WorkBucketStage};
+use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{EdgeVisitor, Scanning};
@@ -34,9 +34,9 @@ impl Scanning<OpenJDK> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
     fn scan_object<EV: EdgeVisitor>(
-        edge_visitor: &mut EV,
-        object: ObjectReference,
         tls: VMWorkerThread,
+        object: ObjectReference,
+        edge_visitor: &mut EV,
     ) {
         crate::object_scanning::scan_object(object, edge_visitor, tls)
     }
@@ -44,13 +44,6 @@ impl Scanning<OpenJDK> for VMScanning {
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         // unimplemented!()
         // TODO
-    }
-
-    fn scan_objects<W: ProcessEdgesWork<VM = OpenJDK>>(
-        objects: &[ObjectReference],
-        worker: &mut GCWorker<OpenJDK>,
-    ) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
