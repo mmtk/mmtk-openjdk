@@ -89,8 +89,8 @@ impl OopIterate for InstanceClassLoaderKlass {
 impl OopIterate for ObjArrayKlass {
     #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
-        let array = unsafe { oop.as_array_oop::<Oop>() };
-        for oop in array.data() {
+        let array = unsafe { oop.as_array_oop() };
+        for oop in unsafe { array.data::<Oop>(BasicType::T_OBJECT) } {
             closure.visit_edge(Address::from_ref(oop as &Oop));
         }
     }

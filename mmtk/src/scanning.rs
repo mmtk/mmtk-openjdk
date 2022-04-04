@@ -25,7 +25,13 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
             W::new(buf, true, &SINGLETON),
         );
     }
-    let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    let (ptr, _, capacity) = {
+        // TODO: Use Vec::into_raw_parts() when the method is available.
+        use std::mem::ManuallyDrop;
+        let new_vec = Vec::with_capacity(W::CAPACITY);
+        let mut me = ManuallyDrop::new(new_vec);
+        (me.as_mut_ptr(), me.len(), me.capacity())
+    };
     NewBuffer { ptr, capacity }
 }
 
@@ -69,17 +75,17 @@ impl Scanning<OpenJDK> for VMScanning {
             &SINGLETON,
             WorkBucketStage::Prepare,
             vec![
-                box ScanUniverseRoots::<W>::new(),
-                box ScanJNIHandlesRoots::<W>::new(),
-                box ScanObjectSynchronizerRoots::<W>::new(),
-                box ScanManagementRoots::<W>::new(),
-                box ScanJvmtiExportRoots::<W>::new(),
-                box ScanAOTLoaderRoots::<W>::new(),
-                box ScanSystemDictionaryRoots::<W>::new(),
-                box ScanCodeCacheRoots::<W>::new(),
-                box ScanStringTableRoots::<W>::new(),
-                box ScanClassLoaderDataGraphRoots::<W>::new(),
-                box ScanWeakProcessorRoots::<W>::new(),
+                Box::new(ScanUniverseRoots::<W>::new()),
+                Box::new(ScanJNIHandlesRoots::<W>::new()),
+                Box::new(ScanObjectSynchronizerRoots::<W>::new()),
+                Box::new(ScanManagementRoots::<W>::new()),
+                Box::new(ScanJvmtiExportRoots::<W>::new()),
+                Box::new(ScanAOTLoaderRoots::<W>::new()),
+                Box::new(ScanSystemDictionaryRoots::<W>::new()),
+                Box::new(ScanCodeCacheRoots::<W>::new()),
+                Box::new(ScanStringTableRoots::<W>::new()),
+                Box::new(ScanClassLoaderDataGraphRoots::<W>::new()),
+                Box::new(ScanWeakProcessorRoots::<W>::new()),
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
