@@ -1,7 +1,8 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.10.0"
+version = "0.11.0"
 authors = [" <>"]
+rust-version = "1.57.0"
 
 [lib]
 name = "mmtk_openjdk"

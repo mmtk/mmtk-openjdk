@@ -15,13 +15,8 @@ Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
-
-```console
-# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev-env
-$ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
-```
-
+The minimal supported Rust version for MMTk-OpenJDK binding is 1.57.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
+binding with Rust 1.59.0 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
 ```console

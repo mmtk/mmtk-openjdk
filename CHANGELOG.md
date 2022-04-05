@@ -1,10 +1,20 @@
+0.11.0 (2022-04-01)
+===
+
+* The OpenJDK submodule is removed from the repo. We now record the VM version
+  in `[package.metadata.openjdk]` in the Cargo manifest `Cargo.toml`.
+* The OpenJDK binding now builds with stable Rust toolchains.
+* Removes `object_alignment` from `OpenJDK_Upcalls`.
+* Implements `ObjectModel::get_reference_when_copied_to()`.
+* Updates to mmtk-core 0.11.0.
+
 0.10.0 (2022-02-14)
 ===
 
 * Implements a fastpath for `ObjectModel::get_current_size()` in Rust.
 * Supports setting MMTk options by `-XX:THIRD_PARTY_HEAP_OPTIONS=`
 * Supports proper OutOfMemory exceptions.
-* Upudates to mmtk-core 0.10.0.
+* Updates to mmtk-core 0.10.0.
 
 0.9.0 (2021-12-16)
 ===
