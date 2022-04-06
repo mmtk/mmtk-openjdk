@@ -179,18 +179,18 @@ pub extern "C" fn modify_check(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_weak_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_weak_candidate(reff: ObjectReference) {
+    memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
-pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_soft_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_soft_candidate(reff: ObjectReference) {
+    memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
-pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_phantom_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_phantom_candidate(reff: ObjectReference) {
+    memory_manager::add_phantom_candidate(&SINGLETON, reff)
 }
 
 // The harness_begin()/end() functions are different than other API functions in terms of the thread state.
