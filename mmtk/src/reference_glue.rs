@@ -18,7 +18,7 @@ impl ReferenceGlue<OpenJDK> for VMReferenceGlue {
     }
     fn enqueue_references(references: &[ObjectReference], _tls: VMWorkerThread) {
         unsafe {
-            ((*UPCALLS).enqueue_references)(references, references.len());
+            ((*UPCALLS).enqueue_references)(references.as_ptr(), references.len());
         }
     }
 }
