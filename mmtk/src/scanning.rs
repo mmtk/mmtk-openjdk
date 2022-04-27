@@ -3,12 +3,12 @@ use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
 use mmtk::memory_manager;
 use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::scheduler::{GCWorker, WorkBucketStage};
+use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::Scanning;
+use mmtk::vm::{EdgeVisitor, Scanning};
+use mmtk::Mutator;
 use mmtk::MutatorContext;
-use mmtk::{Mutator, TransitiveClosure};
 
 pub struct VMScanning {}
 
@@ -39,24 +39,17 @@ impl Scanning<OpenJDK> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<T: TransitiveClosure>(
-        trace: &mut T,
-        object: ObjectReference,
+    fn scan_object<EV: EdgeVisitor>(
         tls: VMWorkerThread,
+        object: ObjectReference,
+        edge_visitor: &mut EV,
     ) {
-        crate::object_scanning::scan_object(object, trace, tls)
+        crate::object_scanning::scan_object(object, edge_visitor, tls)
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         // unimplemented!()
         // TODO
-    }
-
-    fn scan_objects<W: ProcessEdgesWork<VM = OpenJDK>>(
-        objects: &[ObjectReference],
-        worker: &mut GCWorker<OpenJDK>,
-    ) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
