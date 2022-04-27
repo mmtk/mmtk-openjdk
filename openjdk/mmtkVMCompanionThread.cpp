@@ -26,6 +26,7 @@
 #include "mmtk.h"
 #include "mmtkVMCompanionThread.hpp"
 #include "runtime/mutex.hpp"
+#include "logging/log.hpp"
 
 MMTkVMCompanionThread::MMTkVMCompanionThread():
     NamedThread(),
