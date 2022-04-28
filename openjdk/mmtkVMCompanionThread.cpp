@@ -76,6 +76,12 @@ void MMTkVMCompanionThread::run() {
       _reached_state = _threads_resumed;
       _lock->notify_all();
     }
+    {
+      MutexLocker x(Heap_lock);
+      if (Universe::has_reference_pending_list()) {
+        Heap_lock->notify_all();
+      }
+    }
   }
 }
 

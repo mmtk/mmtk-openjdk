@@ -25,6 +25,19 @@ jobs:
       - name: Style checks
         run: ./.github/scripts/ci-style.sh
 
+  test-weak-ref:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
+
+      # Run the tests
+      - name: Dacapo Tests with Weak ref
+        run: ./.github/scripts/ci-test-weak-ref.sh
+
   msrv:
     runs-on: ubuntu-18.04
     steps:

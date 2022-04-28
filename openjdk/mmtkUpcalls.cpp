@@ -319,6 +319,27 @@ static void mmtk_prepare_for_roots_re_scanning() {
 #endif
 }
 
+static void mmtk_enqueue_references(void** objects, size_t len) {
+  if (len == 0) {
+    return;
+  }
+
+  MutexLocker x(Heap_lock);
+
+  oop prev = NULL;
+  for (size_t i = 0; i < len; i++) {
+    oop reff = (oop) objects[i];
+    if (prev != NULL) {
+      HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset, reff);
+    }
+    prev = reff;
+  }
+
+  oop old = Universe::swap_reference_pending_list(prev);
+  HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset, old);
+  assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -360,4 +381,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
+  mmtk_enqueue_references
 };

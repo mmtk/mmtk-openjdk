@@ -107,7 +107,39 @@ impl OopIterate for TypeArrayKlass {
 impl OopIterate for InstanceRefKlass {
     #[inline]
     fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor) {
+        use crate::abi::*;
+        use crate::api::{add_phantom_candidate, add_soft_candidate, add_weak_candidate};
         self.instance_klass.oop_iterate(oop, closure);
+
+        if Self::should_scan_weak_refs() {
+            let reference = ObjectReference::from(oop);
+            match self.instance_klass.reference_type {
+                ReferenceType::None => {
+                    panic!("oop_iterate on InstanceRefKlass with reference_type as None")
+                }
+                ReferenceType::Weak => add_weak_candidate(reference),
+                ReferenceType::Soft => add_soft_candidate(reference),
+                ReferenceType::Phantom => add_phantom_candidate(reference),
+                // Process these two types normally (as if they are strong refs)
+                // We will handle final reference later
+                ReferenceType::Final | ReferenceType::Other => {
+                    Self::process_ref_as_strong(oop, closure)
+                }
+            }
+        } else {
+            Self::process_ref_as_strong(oop, closure);
+        }
+    }
+}
+
+impl InstanceRefKlass {
+    #[inline]
+    fn should_scan_weak_refs() -> bool {
+        use SINGLETON;
+        !*SINGLETON.get_options().no_reference_types
+    }
+    #[inline]
+    fn process_ref_as_strong(oop: Oop, closure: &mut impl EdgeVisitor) {
         let referent_addr = Self::referent_address(oop);
         closure.visit_edge(referent_addr);
         let discovered_addr = Self::discovered_address(oop);
