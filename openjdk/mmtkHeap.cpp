@@ -32,6 +32,7 @@
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "logging/log.hpp"
+#include "memory/resourceArea.hpp"
 #include "mmtk.h"
 #include "mmtkHeap.hpp"
 #include "mmtkMutator.hpp"
