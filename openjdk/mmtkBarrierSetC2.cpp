@@ -34,9 +34,12 @@
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
 #include "opto/macro.hpp"
+#include "opto/movenode.hpp"
 #include "opto/narrowptrnode.hpp"
 #include "opto/node.hpp"
+#include "opto/runtime.hpp"
 #include "opto/type.hpp"
+#include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
 
 void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
