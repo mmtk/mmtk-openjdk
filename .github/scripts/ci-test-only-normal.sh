@@ -6,6 +6,7 @@ unset JAVA_TOOL_OPTIONS
 
 # To OpenJDK folder
 cd $OPENJDK_PATH
+export DEBUG_LEVEL=fastdebug
 
 # --- SemiSpace ---
 export MMTK_PLAN=SemiSpace

@@ -6,7 +6,7 @@ unset JAVA_TOOL_OPTIONS
 
 # To OpenJDK folder
 cd $OPENJDK_PATH
-
+export DEBUG_LEVEL=fastdebug
 export MMTK_NO_REFERENCE_TYPES=false
 
 # --- SemiSpace ---
