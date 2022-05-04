@@ -4,15 +4,10 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
-# To OpenJDK folder
-cd $OPENJDK_PATH
-
-export DEBUG_LEVEL=fastdebug
 export MMTK_EXTREME_ASSERTIONS=1
+. $(dirname "$0")/ci-build.sh
 
-# Build
-sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
-make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$BINDING_PATH/openjdk
+cd $OPENJDK_PATH
 
 # -- SemiSpace --
 export MMTK_PLAN=SemiSpace

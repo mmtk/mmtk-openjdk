@@ -17,7 +17,9 @@ jobs:
 
       # Run the tests
       - name: Dacapo Tests
-        run: ./.github/scripts/ci-test-normal.sh
+        run: |
+          ./.github/scripts/ci-build.sh
+          ./.github/scripts/ci-test-only-normal.sh
       - name: DaCapo Tests for Global Allocation Bit
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
 
@@ -36,7 +38,9 @@ jobs:
 
       # Run the tests
       - name: Dacapo Tests with Weak ref
-        run: ./.github/scripts/ci-test-weak-ref.sh
+        run: |
+          ./.github/scripts/ci-build.sh
+          ./.github/scripts/ci-test-only-weak-ref.sh
 
   msrv:
     runs-on: ubuntu-18.04
