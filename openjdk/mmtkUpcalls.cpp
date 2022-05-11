@@ -243,21 +243,21 @@ static size_t mmtk_get_object_size(void* object) {
   return klass->oop_size(o) << LogHeapWordSize;
 }
 
-static int mmtk_enter_vm() {
+static void mmtk_harness_begin() {
   assert(Thread::current()->is_Java_thread(), "Only Java thread can enter vm");
 
   JavaThread* current = ((JavaThread*) Thread::current());
-  JavaThreadState state = current->thread_state();
-  current->set_thread_state(_thread_in_vm);
-  return (int)state;
+  ThreadInVMfromNative tiv(current);
+  mmtk_harness_begin_impl();
+  
 }
 
-static void mmtk_leave_vm(int st) {
+static void mmtk_harness_end() {
   assert(Thread::current()->is_Java_thread(), "Only Java thread can leave vm");
 
   JavaThread* current = ((JavaThread*) Thread::current());
-  assert(current->thread_state() == _thread_in_vm, "Cannot leave vm when the current thread is not in _thread_in_vm");
-  current->set_thread_state((JavaThreadState)st);
+  ThreadInVMfromNative tiv(current);
+  mmtk_harness_end_impl();
 }
 
 static int offset_of_static_fields() {
@@ -356,8 +356,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_get_object_size,
   mmtk_get_mmtk_mutator,
   mmtk_is_mutator,
-  mmtk_enter_vm,
-  mmtk_leave_vm,
+  mmtk_harness_begin,
+  mmtk_harness_end,
   compute_klass_mem_layout_checksum,
   offset_of_static_fields,
   static_oop_field_count_offset,

@@ -195,22 +195,29 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference) {
 
 // The harness_begin()/end() functions are different than other API functions in terms of the thread state.
 // Other functions are called by the VM, thus the thread should already be in the VM state. But the harness
-// functions are called by the probe, and the thread is in JNI/application/native state. Thus we need an extra call
-// to switch the thread state (enter_vm/leave_vm)
+// functions are called by the probe, and the thread is in JNI/application/native state. Thus we need call
+// into VM to switch the thread state and VM will then call into mmtk-core again to do the actual work of
+// harness_begin() and harness_end()
 
 #[no_mangle]
 pub extern "C" fn harness_begin(_id: usize) {
-    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    unsafe { ((*UPCALLS).harness_begin)() };
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_harness_begin_impl() {
     // Pass null as tls, OpenJDK binding does not rely on the tls value to block the current thread and do a GC
     memory_manager::harness_begin(&SINGLETON, VMMutatorThread(VMThread::UNINITIALIZED));
-    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
 pub extern "C" fn harness_end(_id: usize) {
-    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    unsafe { ((*UPCALLS).harness_end)() };
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_harness_end_impl() {
     memory_manager::harness_end(&SINGLETON);
-    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]

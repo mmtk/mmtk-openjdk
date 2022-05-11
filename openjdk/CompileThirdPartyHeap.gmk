@@ -7,7 +7,7 @@ MMTK_RUST_ROOT = $(THIRD_PARTY_HEAP)/../mmtk
 MMTK_CPP_ROOT = $(THIRD_PARTY_HEAP)
 
 # Grab OpenJDK version specified in mmtk/Cargo.toml and local OpenJDK version
-OPENJDK_VERSION=`cd $(MMTK_RUST_ROOT) ; cargo read-manifest --manifest-path=Cargo.toml | python -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["openjdk"]["openjdk_version"])'`
+OPENJDK_VERSION=`cd $(MMTK_RUST_ROOT) ; cargo read-manifest --manifest-path=Cargo.toml | python3 -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["openjdk"]["openjdk_version"])'`
 OPENJDK_LOCAL_VERSION=`git rev-parse HEAD`
 
 ifdef MMTK_PLAN
