@@ -119,8 +119,8 @@ typedef struct {
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
-    int (*enter_vm) ();
-    void (*leave_vm) (int st);
+    void (*harness_begin) ();
+    void (*harness_end) ();
     size_t (*compute_klass_mem_layout_checksum) ();
     int (*offset_of_static_fields) ();
     int (*static_oop_field_count_offset) ();
@@ -169,8 +169,8 @@ extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
 
-extern void harness_begin(void *tls);
-extern void harness_end();
+extern void mmtk_harness_begin_impl();
+extern void mmtk_harness_end_impl();
 
 #ifdef __cplusplus
 }
