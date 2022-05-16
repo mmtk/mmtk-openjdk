@@ -1,3 +1,13 @@
+0.12.0 (2022-05-13)
+===
+
+* Adds a few missing includes.
+* Adds weak reference support (It is disabled by default. Set MMTk option `no_reference_types` to `false` to enable it).
+* Fixes a bug in C2 allocation fastpath generation for mark compact which caused significant slowdown for mark compact allocation.
+* Fixes a bug in transitioning thread state for the `harness_begin` call which may cause a 'deadlock in safepoint code' error.
+* Updates the OpenJDK version to 11.0.15+8.
+* Updates to mmtk-core 0.12.0.
+
 0.11.0 (2022-04-01)
 ===
 
