@@ -369,15 +369,15 @@ void MMTkHeap::scan_static_roots(OopClosure& cl) {
 
 
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
-  MarkingCodeBlobClosure cb_cl(&cl, false);
-  ScavengableNMethods::nmethods_do(&cb_cl);
+  CodeBlobToOopClosure cb_cl(&cl, true);
+  CodeCache::blobs_do(&cb_cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
   CLDToOopClosure cld_cl(&cl, false);
   ClassLoaderDataGraph::cld_do(&cld_cl);
 }
 void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
-    OopStorageSet::strong_oops_do(&cl);
+  OopStorageSet::strong_oops_do(&cl);
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
   WeakProcessor::oops_do(&cl); // (really needed???)
