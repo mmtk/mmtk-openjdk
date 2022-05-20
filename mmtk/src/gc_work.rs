@@ -4,22 +4,6 @@ use mmtk::scheduler::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;
 
-pub struct ScanJNIHandlesRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanJNIHandlesRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanJNIHandlesRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_jni_handle_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
 pub struct ScanCodeCacheRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
 
 impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanCodeCacheRoots<E> {

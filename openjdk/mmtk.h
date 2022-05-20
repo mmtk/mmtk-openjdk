@@ -121,7 +121,6 @@ typedef struct {
     char* (*dump_object_string) (void* object);
     void (*scan_thread_roots)(ProcessEdgesFn process_edges);
     void (*scan_thread_root)(ProcessEdgesFn process_edges, void* tls);
-    void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
     void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
     void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
     void (*scan_oop_storage_set_roots) (ProcessEdgesFn process_edges);

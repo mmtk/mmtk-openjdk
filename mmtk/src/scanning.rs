@@ -76,7 +76,6 @@ impl Scanning<OpenJDK> for VMScanning {
             &SINGLETON,
             WorkBucketStage::Prepare,
             vec![
-                box ScanJNIHandlesRoots::<W>::new(),
                 box ScanCodeCacheRoots::<W>::new(),
                 box ScanClassLoaderDataGraphRoots::<W>::new(),
                 box ScanOopStorageSetRoots::<W>::new(), // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.

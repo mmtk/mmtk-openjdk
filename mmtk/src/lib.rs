@@ -67,7 +67,6 @@ pub struct OpenJDK_Upcalls {
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
     pub scan_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_thread_root: extern "C" fn(process_edges: ProcessEdgesFn, tls: VMMutatorThread),
-    pub scan_jni_handle_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_code_cache_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_oop_storage_set_roots: extern "C" fn(process_edges: ProcessEdgesFn),

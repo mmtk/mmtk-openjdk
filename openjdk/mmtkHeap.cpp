@@ -368,9 +368,6 @@ void MMTkHeap::scan_static_roots(OopClosure& cl) {
 }
 
 
-void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
-  JNIHandles::oops_do(&cl);
-}
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
   MarkingCodeBlobClosure cb_cl(&cl, false);
   ScavengableNMethods::nmethods_do(&cb_cl);
@@ -396,7 +393,6 @@ void MMTkHeap::scan_global_roots(OopClosure& cl) {
   CodeBlobToOopClosure cb_cl(&cl, true);
   CLDToOopClosure cld_cl(&cl, false);
 
-  JNIHandles::oops_do(&cl);
   {
     MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);
@@ -428,7 +424,6 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
   Threads::possibly_parallel_oops_do(is_parallel, &cl, &cb_cl);
 
   // Global Roots
-  JNIHandles::oops_do(&cl);
   {
     MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::blobs_do(&cb_cl);

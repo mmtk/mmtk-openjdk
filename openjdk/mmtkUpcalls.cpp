@@ -264,7 +264,6 @@ static void mmtk_schedule_finalizer() {
   MMTkHeap::heap()->schedule_finalizer();
 }
 
-static void mmtk_scan_jni_handle_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
 static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
 static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
 static void mmtk_scan_oop_storage_set_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
@@ -307,7 +306,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   dump_object_string,
   mmtk_scan_thread_roots,
   mmtk_scan_thread_root,
-  mmtk_scan_jni_handle_roots,
   mmtk_scan_code_cache_roots,
   mmtk_scan_class_loader_data_graph_roots,
   mmtk_scan_oop_storage_set_roots,
