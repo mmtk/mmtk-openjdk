@@ -3,12 +3,12 @@ use super::{NewBuffer, SINGLETON, UPCALLS};
 use crate::OpenJDK;
 use mmtk::memory_manager;
 use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::scheduler::{GCWorker, WorkBucketStage};
+use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::Scanning;
+use mmtk::vm::{EdgeVisitor, Scanning};
+use mmtk::Mutator;
 use mmtk::MutatorContext;
-use mmtk::{Mutator, TransitiveClosure};
 
 pub struct VMScanning {}
 
@@ -25,7 +25,13 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Open
             W::new(buf, true, &SINGLETON),
         );
     }
-    let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    let (ptr, _, capacity) = {
+        // TODO: Use Vec::into_raw_parts() when the method is available.
+        use std::mem::ManuallyDrop;
+        let new_vec = Vec::with_capacity(W::CAPACITY);
+        let mut me = ManuallyDrop::new(new_vec);
+        (me.as_mut_ptr(), me.len(), me.capacity())
+    };
     NewBuffer { ptr, capacity }
 }
 
@@ -33,24 +39,17 @@ impl Scanning<OpenJDK> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<T: TransitiveClosure>(
-        trace: &mut T,
-        object: ObjectReference,
+    fn scan_object<EV: EdgeVisitor>(
         tls: VMWorkerThread,
+        object: ObjectReference,
+        edge_visitor: &mut EV,
     ) {
-        crate::object_scanning::scan_object(object, trace, tls)
+        crate::object_scanning::scan_object(object, edge_visitor, tls)
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         // unimplemented!()
         // TODO
-    }
-
-    fn scan_objects<W: ProcessEdgesWork<VM = OpenJDK>>(
-        objects: &[ObjectReference],
-        worker: &mut GCWorker<OpenJDK>,
-    ) {
-        crate::object_scanning::scan_objects_and_create_edges_work::<W>(objects, worker);
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
@@ -76,10 +75,10 @@ impl Scanning<OpenJDK> for VMScanning {
             &SINGLETON,
             WorkBucketStage::Prepare,
             vec![
-                box ScanCodeCacheRoots::<W>::new(),
-                box ScanClassLoaderDataGraphRoots::<W>::new(),
-                box ScanOopStorageSetRoots::<W>::new(), // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.
-                box ScanWeakProcessorRoots::<W>::new(),
+                Box::new(ScanCodeCacheRoots::<W>::new()),
+                Box::new(ScanClassLoaderDataGraphRoots::<W>::new()),
+                Box::new(ScanOopStorageSetRoots::<W>::new()), // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.
+                Box::new(ScanWeakProcessorRoots::<W>::new()),
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {

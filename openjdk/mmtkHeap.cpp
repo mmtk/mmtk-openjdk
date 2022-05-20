@@ -35,6 +35,7 @@
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "logging/log.hpp"
+#include "memory/resourceArea.hpp"
 #include "mmtk.h"
 #include "mmtkHeap.hpp"
 #include "mmtkMutator.hpp"
@@ -83,6 +84,12 @@ jint MMTkHeap::initialize() {
   size_t mmtk_heap_size = heap_size;
   /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
+  // Set options
+  if (ThirdPartyHeapOptions != NULL) {
+    bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
+    guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
+  }
+
   openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
@@ -113,7 +120,7 @@ jint MMTkHeap::initialize() {
 
   _companion_thread = new MMTkVMCompanionThread();
   if (!os::create_thread(_companion_thread, os::pgc_thread)) {
-    printf("Failed to create thread");
+    fprintf(stderr, "Failed to create thread");
     guarantee(false, "panic");
   }
   os::start_thread(_companion_thread);
@@ -196,7 +203,7 @@ bool MMTkHeap::is_in(const void* p) const {
   //return cp >= committed_low_addr() && cp < committed_high_addr();
 
   //guarantee(false, "is in not supported");
-  return is_mapped_object(const_cast<void *>(p));
+  return is_in_mmtk_spaces(const_cast<void *>(p));
 }
 
 bool MMTkHeap::is_in_reserved(const void* p) const {
@@ -437,9 +444,6 @@ void MMTkHeap::scan_roots(OopClosure& cl) {
 
 HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
   HeapWord* obj = Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize);
-  // post_alloc(Thread::current()->mmtk_mutator(), obj_ptr, NULL, size << LogHeapWordSize, 0);
-  // printf("offset: %ld\n", ((size_t) &Thread::current()->third_party_heap_mutator) - ((size_t) Thread::current()));
-  guarantee(obj, "MMTk gave us null!");
   return obj;
 }
 

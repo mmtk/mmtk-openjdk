@@ -26,6 +26,7 @@
 #include "mmtk.h"
 #include "mmtkVMCompanionThread.hpp"
 #include "mmtkVMOperation.hpp"
+#include "logging/log.hpp"
 
 VM_MMTkSTWOperation::VM_MMTkSTWOperation(MMTkVMCompanionThread *companion_thread):
     _companion_thread(companion_thread) {

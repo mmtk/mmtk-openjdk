@@ -5,6 +5,7 @@ use crate::UPCALLS;
 use libc::c_char;
 use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
+use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::opaque_pointer::*;
@@ -13,12 +14,13 @@ use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
 use mmtk::MMTK;
+use once_cell::sync;
 use std::ffi::{CStr, CString};
-use std::lazy::SyncLazy;
 
 // Supported barriers:
-static NO_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("NoBarrier").unwrap());
-static OBJECT_BARRIER: SyncLazy<CString> = SyncLazy::new(|| CString::new("ObjectBarrier").unwrap());
+static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
+static OBJECT_BARRIER: sync::Lazy<CString> =
+    sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
@@ -47,11 +49,6 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usiz
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-}
-
-#[no_mangle]
-pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
-    memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
@@ -117,10 +114,22 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
+// We trust the gc_collector pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn start_control_collector(
+    tls: VMWorkerThread,
+    gc_controller: *mut GCController<OpenJDK>,
+) {
+    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
+    memory_manager::start_control_collector(&SINGLETON, tls, &mut gc_controller);
+}
+
+#[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<OpenJDK>) {
-    memory_manager::start_worker::<OpenJDK>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
+    let mut worker = unsafe { Box::from_raw(worker) };
+    memory_manager::start_worker::<OpenJDK>(&SINGLETON, tls, &mut worker)
 }
 
 #[no_mangle]
@@ -155,8 +164,8 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(object)
+pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
+    memory_manager::is_in_mmtk_spaces(object)
 }
 
 #[no_mangle]
@@ -170,38 +179,45 @@ pub extern "C" fn modify_check(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_weak_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_weak_candidate(reff: ObjectReference) {
+    memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
-pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_soft_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_soft_candidate(reff: ObjectReference) {
+    memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
-pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_phantom_candidate(&SINGLETON, reff, referent)
+pub extern "C" fn add_phantom_candidate(reff: ObjectReference) {
+    memory_manager::add_phantom_candidate(&SINGLETON, reff)
 }
 
 // The harness_begin()/end() functions are different than other API functions in terms of the thread state.
 // Other functions are called by the VM, thus the thread should already be in the VM state. But the harness
-// functions are called by the probe, and the thread is in JNI/application/native state. Thus we need an extra call
-// to switch the thread state (enter_vm/leave_vm)
+// functions are called by the probe, and the thread is in JNI/application/native state. Thus we need call
+// into VM to switch the thread state and VM will then call into mmtk-core again to do the actual work of
+// harness_begin() and harness_end()
 
 #[no_mangle]
 pub extern "C" fn harness_begin(_id: usize) {
-    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    unsafe { ((*UPCALLS).harness_begin)() };
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_harness_begin_impl() {
     // Pass null as tls, OpenJDK binding does not rely on the tls value to block the current thread and do a GC
     memory_manager::harness_begin(&SINGLETON, VMMutatorThread(VMThread::UNINITIALIZED));
-    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
 pub extern "C" fn harness_end(_id: usize) {
-    let state = unsafe { ((*UPCALLS).enter_vm)() };
+    unsafe { ((*UPCALLS).harness_end)() };
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_harness_end_impl() {
     memory_manager::harness_end(&SINGLETON);
-    unsafe { ((*UPCALLS).leave_vm)(state) };
 }
 
 #[no_mangle]
@@ -215,6 +231,14 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
+}
+
+#[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn process_bulk(options: *const c_char) -> bool {
+    let options_str: &CStr = unsafe { CStr::from_ptr(options) };
+    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
 }
 
 #[no_mangle]

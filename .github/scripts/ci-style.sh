@@ -1,17 +1,18 @@
-project_root=$(dirname "$0")/../..
 set -xe
+
+. $(dirname "$0")/common.sh
 
 export RUSTFLAGS="-D warnings"
 
-pushd $project_root/mmtk
+pushd $BINDING_PATH/mmtk
 cargo clippy
 cargo clippy --release
 
 cargo fmt -- --check
 popd
 
-find $project_root/openjdk \
-    $project_root/mmtk \
+find $BINDING_PATH/openjdk \
+    $BINDING_PATH/mmtk \
     -name '*.hpp' \
     -o -name '*.cpp' \
     -o -name '*.rs' \

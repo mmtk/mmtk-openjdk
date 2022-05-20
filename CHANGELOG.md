@@ -1,3 +1,37 @@
+0.12.0 (2022-05-13)
+===
+
+* Adds a few missing includes.
+* Adds weak reference support (It is disabled by default. Set MMTk option `no_reference_types` to `false` to enable it).
+* Fixes a bug in C2 allocation fastpath generation for mark compact which caused significant slowdown for mark compact allocation.
+* Fixes a bug in transitioning thread state for the `harness_begin` call which may cause a 'deadlock in safepoint code' error.
+* Updates the OpenJDK version to 11.0.15+8.
+* Updates to mmtk-core 0.12.0.
+
+0.11.0 (2022-04-01)
+===
+
+* The OpenJDK submodule is removed from the repo. We now record the VM version
+  in `[package.metadata.openjdk]` in the Cargo manifest `Cargo.toml`.
+* The OpenJDK binding now builds with stable Rust toolchains.
+* Removes `object_alignment` from `OpenJDK_Upcalls`.
+* Implements `ObjectModel::get_reference_when_copied_to()`.
+* Updates to mmtk-core 0.11.0.
+
+0.10.0 (2022-02-14)
+===
+
+* Implements a fastpath for `ObjectModel::get_current_size()` in Rust.
+* Supports setting MMTk options by `-XX:THIRD_PARTY_HEAP_OPTIONS=`
+* Supports proper OutOfMemory exceptions.
+* Updates to mmtk-core 0.10.0.
+
+0.9.0 (2021-12-16)
+===
+
+* Supports the `MarkCompact` plan.
+* Updates to mmtk-core 0.9.0.
+
 0.8.0 (2021-11-01)
 ===
 

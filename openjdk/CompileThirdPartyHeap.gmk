@@ -1,6 +1,14 @@
+# Misc variables
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-MMTK_RUST_ROOT = $(TOPDIR)/../mmtk-openjdk/mmtk
-MMTK_CPP_ROOT = $(TOPDIR)/../mmtk-openjdk/openjdk
+# THIRD_PARTY_HEAP points to mmtk-openjdk/openjdk
+MMTK_RUST_ROOT = $(THIRD_PARTY_HEAP)/../mmtk
+MMTK_CPP_ROOT = $(THIRD_PARTY_HEAP)
+
+# Grab OpenJDK version specified in mmtk/Cargo.toml and local OpenJDK version
+OPENJDK_VERSION=`cd $(MMTK_RUST_ROOT) ; cargo read-manifest --manifest-path=Cargo.toml | python3 -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["openjdk"]["openjdk_version"])'`
+OPENJDK_LOCAL_VERSION=`git rev-parse HEAD`
 
 ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
@@ -40,6 +48,11 @@ else
 endif
 
 $(LIB_MMTK): FORCE
+	if [[ "$(OPENJDK_VERSION)" != "$(OPENJDK_LOCAL_VERSION)" ]]; then \
+		echo -e $(YELLOW)WARNING: Local OpenJDK version does not match version specified in mmtk/Cargo.toml$(NC); \
+		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
+		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
+	fi
 	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
 	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
 	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)

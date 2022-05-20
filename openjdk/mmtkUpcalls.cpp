@@ -34,6 +34,8 @@
 #include "mmtkRootsClosure.hpp"
 #include "mmtkUpcalls.hpp"
 #include "mmtkVMCompanionThread.hpp"
+#include "oops/access.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/safepoint.hpp"
@@ -41,6 +43,7 @@
 #include "runtime/thread.inline.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
+#include "utilities/debug.hpp"
 
 static size_t mmtk_start_the_world_count = 0;
 
@@ -87,22 +90,33 @@ static void mmtk_resume_mutators(void *tls) {
   log_debug(gc)("Mutators notified.");
 }
 
-static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
-  if (ctx == NULL) {
-    MMTkContextThread* t = new MMTkContextThread();
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
+static const int GC_THREAD_KIND_CONTROLLER = 0;
+static const int GC_THREAD_KIND_WORKER = 1;
+static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
+  switch (kind) {
+    case GC_THREAD_KIND_CONTROLLER: {
+      MMTkContextThread* t = new MMTkContextThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    case GC_THREAD_KIND_WORKER: {
+      MMTkHeap::heap()->new_collector_thread();
+      MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
+      if (!os::create_thread(t, os::pgc_thread)) {
+        printf("Failed to create thread");
+        guarantee(false, "panic");
+      }
+      os::start_thread(t);
+      break;
+    }
+    default: {
+      printf("Unexpected thread kind: %d\n", kind);
       guarantee(false, "panic");
     }
-    os::start_thread(t);
-  } else {
-    MMTkHeap::heap()->new_collector_thread();
-    MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
-    if (!os::create_thread(t, os::pgc_thread)) {
-      printf("Failed to create thread");
-      guarantee(false, "panic");
-    }
-    os::start_thread(t);
   }
 }
 
@@ -119,6 +133,25 @@ static void mmtk_block_for_gc() {
     }
   }
   log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
+}
+
+static void mmtk_out_of_memory(void* tls, MMTkAllocationError err_kind) {
+  switch (err_kind) {
+  case HeapOutOfMemory :
+    // Note that we have to do nothing for the case that the Java heap is too small. Since mmtk-core already
+    // returns a nullptr back to the JVM, it automatically triggers an OOM exception since the JVM checks for
+    // OOM every (slowpath) allocation [1]. In fact, if we report and throw an OOM exception here, the VM will
+    // complain since a pending exception bit was already set when it was trying to check for OOM [2]. Hence,
+    // it is best to let the JVM take care of reporting OOM itself.
+    //
+    // [1]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L83
+    // [2]: https://github.com/mmtk/openjdk/blob/e4dbe9909fa5c21685a20a1bc541fcc3b050dac4/src/hotspot/share/gc/shared/memAllocator.cpp#L117
+    break;
+  case MmapOutOfMemory :
+    // Abort the VM immediately due to insufficient system resources.
+    vm_exit_out_of_memory(0, OOM_MMAP_ERROR, "MMTk: Unable to acquire more memory from the OS. Out of system resources.");
+    break;
+  }
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {
@@ -209,24 +242,26 @@ static void mmtk_dump_object(void* object) {
 
 static size_t mmtk_get_object_size(void* object) {
   oop o = (oop) object;
-  return o->size() * HeapWordSize;
+  // Slow-dispatch only. The fast-path code is moved to rust.
+  auto klass = o->klass();
+  return klass->oop_size(o) << LogHeapWordSize;
 }
 
-static int mmtk_enter_vm() {
+static void mmtk_harness_begin() {
   assert(Thread::current()->is_Java_thread(), "Only Java thread can enter vm");
 
   JavaThread* current = ((JavaThread*) Thread::current());
-  JavaThreadState state = current->thread_state();
-  current->set_thread_state(_thread_in_vm);
-  return (int)state;
+  ThreadInVMfromNative tiv(current);
+  mmtk_harness_begin_impl();
+  
 }
 
-static void mmtk_leave_vm(int st) {
+static void mmtk_harness_end() {
   assert(Thread::current()->is_Java_thread(), "Only Java thread can leave vm");
 
   JavaThread* current = ((JavaThread*) Thread::current());
-  assert(current->thread_state() == _thread_in_vm, "Cannot leave vm when the current thread is not in _thread_in_vm");
-  current->set_thread_state((JavaThreadState)st);
+  ThreadInVMfromNative tiv(current);
+  mmtk_harness_end_impl();
 }
 
 static int offset_of_static_fields() {
@@ -281,11 +316,33 @@ static void mmtk_prepare_for_roots_re_scanning() {
 #endif
 }
 
+static void mmtk_enqueue_references(void** objects, size_t len) {
+  if (len == 0) {
+    return;
+  }
+
+  MutexLocker x(Heap_lock);
+
+  oop prev = NULL;
+  for (size_t i = 0; i < len; i++) {
+    oop reff = (oop) objects[i];
+    if (prev != NULL) {
+      HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset(), reff);
+    }
+    prev = reff;
+  }
+
+  oop old = Universe::swap_reference_pending_list(prev);
+  HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset(), old);
+  assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
   mmtk_spawn_collector_thread,
   mmtk_block_for_gc,
+  mmtk_out_of_memory,
   mmtk_get_next_mutator,
   mmtk_reset_mutator_iterator,
   mmtk_compute_static_roots,
@@ -296,8 +353,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_get_object_size,
   mmtk_get_mmtk_mutator,
   mmtk_is_mutator,
-  mmtk_enter_vm,
-  mmtk_leave_vm,
+  mmtk_harness_begin,
+  mmtk_harness_end,
   compute_klass_mem_layout_checksum,
   offset_of_static_fields,
   static_oop_field_count_offset,
@@ -314,4 +371,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
+  mmtk_enqueue_references
 };

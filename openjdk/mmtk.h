@@ -12,6 +12,12 @@ extern "C" {
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 
+// This has the same layout as mmtk::util::alloc::AllocationError
+typedef enum {
+    HeapOutOfMemory,
+    MmapOutOfMemory,
+} MMTkAllocationError;
+
 extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
@@ -41,7 +47,7 @@ extern void record_modified_node(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
-extern bool is_mapped_object(void* ref);
+extern bool is_in_mmtk_spaces(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
 
@@ -74,10 +80,11 @@ extern void initialize_collection(void *tls);
 extern void gc_init(size_t heap_size);
 extern bool will_never_move(void* object);
 extern bool process(char* name, char* value);
+extern bool process_bulk(char* options);
 extern void scan_region();
 extern void handle_user_collection_request(void *tls);
 
-extern void start_control_collector(void *tls);
+extern void start_control_collector(void *tls, void *context);
 extern void start_worker(void *tls, void* worker);
 
 /**
@@ -99,8 +106,9 @@ typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
 typedef struct {
     void (*stop_all_mutators) (void *tls, void (*create_stack_scan_work)(void* mutator));
     void (*resume_mutators) (void *tls);
-    void (*spawn_collector_thread) (void *tls, void *ctx);
+    void (*spawn_collector_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
+    void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
     void (*compute_static_roots) (void* trace, void* tls);
@@ -111,8 +119,8 @@ typedef struct {
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
-    int (*enter_vm) ();
-    void (*leave_vm) (int st);
+    void (*harness_begin) ();
+    void (*harness_end) ();
     size_t (*compute_klass_mem_layout_checksum) ();
     int (*offset_of_static_fields) ();
     int (*static_oop_field_count_offset) ();
@@ -129,6 +137,7 @@ typedef struct {
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
+    void (*enqueue_references)(void** objects, size_t len);
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
@@ -153,8 +162,8 @@ extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
 
-extern void harness_begin(void *tls);
-extern void harness_end();
+extern void mmtk_harness_begin_impl();
+extern void mmtk_harness_end_impl();
 
 #ifdef __cplusplus
 }

@@ -1,19 +1,13 @@
-// specialization is considered as an incomplete feature.
-#![allow(incomplete_features)]
-#![feature(specialization)]
-#![feature(box_syntax)]
-#![feature(vec_into_raw_parts)]
-#![feature(once_cell)]
-
 extern crate libc;
 extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
+extern crate once_cell;
 
 use std::ptr::null_mut;
 
 use libc::{c_char, c_void, uintptr_t};
-use mmtk::scheduler::GCWorker;
+use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
@@ -45,8 +39,9 @@ pub struct OpenJDK_Upcalls {
         create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<OpenJDK>),
     ),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
-    pub spawn_worker_thread: extern "C" fn(tls: VMThread, ctx: *mut GCWorker<OpenJDK>),
+    pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
+    pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
@@ -57,8 +52,8 @@ pub struct OpenJDK_Upcalls {
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut Mutator<OpenJDK>,
     pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
-    pub enter_vm: extern "C" fn() -> i32,
-    pub leave_vm: extern "C" fn(st: i32),
+    pub harness_begin: extern "C" fn(),
+    pub harness_end: extern "C" fn(),
     pub compute_klass_mem_layout_checksum: extern "C" fn() -> usize,
     pub offset_of_static_fields: extern "C" fn() -> i32,
     pub static_oop_field_count_offset: extern "C" fn() -> i32,
@@ -75,7 +70,7 @@ pub struct OpenJDK_Upcalls {
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
-    pub object_alignment: extern "C" fn() -> i32,
+    pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
