@@ -1,23 +1,33 @@
-use mmtk::scheduler::WorkBucketStage;
-use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
 
-use crate::OpenJDK;
-use crate::{SINGLETON, UPCALLS};
+use crate::UPCALLS;
+use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
-    mutator: &'static mut Mutator<OpenJDK>,
-) {
-    mmtk::memory_manager::add_work_packet(
-        &SINGLETON,
-        WorkBucketStage::Prepare,
-        ScanStackRoot::<E>(mutator),
-    );
+struct ScopedDynamicMutatorVisitorInvoker<'c> {
+    pub closure: &'c mut dyn FnMut(&'static mut Mutator<OpenJDK>),
+}
+
+impl<'c> ScopedDynamicMutatorVisitorInvoker<'c> {
+    fn invoke(&mut self, mutator: &'static mut Mutator<OpenJDK>) {
+        (self.closure)(mutator);
+    }
+
+    extern "C" fn c_invoker(mutator: *mut Mutator<OpenJDK>, me: *mut libc::c_void) {
+        let me: &mut Self = unsafe { &mut *(me as *mut ScopedDynamicMutatorVisitorInvoker) };
+        me.invoke(unsafe { &mut *mutator });
+    }
+
+    fn as_closure(&mut self) -> MutatorClosure {
+        MutatorClosure {
+            func: Self::c_invoker as *const _,
+            data: unsafe { std::mem::transmute(self) },
+        }
+    }
 }
 
 const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
@@ -28,16 +38,19 @@ impl Collection<OpenJDK> for VMCollection {
     /// the OpenJDK binding allows any MMTk GC thread to stop/start the world.
     const COORDINATOR_ONLY_STW: bool = false;
 
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: VMWorkerThread) {
-        let f = {
-            if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
-                0usize as _
-            } else {
-                create_mutator_scan_work::<E> as *const extern "C" fn(&'static mut Mutator<OpenJDK>)
-            }
+    fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
+    where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        let scan_mutators_in_safepoint =
+            <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT;
+
+        let mut invoker = ScopedDynamicMutatorVisitorInvoker {
+            closure: &mut mutator_visitor,
         };
+
         unsafe {
-            ((*UPCALLS).stop_all_mutators)(tls, f);
+            ((*UPCALLS).stop_all_mutators)(tls, scan_mutators_in_safepoint, invoker.as_closure());
         }
     }
 

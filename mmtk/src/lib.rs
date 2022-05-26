@@ -30,13 +30,27 @@ pub struct NewBuffer {
     pub capacity: usize,
 }
 
-type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
+/// A closure for reporting mutators.  The C++ code should pass `data` back as the last argument.
+#[repr(C)]
+pub struct MutatorClosure {
+    pub func: *const extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
+    pub data: *mut libc::c_void,
+}
+
+/// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
+#[repr(C)]
+pub struct EdgesClosure {
+    pub func:
+        *const extern "C" fn(buf: *mut Address, size: usize, cap: usize, data: *const libc::c_void),
+    pub data: *const libc::c_void,
+}
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
     pub stop_all_mutators: extern "C" fn(
         tls: VMWorkerThread,
-        create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<OpenJDK>),
+        scan_mutators_in_safepoint: bool,
+        closure: MutatorClosure,
     ),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
@@ -60,20 +74,20 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_thread_root: extern "C" fn(process_edges: ProcessEdgesFn, tls: VMMutatorThread),
-    pub scan_universe_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_jni_handle_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_object_synchronizer_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_management_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_jvmti_export_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_aot_loader_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_system_dictionary_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_code_cache_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_string_table_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_thread_root: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
+    pub scan_universe_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_jni_handle_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_object_synchronizer_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_management_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_jvmti_export_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_aot_loader_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_system_dictionary_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_code_cache_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_string_table_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_class_loader_data_graph_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_weak_processor_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_vm_thread_roots: extern "C" fn(closure: EdgesClosure),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),

@@ -1,197 +1,233 @@
 use super::{OpenJDK, UPCALLS};
-use crate::scanning::create_process_edges_work;
+use crate::scanning::ScopedDynamicFactoryInvoker;
 use mmtk::scheduler::*;
+use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
-use std::marker::PhantomData;
 
-pub struct ScanUniverseRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanUniverseRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanUniverseRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanUniverseRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanUniverseRoots<E> {
+impl GCWork<OpenJDK> for ScanUniverseRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_universe_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_universe_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanJNIHandlesRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanJNIHandlesRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanJNIHandlesRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanJNIHandlesRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanJNIHandlesRoots<E> {
+impl GCWork<OpenJDK> for ScanJNIHandlesRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_jni_handle_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_jni_handle_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanObjectSynchronizerRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanObjectSynchronizerRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanObjectSynchronizerRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanObjectSynchronizerRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanObjectSynchronizerRoots<E> {
+impl GCWork<OpenJDK> for ScanObjectSynchronizerRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_object_synchronizer_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_object_synchronizer_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanManagementRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanManagementRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanManagementRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanManagementRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanManagementRoots<E> {
+impl GCWork<OpenJDK> for ScanManagementRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_management_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_management_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanJvmtiExportRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanJvmtiExportRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanJvmtiExportRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanJvmtiExportRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanJvmtiExportRoots<E> {
+impl GCWork<OpenJDK> for ScanJvmtiExportRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_jvmti_export_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_jvmti_export_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanAOTLoaderRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanAOTLoaderRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanAOTLoaderRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanAOTLoaderRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanAOTLoaderRoots<E> {
+impl GCWork<OpenJDK> for ScanAOTLoaderRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_aot_loader_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_aot_loader_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanSystemDictionaryRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanSystemDictionaryRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanSystemDictionaryRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanSystemDictionaryRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanSystemDictionaryRoots<E> {
+impl GCWork<OpenJDK> for ScanSystemDictionaryRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_system_dictionary_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_system_dictionary_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanCodeCacheRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanCodeCacheRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanCodeCacheRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanCodeCacheRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanCodeCacheRoots<E> {
+impl GCWork<OpenJDK> for ScanCodeCacheRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_code_cache_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_code_cache_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanStringTableRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanStringTableRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanStringTableRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanStringTableRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanStringTableRoots<E> {
+impl GCWork<OpenJDK> for ScanStringTableRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_string_table_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_string_table_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanClassLoaderDataGraphRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanClassLoaderDataGraphRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanClassLoaderDataGraphRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanClassLoaderDataGraphRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanClassLoaderDataGraphRoots<E> {
+impl GCWork<OpenJDK> for ScanClassLoaderDataGraphRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_class_loader_data_graph_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_class_loader_data_graph_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanWeakProcessorRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanWeakProcessorRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanWeakProcessorRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanWeakProcessorRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanWeakProcessorRoots<E> {
+impl GCWork<OpenJDK> for ScanWeakProcessorRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_weak_processor_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_weak_processor_roots)(invoker.as_closure());
         }
     }
 }
 
-pub struct ScanVMThreadRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+pub struct ScanVMThreadRoots {
+    factory: Box<dyn RootsWorkFactory>,
+}
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanVMThreadRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
+impl ScanVMThreadRoots {
+    pub fn new(factory: Box<dyn RootsWorkFactory>) -> Self {
+        Self { factory }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanVMThreadRoots<E> {
+impl GCWork<OpenJDK> for ScanVMThreadRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let invoker = ScopedDynamicFactoryInvoker::new(self.factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_vm_thread_roots)(create_process_edges_work::<E> as _);
+            ((*UPCALLS).scan_vm_thread_roots)(invoker.as_closure());
         }
     }
 }
