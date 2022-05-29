@@ -15,13 +15,8 @@ Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
-
-```console
-# replace nightly-YYYY-MM-DD with the the toolchain version specified in mmtk-dev-env
-$ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
-```
-
+The minimal supported Rust version for MMTk-OpenJDK binding is 1.57.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
+binding with Rust 1.59.0 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
 ```console
@@ -31,17 +26,57 @@ $ ssh-add
 
 ### Getting Sources (for MMTk and VM)
 
+To work on MMTk binding, we expect you have a directory structure like below. This section gives instructions on how to check out
+those repositories with the correct version.
+
+```
+Your working directory/
+├─ mmtk-openjdk/
+│  ├─ openjdk/
+│  └─ mmtk/
+├─ openjdk/
+└─ mmtk-core/ (optional)
+```
+
+#### Checkout Binding
 First, clone this binding repo:
 
 ```console
-$ git clone --recursive --remote-submodules git@github.com:mmtk/mmtk-openjdk.git
+$ git clone https://github.com/mmtk/mmtk-openjdk.git
 ```
 
-The `mmtk-openjdk` binding repo is located under the `mmtk` folder, as a git-submodule of the OpenJDK repo.
+The binding repo mainly consists of two folders, `mmtk` and `openjdk`.
+* `mmtk` is logically a part of MMTk. It exposes APIs from `mmtk-core` and implements the `VMBinding` trait from `mmtk-core`.
+* `openjdk` is logically a part of OpenJDK. When we build OpenJDK, we include this folder as if it is a part of the OpenJDK project.
 
-The `mmtk-core` crate is a cargo dependency of the `mmtk-openjdk` binding repo.
+#### Checkout OpenJDK
 
-The `openjdk` repo is at `./repos/openjdk`. And `./openjdk` contains mmtk's ThirdPartyHeap implementation files.
+You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `openjdk` as a sibling of `mmtk-openjdk`.
+[`Cargo.toml`](mmtk/Cargo.toml) defines the version of OpenJDK that works with the version of `mmtk-openjdk`.
+
+Assuming your current working directory is the parent folder of `mmtk-openjdk`, you can checkout out OpenJDK and the correct version using:
+```console
+$ git clone https://github.com/mmtk/openjdk.git
+$ git -C openjdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
+```
+
+#### Checkout MMTk core (optional)
+
+The MMTk-OpenJDK binding points to a specific version of `mmtk-core` as defined in [`Cargo.toml`](mmtk/Cargo.toml). When you build the binding,
+cargo will fetch the specified version of `mmtk-core`. If you would like to use
+a different version or a local `mmtk-core` repo, you can checkout `mmtk-core` to a separate repo and modify the `mmtk` dependency in `Cargo.toml`.
+
+For example, you can check out `mmtk-core` as a sibling of `mmtk-openjdk`.
+
+```console
+$ git clone https://github.com/mmtk/mmtk-core.git
+```
+
+And change the `mmtk` dependency in `Cargo.toml` (this assumes you put `mmtk-core` as a sibling of `mmtk-openjdk`):
+
+```toml
+mmtk = { path = "../../mmtk-core" }
+```
 
 ## Build
 
@@ -50,7 +85,7 @@ _**Note:** MMTk is only tested with the `server` build variant._
 After cloned the OpenJDK repo, cd into the root directiory:
 
 ```console
-$ cd mmtk-openjdk/repos/openjdk
+$ cd openjdk
 ```
 
 Then select a `DEBUG_LEVEL`, can be one of `release`, `fastdebug`, `slowdebug` and `optimized`.
@@ -78,7 +113,7 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
@@ -90,7 +125,7 @@ metadata), but by setting the environment variable `MARK_IN_HEADER=1` while
 building OpenJDK, we can change its location to be in the object's header:
 
 ```console
-$ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+$ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ### Alloc bit
@@ -98,7 +133,7 @@ To support the `global_alloc_bit` feature in mmtk-core, you can set the environm
 building OpenJDK. This will set the feature for mmtk-core, as well as compiling the fastpath for the alloc bit.
 
 ```console
-$ GLOBAL_ALLOC_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../../openjdk
+$ GLOBAL_ALLOC_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ## Test

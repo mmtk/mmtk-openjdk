@@ -26,6 +26,7 @@
 #include "mmtk.h"
 #include "mmtkVMCompanionThread.hpp"
 #include "runtime/mutex.hpp"
+#include "logging/log.hpp"
 
 MMTkVMCompanionThread::MMTkVMCompanionThread():
     NamedThread(),
@@ -74,6 +75,12 @@ void MMTkVMCompanionThread::run() {
       assert(_reached_state == _threads_suspended, "Threads should still be suspended at this moment.");
       _reached_state = _threads_resumed;
       _lock->notify_all();
+    }
+    {
+      MutexLocker x(Heap_lock);
+      if (Universe::has_reference_pending_list()) {
+        Heap_lock->notify_all();
+      }
     }
   }
 }

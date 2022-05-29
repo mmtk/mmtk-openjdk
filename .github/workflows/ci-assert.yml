@@ -9,15 +9,11 @@ jobs:
   test-assertions:
     runs-on: ubuntu-18.04
     steps:
-      # Checkout repos and submodules
       - uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Setup Rust Toolchain
-        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
       - name: Setup Environments
-        run: ./.github/scripts/ci-setup.sh
+        run: |
+            ./.github/scripts/ci-checkout.sh
+            ./.github/scripts/ci-setup.sh
 
       # Run the tests with assertions
       - name: Dacapo Test (with extreme_assertions)

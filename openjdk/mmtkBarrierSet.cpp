@@ -35,6 +35,44 @@
 #include "mmtkBarrierSetC2.hpp"
 #endif
 
+MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
+  int tlab_top_offset, tlab_end_offset;
+  int allocators_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
+    + in_bytes(byte_offset_of(MMTkMutatorContext, allocators));
+
+  if (selector.tag == TAG_IMMIX) {
+    int allocator_base_offset = allocators_base_offset
+      + in_bytes(byte_offset_of(Allocators, immix))
+      + selector.index * sizeof(ImmixAllocator);
+    tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, cursor));
+    tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(ImmixAllocator, limit));
+  } else if (selector.tag == TAG_BUMP_POINTER) {
+    int allocator_base_offset = allocators_base_offset
+      + in_bytes(byte_offset_of(Allocators, bump_pointer))
+      + selector.index * sizeof(BumpAllocator);
+    tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+    tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
+  } else if (selector.tag == TAG_MARK_COMPACT) {
+    int allocator_base_offset = allocators_base_offset
+      + in_bytes(byte_offset_of(Allocators, markcompact))
+      + selector.index * sizeof(MarkCompactAllocator)
+      + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
+    tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
+    tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
+  } else {
+    fatal("Unimplemented allocator fastpath\n");
+    // Setting values to make compiler happy about unitialized variables. This
+    // case should never be reached in practice, however.
+    tlab_top_offset = 0;
+    tlab_end_offset = 0;
+  }
+
+  MMTkAllocatorOffsets alloc_offsets;
+  alloc_offsets.tlab_top_offset = tlab_top_offset;
+  alloc_offsets.tlab_end_offset = tlab_end_offset;
+  return alloc_offsets;
+}
+
 MMTkBarrierBase* get_selected_barrier() {
   static MMTkBarrierBase* selected_barrier = NULL;
   if (selected_barrier) return selected_barrier;
