@@ -33,6 +33,7 @@
 #include "mmtkRootsClosure.hpp"
 #include "mmtkUpcalls.hpp"
 #include "mmtkVMCompanionThread.hpp"
+#include "runtime/atomic.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/safepoint.hpp"
@@ -41,7 +42,8 @@
 #include "runtime/vmThread.hpp"
 #include "utilities/debug.hpp"
 
-static size_t mmtk_start_the_world_count = 0;
+// Note: This counter must be accessed using the Atomic class.
+static volatile size_t mmtk_start_the_world_count = 0;
 
 static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
   MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
@@ -79,9 +81,11 @@ static void mmtk_resume_mutators(void *tls) {
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_resumed, true);
   log_debug(gc)("Mutators resumed. Now notify any mutators waiting for GC to finish...");
 
+  // Note: we don't have to hold gc_lock to increment the counter.
+  Atomic::inc(&mmtk_start_the_world_count);
+
   {
     MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), true);
-    mmtk_start_the_world_count++;
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
   log_debug(gc)("Mutators notified.");
@@ -120,12 +124,25 @@ static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
 static void mmtk_block_for_gc() {
   MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
   log_debug(gc)("Thread (id=%d) will block waiting for GC to finish.", Thread::current()->osthread()->thread_id());
-  {
-    MutexLocker locker(MMTkHeap::heap()->gc_lock());
-    size_t my_count = mmtk_start_the_world_count;
-    size_t next_count = my_count + 1;
 
-    while (mmtk_start_the_world_count < next_count) {
+  // We must read the counter before entering safepoint.
+  // This thread has just triggered GC.
+  // Before this thread enters safe point, the GC cannot start, and therefore cannot finish,
+  // and cannot increment the counter mmtk_start_the_world_count.
+  // Otherwise, if we attempt to acquire the gc_lock first, GC may have triggered stop-the-world
+  // first, and this thread will be blocked for the entire stop-the-world duration before it can
+  // get the lock.  Once that happens, the current thread will read the counter after the GC, and
+  // wait for the next non-existing GC forever.
+  size_t my_count = Atomic::load(&mmtk_start_the_world_count);
+  size_t next_count = my_count + 1;
+
+  {
+    // Once this thread acquires the lock, the VM will consider this thread to be "in safe point".
+    MutexLocker locker(MMTkHeap::heap()->gc_lock());
+
+    while (Atomic::load(&mmtk_start_the_world_count) < next_count) {
+      // wait() may wake up spuriously, but the authoritative condition for unblocking is
+      // mmtk_start_the_world_count being incremented.
       MMTkHeap::heap()->gc_lock()->wait();
     }
   }
