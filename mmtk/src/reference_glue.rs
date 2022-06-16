@@ -8,6 +8,8 @@ use mmtk::vm::ReferenceGlue;
 pub struct VMReferenceGlue {}
 
 impl ReferenceGlue<OpenJDK> for VMReferenceGlue {
+    type FinalizableType = ObjectReference;
+
     fn set_referent(reff: ObjectReference, referent: ObjectReference) {
         let oop = Oop::from(reff);
         unsafe { InstanceRefKlass::referent_address(oop).store(referent) };
