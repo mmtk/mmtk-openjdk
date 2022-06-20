@@ -28,7 +28,7 @@ once_cell = "1.10.0"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "662c9015e59044f0114c8a69663055fac1212544" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "f78de4ed8ffd6f834c6c3d3a0bde0a651cc33f2b" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
