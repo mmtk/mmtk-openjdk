@@ -56,7 +56,6 @@ struct ImmixAllocator {
   uint8_t _align[7];
   uint8_t line_opt_tag;
   uintptr_t line_opt;
-  uint8_t alloc_slow_for_stress;
 };
 
 struct FLBlock {
