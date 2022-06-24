@@ -11,43 +11,18 @@ use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
-/// This allows C++ code to call dynamic methods of the `RootsWorkFactory`.
-/// We use the `as_closure` method to presents an `EdgesClosure` struct to C++
-/// so that it can call back.
-pub(crate) struct ScopedDynamicFactoryInvoker<'f> {
-    pub factory: &'f dyn RootsWorkFactory,
-}
-
-impl<'f> ScopedDynamicFactoryInvoker<'f> {
-    pub(crate) fn new(factory: &'f dyn RootsWorkFactory) -> Self {
-        Self { factory }
-    }
-
-    pub(crate) fn invoke(&mut self, edges: Vec<Address>) {
-        self.factory.create_process_edge_roots_work(edges);
-    }
-
-    pub(crate) fn as_closure(&self) -> EdgesClosure {
-        EdgesClosure {
-            func: report_edges_and_renew_buffer as *const _,
-            data: unsafe { std::mem::transmute(self) },
-        }
-    }
-}
-
 const WORK_PACKET_CAPACITY: usize = 4096;
 
-extern "C" fn report_edges_and_renew_buffer(
+extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
     ptr: *mut Address,
     length: usize,
     capacity: usize,
-    invoker_ptr: *mut libc::c_void,
+    factory_ptr: *mut F,
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        let invoker: &mut ScopedDynamicFactoryInvoker<'static> =
-            unsafe { &mut *(invoker_ptr as *mut ScopedDynamicFactoryInvoker) };
-        invoker.invoke(buf);
+        let factory: &mut F = unsafe { &mut *factory_ptr };
+        factory.create_process_edge_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
@@ -57,6 +32,13 @@ extern "C" fn report_edges_and_renew_buffer(
         (me.as_mut_ptr(), me.len(), me.capacity())
     };
     NewBuffer { ptr, capacity }
+}
+
+pub(crate) fn to_edges_closure<F: RootsWorkFactory>(factory: &mut F) -> EdgesClosure {
+    EdgesClosure {
+        func: report_edges_and_renew_buffer::<F> as *const _,
+        data: factory as *mut F as *mut libc::c_void,
+    }
 }
 
 impl Scanning<OpenJDK> for VMScanning {
@@ -76,48 +58,46 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, factory: Box<dyn RootsWorkFactory>) {
-        let invoker = ScopedDynamicFactoryInvoker::new(factory.as_ref());
+    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory) {
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(invoker.as_closure());
+            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory));
         }
     }
 
     fn scan_thread_root(
         _tls: VMWorkerThread,
         mutator: &'static mut Mutator<OpenJDK>,
-        factory: Box<dyn RootsWorkFactory>,
+        mut factory: impl RootsWorkFactory,
     ) {
         let tls = mutator.get_tls();
-        let invoker = ScopedDynamicFactoryInvoker::new(factory.as_ref());
         unsafe {
-            ((*UPCALLS).scan_thread_root)(invoker.as_closure(), tls);
+            ((*UPCALLS).scan_thread_root)(to_edges_closure(&mut factory), tls);
         }
     }
 
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: Box<dyn RootsWorkFactory>) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory) {
         memory_manager::add_work_packets(
             &SINGLETON,
             WorkBucketStage::Prepare,
             vec![
-                Box::new(ScanUniverseRoots::new(factory.fork())) as _,
-                Box::new(ScanJNIHandlesRoots::new(factory.fork())) as _,
-                Box::new(ScanObjectSynchronizerRoots::new(factory.fork())) as _,
-                Box::new(ScanManagementRoots::new(factory.fork())) as _,
-                Box::new(ScanJvmtiExportRoots::new(factory.fork())) as _,
-                Box::new(ScanAOTLoaderRoots::new(factory.fork())) as _,
-                Box::new(ScanSystemDictionaryRoots::new(factory.fork())) as _,
-                Box::new(ScanCodeCacheRoots::new(factory.fork())) as _,
-                Box::new(ScanStringTableRoots::new(factory.fork())) as _,
-                Box::new(ScanClassLoaderDataGraphRoots::new(factory.fork())) as _,
-                Box::new(ScanWeakProcessorRoots::new(factory.fork())) as _,
+                Box::new(ScanUniverseRoots::new(factory.clone())) as _,
+                Box::new(ScanJNIHandlesRoots::new(factory.clone())) as _,
+                Box::new(ScanObjectSynchronizerRoots::new(factory.clone())) as _,
+                Box::new(ScanManagementRoots::new(factory.clone())) as _,
+                Box::new(ScanJvmtiExportRoots::new(factory.clone())) as _,
+                Box::new(ScanAOTLoaderRoots::new(factory.clone())) as _,
+                Box::new(ScanSystemDictionaryRoots::new(factory.clone())) as _,
+                Box::new(ScanCodeCacheRoots::new(factory.clone())) as _,
+                Box::new(ScanStringTableRoots::new(factory.clone())) as _,
+                Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
+                Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
             memory_manager::add_work_packet(
                 &SINGLETON,
                 WorkBucketStage::Prepare,
-                ScanVMThreadRoots::new(factory.fork()),
+                ScanVMThreadRoots::new(factory),
             );
         }
     }

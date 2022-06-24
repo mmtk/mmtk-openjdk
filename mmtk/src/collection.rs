@@ -8,25 +8,21 @@ use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-struct ScopedDynamicMutatorVisitorInvoker<'c> {
-    pub closure: &'c mut dyn FnMut(&'static mut Mutator<OpenJDK>),
+extern "C" fn report_mutator_stop<F>(mutator: *mut Mutator<OpenJDK>, callback: *mut F)
+where
+    F: FnMut(&'static mut Mutator<OpenJDK>),
+{
+    let callback: &mut F = unsafe { &mut *callback };
+    callback(unsafe { &mut *mutator });
 }
 
-impl<'c> ScopedDynamicMutatorVisitorInvoker<'c> {
-    fn invoke(&mut self, mutator: &'static mut Mutator<OpenJDK>) {
-        (self.closure)(mutator);
-    }
-
-    extern "C" fn c_invoker(mutator: *mut Mutator<OpenJDK>, me: *mut libc::c_void) {
-        let me: &mut Self = unsafe { &mut *(me as *mut ScopedDynamicMutatorVisitorInvoker) };
-        me.invoke(unsafe { &mut *mutator });
-    }
-
-    fn as_closure(&mut self) -> MutatorClosure {
-        MutatorClosure {
-            func: Self::c_invoker as *const _,
-            data: unsafe { std::mem::transmute(self) },
-        }
+fn to_mutator_closure<F>(callback: &mut F) -> MutatorClosure
+where
+    F: FnMut(&'static mut Mutator<OpenJDK>),
+{
+    MutatorClosure {
+        func: report_mutator_stop::<F> as *const _,
+        data: callback as *mut F as *mut libc::c_void,
     }
 }
 
@@ -45,12 +41,12 @@ impl Collection<OpenJDK> for VMCollection {
         let scan_mutators_in_safepoint =
             <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT;
 
-        let mut invoker = ScopedDynamicMutatorVisitorInvoker {
-            closure: &mut mutator_visitor,
-        };
-
         unsafe {
-            ((*UPCALLS).stop_all_mutators)(tls, scan_mutators_in_safepoint, invoker.as_closure());
+            ((*UPCALLS).stop_all_mutators)(
+                tls,
+                scan_mutators_in_safepoint,
+                to_mutator_closure(&mut mutator_visitor),
+            );
         }
     }
 
