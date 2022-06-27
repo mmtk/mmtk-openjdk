@@ -1,3 +1,9 @@
+0.13.0 (2022-06-27)
+===
+
+* Fixes a bug that may cause programs to hang in stop-the-world synchronization.
+* Updates to mmtk-core 0.13.0.
+
 0.12.0 (2022-05-13)
 ===
 
