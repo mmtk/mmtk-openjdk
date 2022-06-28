@@ -1,8 +1,9 @@
 use super::{OpenJDK, UPCALLS};
-use crate::scanning::create_process_edges_work;
+use crate::scanning::{create_process_edges_work, create_process_edges_work_vec};
 use mmtk::scheduler::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;
+use std::sync::atomic::Ordering;
 
 pub struct ScanUniverseRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
 
@@ -126,9 +127,13 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanCodeCacheRoots<E> {
 
 impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanCodeCacheRoots<E> {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_code_cache_roots)(create_process_edges_work::<E> as _);
+        let mut vec = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
+        for (_, roots) in &*crate::CODE_CACHE_ROOTS.lock().unwrap() {
+            for r in roots {
+                vec.push(*r)
+            }
         }
+        create_process_edges_work_vec::<E>(vec)
     }
 }
 

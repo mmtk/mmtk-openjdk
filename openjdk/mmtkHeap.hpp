@@ -181,9 +181,11 @@ public:
 
   // An object is scavengable if its location may move during a scavenge.
   // (A scavenge is a GC which is not a full GC.)
-  bool is_scavengable(oop obj);
+  inline bool is_scavengable(oop obj) { return true; }
   // Registering and unregistering an nmethod (compiled code) with the heap.
   // Override with specific mechanism for each specialized heap type.
+  virtual void register_nmethod(nmethod* nm);
+  virtual void unregister_nmethod(nmethod* nm);
 
   // Heap verification
   void verify(VerifyOption option);
@@ -192,8 +194,6 @@ public:
 
   void scan_roots(OopClosure& cl);
 
-  void scan_static_roots(OopClosure& cl);
-  void scan_global_roots(OopClosure& cl);
   void scan_thread_roots(OopClosure& cl);
 
   void scan_universe_roots(OopClosure& cl);

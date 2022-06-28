@@ -10,6 +10,13 @@ use mmtk::vm::{EdgeVisitor, Scanning};
 use mmtk::Mutator;
 use mmtk::MutatorContext;
 
+pub(crate) fn create_process_edges_work_vec<W: ProcessEdgesWork<VM = OpenJDK>>(buf: Vec<Address>) {
+    if !buf.is_empty() {
+        let w = W::new(buf, true, &SINGLETON);
+        memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, w);
+    }
+}
+
 pub struct VMScanning {}
 
 pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
@@ -55,7 +62,7 @@ impl Scanning<OpenJDK> for VMScanning {
     fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
         let process_edges = create_process_edges_work::<W>;
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(process_edges as _);
+            ((*UPCALLS).scan_all_thread_roots)(process_edges as _);
         }
     }
 
@@ -66,7 +73,7 @@ impl Scanning<OpenJDK> for VMScanning {
         let tls = mutator.get_tls();
         let process_edges = create_process_edges_work::<W>;
         unsafe {
-            ((*UPCALLS).scan_thread_root)(process_edges as _, tls);
+            ((*UPCALLS).scan_thread_roots)(process_edges as _, tls);
         }
     }
 

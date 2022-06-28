@@ -65,10 +65,12 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
     }
   }
   log_debug(gc)("Finished enumerating threads.");
+  nmethod::oops_do_marking_prologue();
 }
 
 static void mmtk_resume_mutators(void *tls) {
-  ClassLoaderDataGraph::purge();
+  nmethod::oops_do_marking_epilogue();
+  // ClassLoaderDataGraph::purge();
   CodeCache::gc_epilogue();
   JvmtiExport::gc_epilogue();
 #if COMPILER2_OR_JVMCI
@@ -211,31 +213,17 @@ static void mmtk_reset_mutator_iterator() {
 }
 
 
-static void mmtk_compute_global_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
-  MMTkHeap::heap()->scan_global_roots(cl);
-}
-
-static void mmtk_compute_static_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
-  MMTkHeap::heap()->scan_static_roots(cl);
-}
-
-static void mmtk_compute_thread_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
-  MMTkHeap::heap()->scan_thread_roots(cl);
-}
-
-static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges) {
+static void mmtk_scan_all_thread_roots(ProcessEdgesFn process_edges) {
   MMTkRootsClosure2 cl(process_edges);
   MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
+static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure2 cl(process_edges);
-  thread->oops_do(&cl, NULL);
+  MarkingCodeBlobClosure cb_cl(&cl, false);
+  thread->oops_do(&cl, &cb_cl);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
@@ -266,7 +254,6 @@ static void mmtk_harness_begin() {
   JavaThread* current = ((JavaThread*) Thread::current());
   ThreadInVMfromNative tiv(current);
   mmtk_harness_begin_impl();
-  
 }
 
 static void mmtk_harness_end() {
@@ -365,9 +352,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_out_of_memory,
   mmtk_get_next_mutator,
   mmtk_reset_mutator_iterator,
-  mmtk_compute_static_roots,
-  mmtk_compute_global_roots,
-  mmtk_compute_thread_roots,
   mmtk_scan_object,
   mmtk_dump_object,
   mmtk_get_object_size,
@@ -381,8 +365,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   referent_offset,
   discovered_offset,
   dump_object_string,
+  mmtk_scan_all_thread_roots,
   mmtk_scan_thread_roots,
-  mmtk_scan_thread_root,
   mmtk_scan_universe_roots,
   mmtk_scan_jni_handle_roots,
   mmtk_scan_object_synchronizer_roots,

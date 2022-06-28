@@ -15,7 +15,9 @@ use mmtk::Mutator;
 use mmtk::MutatorContext;
 use mmtk::MMTK;
 use once_cell::sync;
+use std::cell::RefCell;
 use std::ffi::{CStr, CString};
+use std::sync::atomic::Ordering;
 
 // Supported barriers:
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
@@ -280,5 +282,37 @@ pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
         None => unsafe { Address::ZERO.to_object_reference() },
+    }
+}
+
+thread_local! {
+    static NMETHOD_SLOTS: RefCell<Vec<Address>> = RefCell::new(vec![]);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
+    NMETHOD_SLOTS.with(|x| x.borrow_mut().push(addr))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_register_nmethod(nm: Address) {
+    let slots = NMETHOD_SLOTS.with(|x| {
+        if x.borrow().len() == 0 {
+            return None;
+        }
+        Some(x.replace(vec![]))
+    });
+    if slots.is_none() {
+        return;
+    }
+    let slots = slots.unwrap();
+    crate::CODE_CACHE_ROOTS_SIZE.fetch_add(slots.len(), Ordering::SeqCst);
+    crate::CODE_CACHE_ROOTS.lock().unwrap().insert(nm, slots);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_unregister_nmethod(nm: Address) {
+    if let Some(slots) = crate::CODE_CACHE_ROOTS.lock().unwrap().remove(&nm) {
+        crate::CODE_CACHE_ROOTS_SIZE.fetch_sub(slots.len(), Ordering::SeqCst);
     }
 }
