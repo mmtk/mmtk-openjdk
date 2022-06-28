@@ -133,7 +133,11 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanCodeCacheRoots<E
                 vec.push(*r)
             }
         }
-        create_process_edges_work_vec::<E>(vec)
+        create_process_edges_work_vec::<E>(vec);
+        // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
+        // unsafe {
+        //     ((*UPCALLS).scan_code_cache_roots)(create_process_edges_work::<E> as _);
+        // }
     }
 }
 

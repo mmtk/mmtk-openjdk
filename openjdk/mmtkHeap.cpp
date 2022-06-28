@@ -383,7 +383,7 @@ void MMTkHeap::scan_system_dictionary_roots(OopClosure& cl) {
 }
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
   MarkingCodeBlobClosure cb_cl(&cl, false);
-  CodeCache::scavenge_root_nmethods_do(&cb_cl);
+  CodeCache::blobs_do(&cb_cl);
 }
 void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
   StringTable::oops_do(&cl);
