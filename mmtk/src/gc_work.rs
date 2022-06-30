@@ -128,7 +128,7 @@ impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanCodeCacheRoots<E> {
 impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanCodeCacheRoots<E> {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
         let mut vec = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
-        for (_, roots) in &*crate::CODE_CACHE_ROOTS.lock().unwrap() {
+        for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
             for r in roots {
                 vec.push(*r)
             }

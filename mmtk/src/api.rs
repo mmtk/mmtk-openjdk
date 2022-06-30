@@ -290,12 +290,12 @@ thread_local! {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
+pub extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
     NMETHOD_SLOTS.with(|x| x.borrow_mut().push(addr))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mmtk_register_nmethod(nm: Address) {
+pub extern "C" fn mmtk_register_nmethod(nm: Address) {
     let slots = NMETHOD_SLOTS.with(|x| {
         if x.borrow().len() == 0 {
             return None;
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn mmtk_register_nmethod(nm: Address) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mmtk_unregister_nmethod(nm: Address) {
+pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
     if let Some(slots) = crate::CODE_CACHE_ROOTS.lock().unwrap().remove(&nm) {
         crate::CODE_CACHE_ROOTS_SIZE.fetch_sub(slots.len(), Ordering::SeqCst);
     }
