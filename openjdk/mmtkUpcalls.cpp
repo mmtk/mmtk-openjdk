@@ -222,8 +222,7 @@ static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure2 cl(process_edges);
-  MarkingCodeBlobClosure cb_cl(&cl, false);
-  thread->oops_do(&cl, &cb_cl);
+  thread->oops_do(&cl, NULL);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
