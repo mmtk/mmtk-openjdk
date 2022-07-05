@@ -1,38 +1,44 @@
 use super::gc_work::*;
 use super::{NewBuffer, SINGLETON, UPCALLS};
-use crate::OpenJDK;
+use crate::{EdgesClosure, OpenJDK};
 use mmtk::memory_manager;
-use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::{EdgeVisitor, Scanning};
+use mmtk::vm::{EdgeVisitor, RootsWorkFactory, Scanning};
 use mmtk::Mutator;
 use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
-pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = OpenJDK>>(
+const WORK_PACKET_CAPACITY: usize = 4096;
+
+extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
     ptr: *mut Address,
     length: usize,
     capacity: usize,
+    factory_ptr: *mut F,
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        memory_manager::add_work_packet(
-            &SINGLETON,
-            WorkBucketStage::Closure,
-            W::new(buf, true, &SINGLETON),
-        );
+        let factory: &mut F = unsafe { &mut *factory_ptr };
+        factory.create_process_edge_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
         use std::mem::ManuallyDrop;
-        let new_vec = Vec::with_capacity(W::CAPACITY);
+        let new_vec = Vec::with_capacity(WORK_PACKET_CAPACITY);
         let mut me = ManuallyDrop::new(new_vec);
         (me.as_mut_ptr(), me.len(), me.capacity())
     };
     NewBuffer { ptr, capacity }
+}
+
+pub(crate) fn to_edges_closure<F: RootsWorkFactory>(factory: &mut F) -> EdgesClosure {
+    EdgesClosure {
+        func: report_edges_and_renew_buffer::<F> as *const _,
+        data: factory as *mut F as *mut libc::c_void,
+    }
 }
 
 impl Scanning<OpenJDK> for VMScanning {
@@ -52,47 +58,46 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_thread_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
-        let process_edges = create_process_edges_work::<W>;
+    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory) {
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(process_edges as _);
+            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory));
         }
     }
 
-    fn scan_thread_root<W: ProcessEdgesWork<VM = OpenJDK>>(
-        mutator: &'static mut Mutator<OpenJDK>,
+    fn scan_thread_root(
         _tls: VMWorkerThread,
+        mutator: &'static mut Mutator<OpenJDK>,
+        mut factory: impl RootsWorkFactory,
     ) {
         let tls = mutator.get_tls();
-        let process_edges = create_process_edges_work::<W>;
         unsafe {
-            ((*UPCALLS).scan_thread_root)(process_edges as _, tls);
+            ((*UPCALLS).scan_thread_root)(to_edges_closure(&mut factory), tls);
         }
     }
 
-    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = OpenJDK>>() {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory) {
         memory_manager::add_work_packets(
             &SINGLETON,
             WorkBucketStage::Prepare,
             vec![
-                Box::new(ScanUniverseRoots::<W>::new()),
-                Box::new(ScanJNIHandlesRoots::<W>::new()),
-                Box::new(ScanObjectSynchronizerRoots::<W>::new()),
-                Box::new(ScanManagementRoots::<W>::new()),
-                Box::new(ScanJvmtiExportRoots::<W>::new()),
-                Box::new(ScanAOTLoaderRoots::<W>::new()),
-                Box::new(ScanSystemDictionaryRoots::<W>::new()),
-                Box::new(ScanCodeCacheRoots::<W>::new()),
-                Box::new(ScanStringTableRoots::<W>::new()),
-                Box::new(ScanClassLoaderDataGraphRoots::<W>::new()),
-                Box::new(ScanWeakProcessorRoots::<W>::new()),
+                Box::new(ScanUniverseRoots::new(factory.clone())) as _,
+                Box::new(ScanJNIHandlesRoots::new(factory.clone())) as _,
+                Box::new(ScanObjectSynchronizerRoots::new(factory.clone())) as _,
+                Box::new(ScanManagementRoots::new(factory.clone())) as _,
+                Box::new(ScanJvmtiExportRoots::new(factory.clone())) as _,
+                Box::new(ScanAOTLoaderRoots::new(factory.clone())) as _,
+                Box::new(ScanSystemDictionaryRoots::new(factory.clone())) as _,
+                Box::new(ScanCodeCacheRoots::new(factory.clone())) as _,
+                Box::new(ScanStringTableRoots::new(factory.clone())) as _,
+                Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
+                Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
             ],
         );
         if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
             memory_manager::add_work_packet(
                 &SINGLETON,
                 WorkBucketStage::Prepare,
-                ScanVMThreadRoots::<W>::new(),
+                ScanVMThreadRoots::new(factory),
             );
         }
     }
