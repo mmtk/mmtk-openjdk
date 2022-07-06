@@ -144,6 +144,10 @@ lazy_static! {
 pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
 
-static CODE_CACHE_ROOTS: spin::Lazy<Mutex<HashMap<Address, Vec<Address>>>> =
-    spin::Lazy::new(|| Mutex::new(HashMap::new()));
+lazy_static! {
+    /// A global storage for all the cached CodeCache root pointers
+    static ref CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+}
+
+/// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
 static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);

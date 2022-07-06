@@ -348,8 +348,10 @@ public:
 
 
 void MMTkHeap::register_nmethod(nmethod* nm) {
+  // Scan and report pointers in this nmethod
   MMTkRegisterNMethodOopClosure reg_cl;
   nm->oops_do(&reg_cl);
+  // Register the nmethod
   mmtk_register_nmethod((void*) nm);
 }
 
