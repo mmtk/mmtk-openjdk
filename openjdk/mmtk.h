@@ -102,13 +102,29 @@ typedef struct {
     size_t cap;
 } NewBuffer;
 
-typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
+struct MutatorClosure {
+    void (*func)(MMTk_Mutator mutator, void* data);
+    void* data;
+
+    void invoke(MMTk_Mutator mutator) {
+        func(mutator, data);
+    }
+};
+
+struct EdgesClosure {
+    NewBuffer (*func)(void** buf, size_t size, size_t capa, void* data);
+    void* data;
+
+    NewBuffer invoke(void** buf, size_t size, size_t capa) {
+        return func(buf, size, capa, data);
+    }
+};
 
 /**
  * OpenJDK-specific
  */
 typedef struct {
-    void (*stop_all_mutators) (void *tls, void (*create_stack_scan_work)(void* mutator));
+    void (*stop_all_mutators) (void *tls, bool scan_mutators_in_safepoint, MutatorClosure closure);
     void (*resume_mutators) (void *tls);
     void (*spawn_collector_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
@@ -128,20 +144,20 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_all_thread_roots)(ProcessEdgesFn process_edges);
-    void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
-    void (*scan_universe_roots) (ProcessEdgesFn process_edges);
-    void (*scan_jni_handle_roots) (ProcessEdgesFn process_edges);
-    void (*scan_object_synchronizer_roots) (ProcessEdgesFn process_edges);
-    void (*scan_management_roots) (ProcessEdgesFn process_edges);
-    void (*scan_jvmti_export_roots) (ProcessEdgesFn process_edges);
-    void (*scan_aot_loader_roots) (ProcessEdgesFn process_edges);
-    void (*scan_system_dictionary_roots) (ProcessEdgesFn process_edges);
-    void (*scan_code_cache_roots) (ProcessEdgesFn process_edges);
-    void (*scan_string_table_roots) (ProcessEdgesFn process_edges);
-    void (*scan_class_loader_data_graph_roots) (ProcessEdgesFn process_edges);
-    void (*scan_weak_processor_roots) (ProcessEdgesFn process_edges);
-    void (*scan_vm_thread_roots) (ProcessEdgesFn process_edges);
+    void (*scan_all_thread_roots)(EdgesClosure closure);
+    void (*scan_thread_roots)(EdgesClosure closure, void* tls);
+    void (*scan_universe_roots) (EdgesClosure closure);
+    void (*scan_jni_handle_roots) (EdgesClosure closure);
+    void (*scan_object_synchronizer_roots) (EdgesClosure closure);
+    void (*scan_management_roots) (EdgesClosure closure);
+    void (*scan_jvmti_export_roots) (EdgesClosure closure);
+    void (*scan_aot_loader_roots) (EdgesClosure closure);
+    void (*scan_system_dictionary_roots) (EdgesClosure closure);
+    void (*scan_code_cache_roots) (EdgesClosure closure);
+    void (*scan_string_table_roots) (EdgesClosure closure);
+    void (*scan_class_loader_data_graph_roots) (EdgesClosure closure);
+    void (*scan_weak_processor_roots) (EdgesClosure closure);
+    void (*scan_vm_thread_roots) (EdgesClosure closure);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();

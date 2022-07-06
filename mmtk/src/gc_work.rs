@@ -1,206 +1,70 @@
-use super::{OpenJDK, UPCALLS};
-use crate::scanning::{create_process_edges_work, create_process_edges_work_vec};
-use mmtk::scheduler::*;
-use mmtk::MMTK;
-use std::marker::PhantomData;
 use std::sync::atomic::Ordering;
 
-pub struct ScanUniverseRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
+use super::{OpenJDK, UPCALLS};
+use mmtk::scheduler::*;
+use mmtk::vm::RootsWorkFactory;
+use mmtk::MMTK;
+use scanning::to_edges_closure;
 
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanUniverseRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanUniverseRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_universe_roots)(create_process_edges_work::<E> as _);
+macro_rules! scan_roots_work {
+    ($struct_name: ident, $func_name: ident) => {
+        pub struct $struct_name<F: RootsWorkFactory> {
+            factory: F,
         }
-    }
-}
 
-pub struct ScanJNIHandlesRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanJNIHandlesRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanJNIHandlesRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_jni_handle_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanObjectSynchronizerRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanObjectSynchronizerRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanObjectSynchronizerRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_object_synchronizer_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanManagementRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanManagementRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanManagementRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_management_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanJvmtiExportRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanJvmtiExportRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanJvmtiExportRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_jvmti_export_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanAOTLoaderRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanAOTLoaderRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanAOTLoaderRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_aot_loader_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanSystemDictionaryRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanSystemDictionaryRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanSystemDictionaryRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_system_dictionary_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanCodeCacheRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanCodeCacheRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanCodeCacheRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        let mut vec = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
-        for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
-            for r in roots {
-                vec.push(*r)
+        impl<F: RootsWorkFactory> $struct_name<F> {
+            pub fn new(factory: F) -> Self {
+                Self { factory }
             }
         }
-        create_process_edges_work_vec::<E>(vec);
+
+        impl<F: RootsWorkFactory> GCWork<OpenJDK> for $struct_name<F> {
+            fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+                unsafe {
+                    ((*UPCALLS).$func_name)(to_edges_closure(&mut self.factory));
+                }
+            }
+        }
+    };
+}
+
+scan_roots_work!(ScanUniverseRoots, scan_universe_roots);
+scan_roots_work!(ScanJNIHandlesRoots, scan_jni_handle_roots);
+scan_roots_work!(ScanObjectSynchronizerRoots, scan_object_synchronizer_roots);
+scan_roots_work!(ScanManagementRoots, scan_management_roots);
+scan_roots_work!(ScanJvmtiExportRoots, scan_jvmti_export_roots);
+scan_roots_work!(ScanAOTLoaderRoots, scan_aot_loader_roots);
+scan_roots_work!(ScanSystemDictionaryRoots, scan_system_dictionary_roots);
+scan_roots_work!(ScanStringTableRoots, scan_string_table_roots);
+scan_roots_work!(
+    ScanClassLoaderDataGraphRoots,
+    scan_class_loader_data_graph_roots
+);
+scan_roots_work!(ScanWeakProcessorRoots, scan_weak_processor_roots);
+scan_roots_work!(ScanVMThreadRoots, scan_vm_thread_roots);
+
+pub struct ScanCodeCacheRoots<F: RootsWorkFactory> {
+    factory: F,
+}
+
+impl<F: RootsWorkFactory> ScanCodeCacheRoots<F> {
+    pub fn new(factory: F) -> Self {
+        Self { factory }
+    }
+}
+
+impl<F: RootsWorkFactory> GCWork<OpenJDK> for ScanCodeCacheRoots<F> {
+    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        let mut edges = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
+        for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
+            for r in roots {
+                edges.push(*r)
+            }
+        }
+        self.factory.create_process_edge_roots_work(edges);
         // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
         // unsafe {
         //     ((*UPCALLS).scan_code_cache_roots)(create_process_edges_work::<E> as _);
         // }
-    }
-}
-
-pub struct ScanStringTableRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanStringTableRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanStringTableRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_string_table_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanClassLoaderDataGraphRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanClassLoaderDataGraphRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanClassLoaderDataGraphRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_class_loader_data_graph_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanWeakProcessorRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanWeakProcessorRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanWeakProcessorRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_weak_processor_roots)(create_process_edges_work::<E> as _);
-        }
-    }
-}
-
-pub struct ScanVMThreadRoots<E: ProcessEdgesWork<VM = OpenJDK>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> ScanVMThreadRoots<E> {
-    pub fn new() -> Self {
-        Self(PhantomData)
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = OpenJDK>> GCWork<OpenJDK> for ScanVMThreadRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
-        unsafe {
-            ((*UPCALLS).scan_vm_thread_roots)(create_process_edges_work::<E> as _);
-        }
     }
 }

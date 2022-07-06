@@ -450,12 +450,6 @@ HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_wa
   return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
 }
 
-void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
-
-void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
-  if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
-}
-
 /*
  * files with prints currently:
  * collectedHeap.inline.hpp, mmtkHeap.cpp,
