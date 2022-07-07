@@ -312,6 +312,7 @@ pub extern "C" fn mmtk_register_nmethod(nm: Address) {
         _ => return,
     };
     let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
+    // Relaxed add instead of `fetch_add`, since we've already acquired the lock.
     crate::CODE_CACHE_ROOTS_SIZE.store(
         crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) + slots.len(),
         Ordering::Relaxed,
@@ -324,6 +325,7 @@ pub extern "C" fn mmtk_register_nmethod(nm: Address) {
 pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
     let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
     if let Some(slots) = roots.remove(&nm) {
+        // Relaxed sub instead of `fetch_sub`, since we've already acquired the lock.
         crate::CODE_CACHE_ROOTS_SIZE.store(
             crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) - slots.len(),
             Ordering::Relaxed,
