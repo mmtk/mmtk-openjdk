@@ -4,7 +4,10 @@ extern crate mmtk;
 extern crate lazy_static;
 extern crate once_cell;
 
+use std::collections::HashMap;
 use std::ptr::null_mut;
+use std::sync::atomic::AtomicUsize;
+use std::sync::Mutex;
 
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
@@ -58,9 +61,6 @@ pub struct OpenJDK_Upcalls {
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
     pub reset_mutator_iterator: extern "C" fn(),
-    pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_global_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_thread_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
@@ -74,8 +74,8 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure),
-    pub scan_thread_root: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
+    pub scan_all_thread_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
     pub scan_universe_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_jni_handle_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_object_synchronizer_roots: extern "C" fn(closure: EdgesClosure),
@@ -142,3 +142,11 @@ lazy_static! {
 #[no_mangle]
 pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
+
+lazy_static! {
+    /// A global storage for all the cached CodeCache root pointers
+    static ref CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+}
+
+/// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
+static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);

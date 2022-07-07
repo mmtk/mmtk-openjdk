@@ -60,7 +60,7 @@ impl Scanning<OpenJDK> for VMScanning {
 
     fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory) {
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory));
+            ((*UPCALLS).scan_all_thread_roots)(to_edges_closure(&mut factory));
         }
     }
 
@@ -71,7 +71,7 @@ impl Scanning<OpenJDK> for VMScanning {
     ) {
         let tls = mutator.get_tls();
         unsafe {
-            ((*UPCALLS).scan_thread_root)(to_edges_closure(&mut factory), tls);
+            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory), tls);
         }
     }
 

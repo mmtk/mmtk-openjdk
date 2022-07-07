@@ -15,7 +15,9 @@ use mmtk::Mutator;
 use mmtk::MutatorContext;
 use mmtk::MMTK;
 use once_cell::sync;
+use std::cell::RefCell;
 use std::ffi::{CStr, CString};
+use std::sync::atomic::Ordering;
 
 // Supported barriers:
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
@@ -280,5 +282,53 @@ pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
         None => unsafe { Address::ZERO.to_object_reference() },
+    }
+}
+
+thread_local! {
+    /// Cache all the pointers reported by the current thread.
+    static NMETHOD_SLOTS: RefCell<Vec<Address>> = RefCell::new(vec![]);
+}
+
+/// Report a list of pointers in nmethod to mmtk.
+#[no_mangle]
+pub extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
+    NMETHOD_SLOTS.with(|x| x.borrow_mut().push(addr))
+}
+
+/// Register a nmethod.
+/// The c++ part of the binding should scan the nmethod and report all the pointers to mmtk first, before calling this function.
+/// This function will transfer all the locally cached pointers of this nmethod to the global storage.
+#[no_mangle]
+pub extern "C" fn mmtk_register_nmethod(nm: Address) {
+    let slots = NMETHOD_SLOTS.with(|x| {
+        if x.borrow().len() == 0 {
+            return None;
+        }
+        Some(x.replace(vec![]))
+    });
+    let slots = match slots {
+        Some(slots) => slots,
+        _ => return,
+    };
+    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
+    // Relaxed add instead of `fetch_add`, since we've already acquired the lock.
+    crate::CODE_CACHE_ROOTS_SIZE.store(
+        crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) + slots.len(),
+        Ordering::Relaxed,
+    );
+    roots.insert(nm, slots);
+}
+
+/// Unregister a nmethod.
+#[no_mangle]
+pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
+    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
+    if let Some(slots) = roots.remove(&nm) {
+        // Relaxed sub instead of `fetch_sub`, since we've already acquired the lock.
+        crate::CODE_CACHE_ROOTS_SIZE.store(
+            crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) - slots.len(),
+            Ordering::Relaxed,
+        );
     }
 }

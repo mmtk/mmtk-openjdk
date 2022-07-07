@@ -87,6 +87,10 @@ extern void handle_user_collection_request(void *tls);
 extern void start_control_collector(void *tls, void *context);
 extern void start_worker(void *tls, void* worker);
 
+extern size_t mmtk_add_nmethod_oop(void* object);
+extern size_t mmtk_register_nmethod(void* nm);
+extern size_t mmtk_unregister_nmethod(void* nm);
+
 /**
  * VM Accounting
  */
@@ -127,9 +131,6 @@ typedef struct {
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();
-    void (*compute_static_roots) (void* trace, void* tls);
-    void (*compute_global_roots) (void* trace, void* tls);
-    void (*compute_thread_roots) (void* trace, void* tls);
     void (*scan_object) (void* trace, void* object, void* tls);
     void (*dump_object) (void* object);
     size_t (*get_object_size) (void* object);
@@ -143,8 +144,8 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_thread_roots)(EdgesClosure closure);
-    void (*scan_thread_root)(EdgesClosure closure, void* tls);
+    void (*scan_all_thread_roots)(EdgesClosure closure);
+    void (*scan_thread_roots)(EdgesClosure closure, void* tls);
     void (*scan_universe_roots) (EdgesClosure closure);
     void (*scan_jni_handle_roots) (EdgesClosure closure);
     void (*scan_object_synchronizer_roots) (EdgesClosure closure);
