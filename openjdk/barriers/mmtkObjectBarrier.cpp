@@ -37,6 +37,16 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   record_modified_node(masm, dst.base(), tmp1, tmp2);
 }
 
+void MMTkObjectBarrierSetAssembler::oop_arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count, Register dst_obj) {
+  const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
+  if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
+    __ pusha();
+    __ movptr(c_rarg2, dst_obj);
+    record_modified_node(masm, c_rarg2, c_rarg0, c_rarg1);
+    __ popa();
+  }
+}
+
 void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   Label done;
@@ -159,20 +169,8 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
 
 #define __ ideal.
 
-const TypeFunc* record_modified_node_entry_Type() {
-  const Type **fields = TypeTuple::fields(1);
-  fields[TypeFunc::Parms+0] = TypeOopPtr::BOTTOM; // oop src
-  const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
-  fields = TypeTuple::fields(0);
-  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
-  return TypeFunc::make(domain, range);
-}
-
-void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* val) const {
-  if (val != NULL && val->is_Con()) {
-    const Type* t = val->bottom_type();
-    if (t == TypePtr::NULL_PTR) return;
-  }
+void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
+  if (can_remove_barrier(kit, &kit->gvn(), src, slot, val, /* skip_const_null */ true)) return;
 
   MMTkIdealKit ideal(kit, true);
 

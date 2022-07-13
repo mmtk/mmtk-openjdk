@@ -45,6 +45,7 @@ public:
       BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     }
   }
+  virtual void oop_arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count, Register dst_obj) override;
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
 #define __ sasm->
   void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) {
@@ -152,31 +153,27 @@ public:
 #define __ ideal.
 
 class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
-  void record_modified_node(GraphKit* kit, Node* node, Node* val) const;
+  void record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const;
 public:
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
+    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), val.node());
     Node* store = BarrierSetC2::store_at_resolved(access, val);
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), val.node());
     return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
     Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), new_val);
     return result;
   }
   virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
+    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
     Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), new_val);
     return load_store;
   }
   virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
+    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
     Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), new_val);
     return result;
-  }
-  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
-    BarrierSetC2::clone(kit, src, dst, size, is_array);
-    record_modified_node(kit, dst, NULL);
   }
   virtual bool is_gc_barrier_node(Node* node) const {
     if (node->Opcode() != Op_CallLeaf) return false;

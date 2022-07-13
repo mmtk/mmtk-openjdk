@@ -59,6 +59,8 @@ protected:
     return BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
   }
 
+  virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
+
 public:
   virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
     BarrierSetC2::clone(kit, src, dst, size, is_array);
