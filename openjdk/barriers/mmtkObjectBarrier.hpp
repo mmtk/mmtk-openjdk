@@ -22,13 +22,13 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
-  static void record_modified_node_slow(void* src);
+  static void record_modified_node_slow(void* src, void* slot, void* target);
 
   virtual bool is_slow_path_call(address call) {
     return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
   }
 
-  virtual void record_modified_node(oop src);
+  virtual void record_modified_node(oop src, oop* slot, oop target);
 };
 
 class MMTkObjectBarrierSetC1;

@@ -264,11 +264,13 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(
+pub extern "C" fn mmtk_object_reference_write(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
+    slot: Address,
+    target: ObjectReference,
 ) {
-    mutator.record_modified_node(obj);
+    mutator.barrier().object_reference_write(obj, slot, target);
 }
 
 // finalization

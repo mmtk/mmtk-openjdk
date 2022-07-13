@@ -2,21 +2,21 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
-  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj, void* slot, void* target) {
+  ::mmtk_object_reference_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, obj, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
+void MMTkObjectBarrierSetRuntime::record_modified_node(oop src, oop* slot, oop target) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
   uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   intptr_t shift = (addr >> 3) & 0b111;
   uint8_t byte_val = *meta_addr;
   if (((byte_val >> shift) & 1) == 1) {
-    record_modified_node_slow((void*) src);
+    record_modified_node_slow((void*) src, (void*) slot, (void*) target);
   }
 #else
-  record_modified_node_slow((void*) src);
+  record_modified_node_slow((void*) src, (void*) slot, (void*) target);
 #endif
 }
 
