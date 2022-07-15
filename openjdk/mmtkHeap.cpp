@@ -85,10 +85,8 @@ jint MMTkHeap::initialize() {
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
   // Set heap size
-  char heap_size_key[] = "heap_size";
-  char* heap_size_val = const_cast<char*>(std::to_string(heap_size).c_str());
-  bool set_heap_size = process(heap_size_key, heap_size_val);
-  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %s\n", heap_size_val);
+  bool set_heap_size = mmtk_set_heap_size(heap_size);
+  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %ld\n", heap_size);
 
   openjdk_gc_init(&mmtk_upcalls);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.

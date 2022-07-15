@@ -59,6 +59,11 @@ pub extern "C" fn openjdk_is_gc_initialized() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn mmtk_set_heap_size(size: usize) -> bool {
+    memory_manager::process(&SINGLETON, "heap_size", size.to_string().as_str())
+}
+
+#[no_mangle]
 pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<OpenJDK> {
     Box::into_raw(memory_manager::bind_mutator(&SINGLETON, tls))
 }
