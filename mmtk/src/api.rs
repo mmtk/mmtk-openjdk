@@ -43,14 +43,19 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capaci
 }
 
 #[no_mangle]
-pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
+pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
     // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
     #[allow(clippy::cast_ref_to_mut)]
     let singleton_mut =
         unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
-    memory_manager::gc_init(singleton_mut, heap_size);
+    memory_manager::gc_init(singleton_mut);
+}
+
+#[no_mangle]
+pub extern "C" fn openjdk_is_gc_initialized() -> bool {
+    memory_manager::is_gc_initialized(&SINGLETON)
 }
 
 #[no_mangle]
