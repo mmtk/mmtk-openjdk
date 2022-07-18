@@ -275,6 +275,20 @@ pub extern "C" fn mmtk_object_reference_write_pre(
         .object_reference_write_pre(obj, slot, target);
 }
 
+#[no_mangle]
+pub extern "C" fn mmtk_array_copy_pre(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: ObjectReference,
+    src_offset: usize,
+    dst: ObjectReference,
+    dst_offset: usize,
+    count: usize,
+) {
+    mutator
+        .barrier()
+        .array_copy_pre(src, src_offset, dst, dst_offset, count);
+}
+
 // finalization
 #[no_mangle]
 pub extern "C" fn add_finalizer(object: ObjectReference) {
