@@ -264,13 +264,15 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_object_reference_write(
+pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
     slot: Address,
     target: ObjectReference,
 ) {
-    mutator.barrier().object_reference_write(obj, slot, target);
+    mutator
+        .barrier()
+        .object_reference_write_pre(obj, slot, target);
 }
 
 // finalization

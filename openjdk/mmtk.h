@@ -43,7 +43,7 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
-extern void mmtk_object_reference_write(MMTk_Mutator mutator, void* obj, void* slot, void* target);
+extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* obj, void* slot, void* target);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 

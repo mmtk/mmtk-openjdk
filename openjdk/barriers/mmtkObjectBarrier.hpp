@@ -28,7 +28,7 @@ public:
     return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
   }
 
-  virtual void record_modified_node(oop src, oop* slot, oop target);
+  virtual void object_reference_write_pre(oop src, oop* slot, oop target) override;
 };
 
 class MMTkObjectBarrierSetC1;
@@ -36,7 +36,7 @@ class MMTkObjectBarrierStub;
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
   void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
-  void record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2);
+  void object_reference_write(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2);
 public:
   virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
     if (type == T_OBJECT || type == T_ARRAY) {
