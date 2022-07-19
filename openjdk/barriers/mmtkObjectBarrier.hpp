@@ -30,6 +30,7 @@ public:
   }
 
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) override;
+  virtual void object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) override;
 };
 
 class MMTkObjectBarrierSetC1;

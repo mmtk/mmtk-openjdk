@@ -10,6 +10,10 @@ void MMTkObjectBarrierSetRuntime::array_copy_pre_slow(void* src, void* dst, void
   ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, dst_object, count);
 }
 
+void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) {
+  array_copy_pre_slow((void*) src, (void*) dst, (void*) dst_object, count);
+}
+
 void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
