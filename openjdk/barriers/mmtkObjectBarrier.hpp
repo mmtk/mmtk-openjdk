@@ -53,32 +53,32 @@ public:
   void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) {
     __ prologue("mmtk_write_barrier", false);
 
-    Address store_addr(rbp, 3*BytesPerWord);
+    Address store_addr(rbp, 4*BytesPerWord);
 
     Label done;
     Label runtime;
 
     __ push(c_rarg0);
-    // __ push(c_rarg1);
-    // __ push(c_rarg2);
+    __ push(c_rarg1);
+    __ push(c_rarg2);
     __ push(rax);
 
     __ load_parameter(0, c_rarg0);
-    // __ load_parameter(1, c_rarg1);
-    // __ load_parameter(2, c_rarg2);
+    __ load_parameter(1, c_rarg1);
+    __ load_parameter(2, c_rarg2);
 
     __ bind(runtime);
 
     __ save_live_registers_no_oop_map(true);
 
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
 
     __ restore_live_registers(true);
 
     __ bind(done);
     __ pop(rax);
-    // __ pop(c_rarg2);
-    // __ pop(c_rarg1);
+    __ pop(c_rarg2);
+    __ pop(c_rarg1);
     __ pop(c_rarg0);
 
     __ epilogue();
@@ -191,6 +191,8 @@ inline void MMTkObjectBarrierSetAssembler::gen_write_barrier_stub(LIR_Assembler*
   MMTkObjectBarrierSetC1* bs = (MMTkObjectBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
   ce->store_parameter(stub->_src->as_pointer_register(), 0);
+  ce->store_parameter(stub->_slot->as_pointer_register(), 1);
+  ce->store_parameter(stub->_new_val->as_pointer_register(), 2);
   __ call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
   __ jmp(*stub->continuation());
 }
