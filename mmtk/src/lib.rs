@@ -16,6 +16,8 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
 use mmtk::Mutator;
 use mmtk::MMTK;
+use mmtk::MMTKBuilder;
+
 mod abi;
 pub mod active_plan;
 pub mod api;
@@ -119,23 +121,18 @@ impl VMBinding for OpenJDK {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 }
 
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+
+pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
 lazy_static! {
+    pub static ref BUILDER: MMTKBuilder = MMTKBuilder::new();
     pub static ref SINGLETON: MMTK<OpenJDK> = {
-        #[cfg(feature = "nogc")]
-        std::env::set_var("MMTK_PLAN", "NoGC");
-        #[cfg(feature = "semispace")]
-        std::env::set_var("MMTK_PLAN", "SemiSpace");
-        #[cfg(feature = "gencopy")]
-        std::env::set_var("MMTK_PLAN", "GenCopy");
-        #[cfg(feature = "marksweep")]
-        std::env::set_var("MMTK_PLAN", "MarkSweep");
-        #[cfg(feature = "markcompact")]
-        std::env::set_var("MMTK_PLAN", "MarkCompact");
-        #[cfg(feature = "pageprotect")]
-        std::env::set_var("MMTK_PLAN", "PageProtect");
-        #[cfg(feature = "immix")]
-        std::env::set_var("MMTK_PLAN", "Immix");
-        MMTK::new()
+        debug_assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        let ret = mmtk::memory_manager::gc_init(&BUILDER);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
+        *ret
     };
 }
 
