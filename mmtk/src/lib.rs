@@ -129,7 +129,7 @@ pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 lazy_static! {
     pub static ref BUILDER: MMTKBuilder = MMTKBuilder::new();
     pub static ref SINGLETON: MMTK<OpenJDK> = {
-        debug_assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         let ret = mmtk::memory_manager::gc_init(&BUILDER);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
         *ret

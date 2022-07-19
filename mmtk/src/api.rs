@@ -63,7 +63,7 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     memory_manager::process(&BUILDER, "plan", "Immix");
 
     // Make sure that we haven't initialized MMTk (by accident) yet
-    debug_assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
     // Make sure we initialize MMTk here
     lazy_static::initialize(&SINGLETON);
 }
