@@ -1,7 +1,7 @@
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
-use crate::SINGLETON;
 use crate::BUILDER;
+use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::c_char;
 use mmtk::memory_manager;

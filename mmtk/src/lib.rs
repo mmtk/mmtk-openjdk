@@ -14,9 +14,9 @@ use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
+use mmtk::MMTKBuilder;
 use mmtk::Mutator;
 use mmtk::MMTK;
-use mmtk::MMTKBuilder;
 
 mod abi;
 pub mod active_plan;
