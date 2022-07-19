@@ -6,8 +6,8 @@ void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj, void* slo
   ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, obj, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::array_copy_pre_slow(void* src, size_t src_offset, void* dst, size_t dst_offset, size_t count) {
-  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, src_offset, dst, dst_offset, count);
+void MMTkObjectBarrierSetRuntime::array_copy_pre_slow(void* src, void* dst, void* dst_object, size_t count) {
+  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, dst_object, count);
 }
 
 void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) {
@@ -45,11 +45,10 @@ void MMTkObjectBarrierSetAssembler::oop_arraycopy_prologue(MacroAssembler* masm,
   const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
   if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
     __ pusha();
-    __ movptr(c_rarg0, NULL);
-    __ movptr(c_rarg1, src);
+    __ movptr(c_rarg0, src);
+    __ movptr(c_rarg1, dst);
     __ movptr(c_rarg2, dst_obj);
-    __ movptr(c_rarg3, dst);
-    __ movptr(c_rarg4, count);
+    __ movptr(c_rarg3, count);
     __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::array_copy_pre_slow), 5);
     __ popa();
   }

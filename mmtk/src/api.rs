@@ -278,15 +278,14 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_pre(
     mutator: &'static mut Mutator<OpenJDK>,
-    src: ObjectReference,
-    src_offset: usize,
-    dst: ObjectReference,
-    dst_offset: usize,
+    src: Address,
+    dst: Address,
+    dst_object: ObjectReference,
     count: usize,
 ) {
     mutator
         .barrier()
-        .array_copy_pre(src, src_offset, dst, dst_offset, count);
+        .array_copy_pre(None, src, Some(dst_object), dst, count);
 }
 
 // finalization
