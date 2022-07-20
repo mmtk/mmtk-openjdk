@@ -60,9 +60,6 @@ object iterator??!!
 
 //mmtkGCTaskManager* MMTkHeap::_mmtk_gc_task_manager = NULL;
 
-#include <iostream>
-#include <string>
-using namespace std;
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 

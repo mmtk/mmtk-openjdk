@@ -63,19 +63,20 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     memory_manager::process(&BUILDER, "plan", "Immix");
 
     // Make sure that we haven't initialized MMTk (by accident) yet
-    assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::SeqCst));
     // Make sure we initialize MMTk here
     lazy_static::initialize(&SINGLETON);
 }
 
 #[no_mangle]
 pub extern "C" fn openjdk_is_gc_initialized() -> bool {
-    crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed)
+    crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
 }
 
 #[no_mangle]
 pub extern "C" fn mmtk_set_heap_size(size: usize) -> bool {
-    memory_manager::process(&BUILDER, "heap_size", size.to_string().as_str())
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.heap_size.set(size)
 }
 
 #[no_mangle]
@@ -253,8 +254,9 @@ pub extern "C" fn mmtk_harness_end_impl() {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
+    let mut builder = BUILDER.lock().unwrap();
     memory_manager::process(
-        &BUILDER,
+        &mut builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
@@ -265,7 +267,8 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process_bulk(options: *const c_char) -> bool {
     let options_str: &CStr = unsafe { CStr::from_ptr(options) };
-    memory_manager::process_bulk(&BUILDER, options_str.to_str().unwrap())
+    let mut builder = BUILDER.lock().unwrap();
+    memory_manager::process_bulk(&mut builder, options_str.to_str().unwrap())
 }
 
 #[no_mangle]
