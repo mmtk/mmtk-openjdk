@@ -47,20 +47,32 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
 
-    #[cfg(feature = "nogc")]
-    memory_manager::process(&BUILDER, "plan", "NoGC");
-    #[cfg(feature = "semispace")]
-    memory_manager::process(&BUILDER, "plan", "SemiSpace");
-    #[cfg(feature = "gencopy")]
-    memory_manager::process(&BUILDER, "plan", "GenCopy");
-    #[cfg(feature = "marksweep")]
-    memory_manager::process(&BUILDER, "plan", "MarkSweep");
-    #[cfg(feature = "markcompact")]
-    memory_manager::process(&BUILDER, "plan", "MarkCompact");
-    #[cfg(feature = "pageprotect")]
-    memory_manager::process(&BUILDER, "plan", "PageProtect");
-    #[cfg(feature = "immix")]
-    memory_manager::process(&BUILDER, "plan", "Immix");
+    // We don't really need this, as we can dynamically set plans. However, for compatability of our CI scripts,
+    // we allow selecting a plan using feature at build time.
+    // We should be able to remove this very soon.
+    {
+        use mmtk::util::options::PlanSelector;
+        let force_plan = if cfg!(feature = "nogc") {
+            Some(PlanSelector::NoGC)
+        } else if cfg!(feature = "semispace") {
+            Some(PlanSelector::SemiSpace)
+        } else if cfg!(feature = "gencopy") {
+            Some(PlanSelector::GenCopy)
+        } else if cfg!(feature = "marksweep") {
+            Some(PlanSelector::MarkSweep)
+        } else if cfg!(feature = "markcompact") {
+            Some(PlanSelector::MarkCompact)
+        } else if cfg!(feature = "pageprotect") {
+            Some(PlanSelector::PageProtect)
+        } else if cfg!(feature = "immix") {
+            Some(PlanSelector::Immix)
+        } else {
+            None
+        };
+        if let Some(plan) = force_plan {
+            BUILDER.lock().unwrap().options.plan.set(plan);
+        }
+    }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
     assert!(!crate::MMTK_INITIALIZED.load(Ordering::SeqCst));
