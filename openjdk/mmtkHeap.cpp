@@ -75,16 +75,17 @@ jint MMTkHeap::initialize() {
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
   const size_t heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
-  size_t mmtk_heap_size = heap_size;
-  /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
   // Set options
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
+  // Set heap size
+  bool set_heap_size = mmtk_set_heap_size(heap_size);
+  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %ld\n", heap_size);
 
-  openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
+  openjdk_gc_init(&mmtk_upcalls);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
 

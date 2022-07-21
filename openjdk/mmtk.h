@@ -164,7 +164,10 @@ typedef struct {
     void (*enqueue_references)(void** objects, size_t len);
 } OpenJDK_Upcalls;
 
-extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
+extern void openjdk_gc_init(OpenJDK_Upcalls *calls);
+extern bool openjdk_is_gc_initialized();
+
+extern bool mmtk_set_heap_size(size_t size);
 
 extern size_t used_bytes();
 extern void* starting_heap_address();
