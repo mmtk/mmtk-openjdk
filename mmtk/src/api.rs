@@ -47,6 +47,9 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
 
+    // We don't really need this, as we can dynamically set plans. However, for compatability of our CI scripts,
+    // we allow selecting a plan using feature at build time.
+    // We should be able to remove this very soon.
     {
         use mmtk::util::options::PlanSelector;
         let force_plan = if cfg!(feature = "nogc") {
