@@ -47,20 +47,22 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
 
-    #[cfg(feature = "nogc")]
-    memory_manager::process(&BUILDER, "plan", "NoGC");
-    #[cfg(feature = "semispace")]
-    memory_manager::process(&BUILDER, "plan", "SemiSpace");
-    #[cfg(feature = "gencopy")]
-    memory_manager::process(&BUILDER, "plan", "GenCopy");
-    #[cfg(feature = "marksweep")]
-    memory_manager::process(&BUILDER, "plan", "MarkSweep");
-    #[cfg(feature = "markcompact")]
-    memory_manager::process(&BUILDER, "plan", "MarkCompact");
-    #[cfg(feature = "pageprotect")]
-    memory_manager::process(&BUILDER, "plan", "PageProtect");
-    #[cfg(feature = "immix")]
-    memory_manager::process(&BUILDER, "plan", "Immix");
+    {
+        #[cfg(feature = "nogc")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "NoGC");
+        #[cfg(feature = "semispace")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "SemiSpace");
+        #[cfg(feature = "gencopy")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "GenCopy");
+        #[cfg(feature = "marksweep")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "MarkSweep");
+        #[cfg(feature = "markcompact")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "MarkCompact");
+        #[cfg(feature = "pageprotect")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "PageProtect");
+        #[cfg(feature = "immix")]
+        memory_manager::process(&mut BUILDER.lock().unwrap(), "plan", "Immix");
+    }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
     assert!(!crate::MMTK_INITIALIZED.load(Ordering::SeqCst));
