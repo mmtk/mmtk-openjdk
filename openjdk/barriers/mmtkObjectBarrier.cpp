@@ -53,7 +53,7 @@ void MMTkObjectBarrierSetAssembler::oop_arraycopy_prologue(MacroAssembler* masm,
     __ movptr(c_rarg1, dst);
     __ movptr(c_rarg2, dst_obj);
     __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::array_copy_pre_slow), 5);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::array_copy_pre_slow), 4);
     __ popa();
   }
 }
@@ -160,28 +160,24 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
   // uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   LIR_Opr offset = gen->new_pointer_register();
   __ move(addr, offset);
-  __ shift_right(offset, 6, offset);
+  __ unsigned_shift_right(offset, 6, offset);
   LIR_Opr base = gen->new_pointer_register();
   __ move(LIR_OprFact::longConst(SIDE_METADATA_BASE_ADDRESS), base);
   LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
-  // intptr_t shift = (addr >> 3) & 0b111;
-  LIR_Opr shift_long = gen->new_pointer_register();
-  __ move(addr, shift_long);
-  __ shift_right(shift_long, 3, shift_long);
-  __ logical_and(shift_long, LIR_OprFact::longConst(0b111), shift_long);
-  LIR_Opr shift_int = gen->new_register(T_INT);
-  __ convert(Bytecodes::_l2i, shift_long, shift_int);
-  LIR_Opr shift = LIRGenerator::shiftCountOpr();
-  __ move(shift_int, shift);
   // uint8_t byte_val = *meta_addr;
   LIR_Opr byte_val = gen->new_register(T_INT);
   __ move(meta_addr, byte_val);
+  // intptr_t shift = (addr >> 3) & 0b111;
+  LIR_Opr shift = gen->new_register(T_INT);
+  __ move(addr, shift);
+  __ unsigned_shift_right(shift, 3, shift);
+  __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
   // if (((byte_val >> shift) & 1) == 1) slow;
   LIR_Opr result = byte_val;
-  __ shift_right(result, shift, result, LIR_OprFact::illegalOpr);
+  __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
   __ logical_and(result, LIR_OprFact::intConst(1), result);
   __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
-  __ branch(lir_cond_equal, LP64_ONLY(T_LONG) NOT_LP64(T_INT), slow);
+  __ branch(lir_cond_equal, T_BYTE, slow);
 #else
   __ jump(slow);
 #endif
