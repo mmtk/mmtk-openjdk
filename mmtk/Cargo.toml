@@ -45,7 +45,7 @@ global_alloc_bit = ["mmtk/global_alloc_bit"]
 mark_bit_in_header = []
 
 # Use malloc mark sweep - we should only run marksweep with this feature turned on.
-malloc_marksweep = ["mmtk/malloc_mark_sweep"]
+malloc_mark_sweep = ["mmtk/malloc_mark_sweep"]
 
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
