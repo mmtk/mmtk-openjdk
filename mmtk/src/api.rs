@@ -9,6 +9,7 @@ use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
@@ -23,6 +24,11 @@ use std::sync::atomic::Ordering;
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
+
+#[no_mangle]
+pub extern "C" fn mmtk_get_active_plan() -> PlanSelector {
+    *SINGLETON.options.plan
+}
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
@@ -261,6 +267,14 @@ pub extern "C" fn openjdk_max_capacity() -> usize {
 #[no_mangle]
 pub extern "C" fn executable() -> bool {
     true
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_gen_object_barrier_slow(
+    mutator: &'static mut Mutator<OpenJDK>,
+    obj: ObjectReference,
+) {
+    mutator.barrier().gen_object_reference_write_slow(obj)
 }
 
 #[no_mangle]

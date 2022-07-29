@@ -20,14 +20,69 @@
 
 const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 
+template<PlanSelector plan>
+struct SlowCall {};
+
+template<>
+struct SlowCall<PlanSelector::GenCopy> {
+  static void object_reference_write_pre_slow(void* src) {
+    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
+  }
+  static void object_reference_array_copy_pre_slow(void* src) {
+    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
+  }
+};
+
+template<>
+struct SlowCall<PlanSelector::GenImmix> {
+  static void object_reference_write_pre_slow(void* src) {
+    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
+  }
+  static void object_reference_array_copy_pre_slow(void* src) {
+    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
+  }
+};
+
+
+typedef void (*object_reference_write_pre_slow_fn)(void* src);
+typedef void (*object_reference_array_copy_pre_slow_fn)(void* src);
+
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
-  static void record_modified_node_slow(void* src, void* slot, void* target);
-  static void array_copy_pre_slow(void* src, void* dst, void* dst_object, size_t count);
+  static object_reference_write_pre_slow_fn object_reference_write_pre_slow() {
+    switch (mmtk_get_active_plan()) {
+      case PlanSelector::GenCopy: return SlowCall<PlanSelector::GenCopy>::object_reference_write_pre_slow;
+      case PlanSelector::GenImmix: return SlowCall<PlanSelector::GenImmix>::object_reference_write_pre_slow;
+      default:
+        guarantee(false, "unreachable");
+        return NULL;
+    }
+  }
+  static object_reference_array_copy_pre_slow_fn object_reference_array_copy_pre_slow() {
+    switch (mmtk_get_active_plan()) {
+      case PlanSelector::GenCopy: return SlowCall<PlanSelector::GenCopy>::object_reference_array_copy_pre_slow;
+      case PlanSelector::GenImmix: return SlowCall<PlanSelector::GenImmix>::object_reference_array_copy_pre_slow;
+      default:
+        guarantee(false, "unreachable");
+        return NULL;
+    }
+  }
+  static address object_reference_write_pre_slow_address() {
+    return CAST_FROM_FN_PTR(address, object_reference_write_pre_slow());
+  }
+  static address object_reference_array_copy_pre_slow_address() {
+    return CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_slow_fn());
+  }
 
   virtual bool is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
+    return call == object_reference_write_pre_slow_address()
+        || call == object_reference_array_copy_pre_slow_address()
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_pre_)
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_);
   }
+
+  static void object_reference_write_pre_(void* src, void* slot, void* target);
+  static void object_reference_array_copy_pre_(void* src, void* dst, void* dst_object, size_t count);
 
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) override;
   virtual void object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) override;
@@ -71,7 +126,7 @@ public:
 
     __ save_live_registers_no_oop_map(true);
 
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_pre_), 3);
 
     __ restore_live_registers(true);
 
@@ -117,21 +172,21 @@ public:
       return NULL;
     }
   };
-  void record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val);
+  void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val);
 public:
   CodeBlob* _write_barrier_c1_runtime_code_blob;
   virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) {
     BarrierSetC1::store_at_resolved(access, value);
-    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), value);
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value);
   }
   virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
     LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
-    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), new_value.result());
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), new_value.result());
     return result;
   }
   virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
     LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
-    if (access.is_oop()) record_modified_node(access, access.base().opr(), access.resolved_addr(), value.result());
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value.result());
     return result;
   }
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
@@ -155,32 +210,32 @@ public:
 #define __ ideal.
 
 class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
-  void record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const;
+  void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const;
 public:
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), val.node());
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), val.node());
     Node* store = BarrierSetC2::store_at_resolved(access, val);
     return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
     Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
     return result;
   }
   virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
     Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
     return load_store;
   }
   virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) record_modified_node(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
     Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
     return result;
   }
   virtual bool is_gc_barrier_node(Node* node) const {
     if (node->Opcode() != Op_CallLeaf) return false;
     CallLeafNode *call = node->as_CallLeaf();
-    return call->_name != NULL && strcmp(call->_name, "record_modified_node") == 0;
+    return call->_name != NULL && strcmp(call->_name, "mmtk_barrier_call") == 0;
   }
 };
 

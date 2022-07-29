@@ -5,6 +5,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+enum class PlanSelector: uint8_t {
+    NoGC = 0,
+    SemiSpace,
+    GenCopy,
+    GenImmix,
+    MarkSweep,
+    PageProtect,
+    Immix,
+    MarkCompact,
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,8 +54,12 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
+extern PlanSelector mmtk_get_active_plan();
+
 extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* obj, void* slot, void* target);
 extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, void* dst_object, size_t count);
+
+extern void mmtk_gen_object_barrier_slow(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 

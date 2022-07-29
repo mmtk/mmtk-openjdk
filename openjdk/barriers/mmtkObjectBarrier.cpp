@@ -2,16 +2,16 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj, void* slot, void* target) {
+void MMTkObjectBarrierSetRuntime::object_reference_write_pre_(void* obj, void* slot, void* target) {
   ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, obj, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::array_copy_pre_slow(void* src, void* dst, void* dst_object, size_t count) {
+void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_(void* src, void* dst, void* dst_object, size_t count) {
   ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, dst_object, count);
 }
 
 void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) {
-  array_copy_pre_slow((void*) src, (void*) dst, (void*) dst_object, count);
+  object_reference_array_copy_pre_((void*) src, (void*) dst, (void*) dst_object, count);
 }
 
 void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) {
@@ -21,10 +21,10 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot,
   intptr_t shift = (addr >> 3) & 0b111;
   uint8_t byte_val = *meta_addr;
   if (((byte_val >> shift) & 1) == 1) {
-    record_modified_node_slow((void*) src, (void*) slot, (void*) target);
+    MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
   }
 #else
-  record_modified_node_slow((void*) src, (void*) slot, (void*) target);
+  object_reference_write_pre_((void*) src, (void*) slot, (void*) target);
 #endif
 }
 
@@ -53,7 +53,7 @@ void MMTkObjectBarrierSetAssembler::oop_arraycopy_prologue(MacroAssembler* masm,
     __ movptr(c_rarg1, dst);
     __ movptr(c_rarg2, dst_obj);
     __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::array_copy_pre_slow), 4);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_), 4);
     __ popa();
   }
 }
@@ -87,13 +87,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
 
   __ pusha();
   __ movptr(c_rarg0, dst.base());
-  __ lea(c_rarg1, dst);
-  if (val == noreg) {
-    __ movptr(c_rarg2, (int32_t) NULL_WORD);
-  } else {
-    __ movptr(c_rarg2, val);
-  }
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+  __ call_VM_leaf_base(MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow_address(), 1);
   __ popa();
 
   __ bind(done);
@@ -106,7 +100,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
   } else {
     __ movptr(c_rarg2, val);
   }
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 3);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_pre_), 3);
   __ popa();
 #endif
 }
@@ -119,7 +113,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
+void MMTkObjectBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
@@ -189,7 +183,7 @@ void MMTkObjectBarrierSetC1::record_modified_node(LIRAccess& access, LIR_Opr src
 
 #define __ ideal.
 
-void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node* slot, Node* val) const {
+void MMTkObjectBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {
   if (can_remove_barrier(kit, &kit->gvn(), src, slot, val, /* skip_const_null */ true)) return;
 
   MMTkIdealKit ideal(kit, true);
@@ -207,12 +201,12 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow_address(), "mmtk_barrier_call", src);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src, slot, val);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_pre_), "mmtk_barrier_call", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
