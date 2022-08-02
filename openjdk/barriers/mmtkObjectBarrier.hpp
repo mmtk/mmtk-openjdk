@@ -176,17 +176,17 @@ public:
 public:
   CodeBlob* _write_barrier_c1_runtime_code_blob;
   virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) {
-    BarrierSetC1::store_at_resolved(access, value);
     if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value);
+    BarrierSetC1::store_at_resolved(access, value);
   }
   virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
-    LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
     if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), new_value.result());
+    LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
     return result;
   }
   virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
-    LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
     if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value.result());
+    LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
     return result;
   }
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
