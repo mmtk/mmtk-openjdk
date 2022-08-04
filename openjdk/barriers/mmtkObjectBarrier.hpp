@@ -102,6 +102,9 @@ public:
       BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     }
   }
+  virtual bool enable_oop_arraycopy_prologue() const override {
+    return true;
+  }
   virtual void oop_arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count, Register dst_obj) override;
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
 #define __ sasm->
