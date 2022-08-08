@@ -1,3 +1,13 @@
+0.14.0 (2022-08-08)
+===
+
+* Remove incorrect `MMTkRootScanWorkScope`.
+* Remove unused `compute_*_roots` functions.
+* Optimize `CodeCache` roots scanning.
+* Fix a bug that `mmtk_start_the_world_count` may be incorrect.
+* Update documentation about evaluation builds.
+* Update to mmtk-core 0.14.0.
+
 0.13.0 (2022-06-27)
 ===
 
