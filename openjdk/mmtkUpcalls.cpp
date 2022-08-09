@@ -75,12 +75,14 @@ static void mmtk_resume_mutators(void *tls) {
   DerivedPointerTable::update_pointers();
 #endif
 
+  // Note: we don't have to hold gc_lock to increment the counter.
+  // The increment has to be done before mutators can be resumed
+  // otherwise, mutators might see a stale value
+  Atomic::inc(&mmtk_start_the_world_count);
+
   log_debug(gc)("Requesting the VM to resume all mutators...");
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_resumed, true);
   log_debug(gc)("Mutators resumed. Now notify any mutators waiting for GC to finish...");
-
-  // Note: we don't have to hold gc_lock to increment the counter.
-  Atomic::inc(&mmtk_start_the_world_count);
 
   {
     MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), true);
