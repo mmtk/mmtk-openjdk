@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.14.0"
+version = "0.14.1"
 authors = [" <>"]
 rust-version = "1.57.0"
 
@@ -16,7 +16,7 @@ lto = true
 [package.metadata.openjdk]
 # Our CI matches the following line and extract mmtk/openjdk. If this line is updated, please check ci yaml files and make sure it works.
 openjdk_repo = "https://github.com/mmtk/openjdk.git"
-openjdk_version = "5180a3241b7477b056f4e5c61d1267f6f48aeab3"
+openjdk_version = "b133bb2630121b6babc35750444f178b5d240ae0"
 
 [dependencies]
 libc = "0.2"
