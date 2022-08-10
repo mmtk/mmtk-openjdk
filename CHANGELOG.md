@@ -1,3 +1,8 @@
+0.14.1 (2022-08-10)
+===
+
+* Fix a bug that MMTk gets initialized even when we are not using MMTk's GC.
+
 0.14.0 (2022-08-08)
 ===
 
