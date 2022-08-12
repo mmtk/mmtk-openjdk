@@ -26,7 +26,7 @@ static OBJECT_BARRIER: sync::Lazy<CString> =
 
 #[no_mangle]
 pub extern "C" fn get_mmtk_version() -> *const c_char {
-    mmtk::build_info::MMTK_FULL_BUILD_INFO.as_ptr() as _
+    crate::build_info::MMTK_OPENJDK_FULL_VERSION.as_ptr() as _
 }
 
 #[no_mangle]
