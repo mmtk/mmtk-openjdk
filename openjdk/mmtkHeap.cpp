@@ -126,6 +126,10 @@ jint MMTkHeap::initialize() {
 
 }
 
+const char* MMTkHeap::version() {
+  return get_mmtk_version();
+}
+
 void MMTkHeap::schedule_finalizer() {
   MMTkFinalizerThread::instance->schedule();
 }

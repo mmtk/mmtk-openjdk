@@ -21,6 +21,7 @@ use mmtk::MMTK;
 mod abi;
 pub mod active_plan;
 pub mod api;
+mod build_info;
 pub mod collection;
 mod gc_work;
 pub mod object_model;

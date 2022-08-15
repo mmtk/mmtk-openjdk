@@ -25,6 +25,11 @@ static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
 
 #[no_mangle]
+pub extern "C" fn get_mmtk_version() -> *const c_char {
+    crate::build_info::MMTK_OPENJDK_FULL_VERSION.as_ptr() as _
+}
+
+#[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
     match SINGLETON.get_plan().constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
