@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use super::{OpenJDK, UPCALLS};
+use super::{OpenJDK, OpenJDKEdge, UPCALLS};
 use mmtk::scheduler::*;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
@@ -8,17 +8,17 @@ use scanning::to_edges_closure;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {
-        pub struct $struct_name<F: RootsWorkFactory> {
+        pub struct $struct_name<F: RootsWorkFactory<OpenJDKEdge>> {
             factory: F,
         }
 
-        impl<F: RootsWorkFactory> $struct_name<F> {
+        impl<F: RootsWorkFactory<OpenJDKEdge>> $struct_name<F> {
             pub fn new(factory: F) -> Self {
                 Self { factory }
             }
         }
 
-        impl<F: RootsWorkFactory> GCWork<OpenJDK> for $struct_name<F> {
+        impl<F: RootsWorkFactory<OpenJDKEdge>> GCWork<OpenJDK> for $struct_name<F> {
             fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
                 unsafe {
                     ((*UPCALLS).$func_name)(to_edges_closure(&mut self.factory));
@@ -43,17 +43,17 @@ scan_roots_work!(
 scan_roots_work!(ScanWeakProcessorRoots, scan_weak_processor_roots);
 scan_roots_work!(ScanVMThreadRoots, scan_vm_thread_roots);
 
-pub struct ScanCodeCacheRoots<F: RootsWorkFactory> {
+pub struct ScanCodeCacheRoots<F: RootsWorkFactory<OpenJDKEdge>> {
     factory: F,
 }
 
-impl<F: RootsWorkFactory> ScanCodeCacheRoots<F> {
+impl<F: RootsWorkFactory<OpenJDKEdge>> ScanCodeCacheRoots<F> {
     pub fn new(factory: F) -> Self {
         Self { factory }
     }
 }
 
-impl<F: RootsWorkFactory> GCWork<OpenJDK> for ScanCodeCacheRoots<F> {
+impl<F: RootsWorkFactory<OpenJDKEdge>> GCWork<OpenJDK> for ScanCodeCacheRoots<F> {
     fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
         // Collect all the cached roots
         let mut edges = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
