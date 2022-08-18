@@ -3,7 +3,7 @@
 #include "runtime/interfaceSupport.inline.hpp"
 
 void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
-  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+  ::post_write_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
 }
 
 void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
@@ -16,7 +16,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
     record_modified_node_slow((void*) src);
   }
 #else
-  record_modified_node_slow((void*) src);
+  ::post_write_barrier((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src);
 #endif
 }
 
