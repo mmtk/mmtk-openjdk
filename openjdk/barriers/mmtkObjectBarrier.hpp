@@ -46,16 +46,9 @@ class MMTkObjectBarrierSetC1;
 class MMTkObjectBarrierStub;
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
-  void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
-  void object_reference_write(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2);
+protected:
+  virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
 public:
-  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
-    if (type == T_OBJECT || type == T_ARRAY) {
-      oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-    } else {
-      BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-    }
-  }
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
 #define __ sasm->

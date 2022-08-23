@@ -35,34 +35,8 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 
 #define __ masm->
 
-void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
-  bool in_heap = (decorators & IN_HEAP) != 0;
-  bool as_normal = (decorators & AS_NORMAL) != 0;
-  assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
-
-  if (!in_heap || val == noreg) {
-    BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-    return;
-  }
-
-  object_reference_write(masm, dst, val, tmp1, tmp2);
-
-  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
-}
-
-void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
-  const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
-  if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
-    __ pusha();
-    __ movptr(c_rarg0, src);
-    __ movptr(c_rarg1, dst);
-    __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call), 3);
-    __ popa();
-  }
-}
-
-void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm, Address dst, Register val, Register tmp1, Register tmp2) {
+void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
+  if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   Label done;
 
@@ -107,6 +81,18 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
   __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), 3);
   __ popa();
 #endif
+}
+
+void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
+  const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
+  if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
+    __ pusha();
+    __ movptr(c_rarg0, src);
+    __ movptr(c_rarg1, dst);
+    __ movptr(c_rarg3, count);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call), 3);
+    __ popa();
+  }
 }
 
 #undef __
