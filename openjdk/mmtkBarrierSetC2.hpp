@@ -46,20 +46,34 @@ class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
+  virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
+  virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+  virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    return BarrierSetC2::store_at_resolved(access, val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), val.node());
+    Node* store = BarrierSetC2::store_at_resolved(access, val);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), val.node());
+    return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+     if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return result;
   }
   virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return load_store;
   }
   virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return result;
   }
-
-  virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
 
 public:
   virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
@@ -69,7 +83,9 @@ public:
     return true;
   }
   virtual bool is_gc_barrier_node(Node* node) const {
-    return BarrierSetC2::is_gc_barrier_node(node);
+    if (node->Opcode() != Op_CallLeaf) return false;
+    CallLeafNode *call = node->as_CallLeaf();
+    return call->_name != NULL && strcmp(call->_name, "mmtk_barrier_call") == 0;
   }
   static void expand_allocate(PhaseMacroExpand* x,
                               AllocateNode* alloc, // allocation node to be expanded

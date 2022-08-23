@@ -190,33 +190,8 @@ public:
 #define __ ideal.
 
 class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
-  void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const;
-public:
-  virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), val.node());
-    Node* store = BarrierSetC2::store_at_resolved(access, val);
-    return store;
-  }
-  virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
-    Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
-    return result;
-  }
-  virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
-    Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
-    return load_store;
-  }
-  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
-    Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
-    return result;
-  }
-  virtual bool is_gc_barrier_node(Node* node) const {
-    if (node->Opcode() != Op_CallLeaf) return false;
-    CallLeafNode *call = node->as_CallLeaf();
-    return call->_name != NULL && strcmp(call->_name, "mmtk_barrier_call") == 0;
-  }
+protected:
+  virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 };
 
 #undef __

@@ -56,8 +56,15 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector);
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
+  /// Full pre-barrier
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) {};
+  /// Full post-barrier
+  virtual void object_reference_write_post(oop src, oop* slot, oop target) {};
+  /// Full arraycopy pre-barrier
   virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) {};
+  /// Full arraycopy post-barrier
+  virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) {};
+  /// Check if the address is a slow-path function.
   virtual bool is_slow_path_call(address call) {
     return false;
   }
@@ -147,6 +154,7 @@ public:
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), value);
       Raw::oop_store_at(base, offset, value);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), value);
     }
 
     template <typename T>
@@ -158,6 +166,7 @@ public:
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
       runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), new_value);
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), new_value);
       return result;
     }
 
@@ -170,6 +179,7 @@ public:
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
       runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), new_value);
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), new_value);
       return result;
     }
 
@@ -183,12 +193,13 @@ public:
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                        dst_obj, dst_offset_in_bytes, dst_raw,
                                        length);
+      runtime()->object_reference_array_copy_post((oop*) src, (oop*) dst, length);
       return result;
     }
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
+      // TODO: We don't need clone barriers at the moment.
       Raw::clone(src, dst, size);
-      // runtime()->record_modified_node(dst);
     }
   };
 
