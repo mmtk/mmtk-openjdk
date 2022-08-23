@@ -309,11 +309,20 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(
+pub extern "C" fn post_write_barrier(mutator: &'static mut Mutator<OpenJDK>, obj: ObjectReference) {
+    mutator
+        .barrier()
+        .post_write_barrier(mmtk::plan::BarrierWriteTarget::Object(obj))
+}
+
+#[no_mangle]
+pub extern "C" fn post_write_barrier_slow(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
 ) {
-    mutator.record_modified_node(obj);
+    mutator
+        .barrier()
+        .post_write_barrier_slow(mmtk::plan::BarrierWriteTarget::Object(obj))
 }
 
 // finalization
