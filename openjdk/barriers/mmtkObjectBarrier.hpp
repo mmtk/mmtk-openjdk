@@ -144,36 +144,10 @@ struct MMTkObjectBarrierStub: CodeStub {
 };
 
 class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
-public:
-  class MMTkObjectBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
-    virtual OopMapSet* generate_code(StubAssembler* sasm) {
-      MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-      bs->generate_c1_write_barrier_runtime_stub(sasm);
-      return NULL;
-    }
-  };
-  void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val);
-public:
-  CodeBlob* _write_barrier_c1_runtime_code_blob;
-  virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value);
-    BarrierSetC1::store_at_resolved(access, value);
-  }
-  virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), new_value.result());
-    LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
-    return result;
-  }
-  virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value.result());
-    LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
-    return result;
-  }
-  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
-    MMTkObjectBarrierCodeGenClosure write_code_gen_cl;
-    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
-  }
-  virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register) {
+protected:
+  virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
+
+  virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register) override {
     DecoratorSet decorators = access.decorators();
     bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
     bool is_write = (decorators & C1_WRITE_ACCESS) != 0;
@@ -182,6 +156,22 @@ public:
     bool precise = is_array || on_anonymous;
     resolve_in_register |= !needs_patching && is_write && access.is_oop() && precise;
     return BarrierSetC1::resolve_address(access, resolve_in_register);
+  }
+
+public:
+  class MMTkObjectBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
+    virtual OopMapSet* generate_code(StubAssembler* sasm) {
+      MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+      bs->generate_c1_write_barrier_runtime_stub(sasm);
+      return NULL;
+    }
+  };
+
+  CodeBlob* _write_barrier_c1_runtime_code_blob;
+
+  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
+    MMTkObjectBarrierCodeGenClosure write_code_gen_cl;
+    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
   }
 };
 

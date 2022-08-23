@@ -112,7 +112,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) {
+void MMTkObjectBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
