@@ -2,23 +2,11 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::object_reference_write_post_call(void* src, void* slot, void* target) {
-  ::mmtk_object_reference_write_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
-}
-
-void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call(void* src, void* slot, void* target) {
-  ::mmtk_object_reference_write_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
-}
-
 void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen(void* src) {
   ::mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call(void* src, void* dst, size_t count) {
-  ::mmtk_array_copy_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
-}
-
-void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) {
+void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
   uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
@@ -65,7 +53,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 
   __ pusha();
   __ movptr(c_rarg0, dst.base());
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), 1);
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 1);
   __ popa();
 
   __ bind(done);
@@ -78,7 +66,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   } else {
     __ movptr(c_rarg2, val);
   }
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), 3);
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
   __ popa();
 #endif
 }
@@ -90,7 +78,7 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
     __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call), 3);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);
     __ popa();
   }
 }
@@ -192,11 +180,11 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
     const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf,  CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src);
+    Node* x = __ make_leaf_call(tf,  FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
+  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.

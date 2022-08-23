@@ -3,8 +3,13 @@
 
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
+#include "c1/c1_MacroAssembler.hpp"
+
+class MMTkBarrierSetC1;
 
 class MMTkBarrierSetAssembler: public BarrierSetAssembler {
+  friend class MMTkBarrierSetC1;
+
 protected:
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
@@ -15,6 +20,8 @@ protected:
     assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
     return !in_heap || (skip_const_null && val == noreg);
   }
+
+  virtual void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
   virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) override;

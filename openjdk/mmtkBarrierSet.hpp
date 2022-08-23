@@ -54,20 +54,37 @@ struct MMTkAllocatorOffsets {
  */
 MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector);
 
+#define FN_ADDR(function) CAST_FROM_FN_PTR(address, function)
+
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
-  /// Full pre-barrier
-  virtual void object_reference_write_pre(oop src, oop* slot, oop target) {};
-  /// Full post-barrier
-  virtual void object_reference_write_post(oop src, oop* slot, oop target) {};
-  /// Full arraycopy pre-barrier
-  virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) {};
-  /// Full arraycopy post-barrier
-  virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) {};
+  /// Generic pre-write barrier. Called by fast-paths.
+  static void object_reference_write_pre_call(void* src, void* slot, void* target);
+  /// Generic post-write barrier. Called by fast-paths.
+  static void object_reference_write_post_call(void* src, void* slot, void* target);
+  /// Generic slow-path. Called by fast-paths.
+  static void object_reference_write_slow_call(void* src, void* slot, void* target);
+  /// Generic arraycopy post-barrier. Called by fast-paths.
+  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
+  /// Generic arraycopy pre-barrier. Called by fast-paths.
+  static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
   /// Check if the address is a slow-path function.
-  virtual bool is_slow_path_call(address call) {
-    return false;
+  virtual bool is_slow_path_call(address call) const {
+    return call == CAST_FROM_FN_PTR(address, object_reference_write_pre_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_post_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call);
   }
+
+  /// Full pre-barrier
+  virtual void object_reference_write_pre(oop src, oop* slot, oop target) const {};
+  /// Full post-barrier
+  virtual void object_reference_write_post(oop src, oop* slot, oop target) const {};
+  /// Full arraycopy pre-barrier
+  virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) const {};
+  /// Full arraycopy post-barrier
+  virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const {};
 };
 
 class MMTkBarrierC1;

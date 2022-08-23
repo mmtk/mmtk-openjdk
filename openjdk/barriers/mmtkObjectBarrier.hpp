@@ -22,22 +22,17 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
-  virtual bool is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, object_reference_write_post_call)
-        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
-        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call_gen)
-        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call);
+  virtual bool is_slow_path_call(address call) const override {
+    return MMTkBarrierSetRuntime::is_slow_path_call(call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call_gen);
   }
 
-  // Functions called by fast-paths
-  static void object_reference_write_post_call(void* src, void* slot, void* target);
-  static void object_reference_write_slow_call(void* src, void* slot, void* target);
+  /// Specialized slow-path call for generatinoal object barrier
   static void object_reference_write_slow_call_gen(void* src);
-  static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
 
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
-  virtual void object_reference_write_post(oop src, oop* slot, oop target) override;
-  virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) override {
+  virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
+  virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
     object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
 };
@@ -51,41 +46,6 @@ protected:
 public:
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
-#define __ sasm->
-  void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) {
-    __ prologue("mmtk_write_barrier", false);
-
-    Address store_addr(rbp, 4*BytesPerWord);
-
-    Label done;
-    Label runtime;
-
-    __ push(c_rarg0);
-    __ push(c_rarg1);
-    __ push(c_rarg2);
-    __ push(rax);
-
-    __ load_parameter(0, c_rarg0);
-    __ load_parameter(1, c_rarg1);
-    __ load_parameter(2, c_rarg2);
-
-    __ bind(runtime);
-
-    __ save_live_registers_no_oop_map(true);
-
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), 3);
-
-    __ restore_live_registers(true);
-
-    __ bind(done);
-    __ pop(rax);
-    __ pop(c_rarg2);
-    __ pop(c_rarg1);
-    __ pop(c_rarg0);
-
-    __ epilogue();
-  }
-#undef __
 };
 
 #ifdef ASSERT
@@ -123,22 +83,6 @@ protected:
     bool precise = is_array || on_anonymous;
     resolve_in_register |= !needs_patching && is_write && access.is_oop() && precise;
     return BarrierSetC1::resolve_address(access, resolve_in_register);
-  }
-
-public:
-  class MMTkObjectBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
-    virtual OopMapSet* generate_code(StubAssembler* sasm) {
-      MMTkObjectBarrierSetAssembler* bs = (MMTkObjectBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-      bs->generate_c1_write_barrier_runtime_stub(sasm);
-      return NULL;
-    }
-  };
-
-  CodeBlob* _write_barrier_c1_runtime_code_blob;
-
-  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
-    MMTkObjectBarrierCodeGenClosure write_code_gen_cl;
-    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
   }
 };
 

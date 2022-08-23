@@ -3,6 +3,7 @@
 
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
+#include "mmtkBarrierSetAssembler_x86.hpp"
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
 protected:
@@ -34,13 +35,26 @@ protected:
     return result;
   }
 
-  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) {}
-
   virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register) override {
     return BarrierSetC1::resolve_address(access, resolve_in_register);
   }
+
 public:
+  CodeBlob* _write_barrier_c1_runtime_code_blob;
+
   MMTkBarrierSetC1() {}
+
+  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override {
+    class MMTkBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
+      virtual OopMapSet* generate_code(StubAssembler* sasm) override {
+        MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+        bs->generate_c1_write_barrier_runtime_stub(sasm);
+        return NULL;
+      }
+    };
+    MMTkBarrierCodeGenClosure write_code_gen_cl;
+    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
+  }
 };
 
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
