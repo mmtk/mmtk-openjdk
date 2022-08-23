@@ -1,3 +1,19 @@
+0.14.1 (2022-08-10)
+===
+
+* Fix a bug that MMTk gets initialized even when we are not using MMTk's GC.
+
+0.14.0 (2022-08-08)
+===
+
+* Remove incorrect `MMTkRootScanWorkScope`.
+* Remove unused `compute_*_roots` functions.
+* Optimize `CodeCache` roots scanning.
+* Fix a bug that `mmtk_start_the_world_count` may be incorrect.
+* Update documentation about evaluation builds.
+* Inlucde `Cargo.lock` in the repository.
+* Update to mmtk-core 0.14.0.
+
 0.13.0 (2022-06-27)
 ===
 

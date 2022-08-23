@@ -94,6 +94,7 @@ struct MMTkMutatorContext {
   void flush();
 
   static MMTkMutatorContext bind(::Thread* current);
+  static bool is_ready_to_bind();
 
   // Max object size that does not need to go into LOS. We get the value from mmtk-core, and cache its value here.
   static size_t max_non_los_default_alloc_bytes;

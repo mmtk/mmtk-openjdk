@@ -1,5 +1,6 @@
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
+use crate::BUILDER;
 use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::c_char;
@@ -14,7 +15,6 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
-use mmtk::MMTK;
 use once_cell::sync;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
@@ -28,6 +28,11 @@ static OBJECT_BARRIER: sync::Lazy<CString> =
 #[no_mangle]
 pub extern "C" fn mmtk_get_active_plan() -> PlanSelector {
     *SINGLETON.options.plan
+}
+
+#[no_mangle]
+pub extern "C" fn get_mmtk_version() -> *const c_char {
+    crate::build_info::MMTK_OPENJDK_FULL_VERSION.as_ptr() as _
 }
 
 #[no_mangle]
@@ -49,14 +54,52 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capaci
 }
 
 #[no_mangle]
-pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
+pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
-    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
-    #[allow(clippy::cast_ref_to_mut)]
-    let singleton_mut =
-        unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
-    memory_manager::gc_init(singleton_mut, heap_size);
+
+    // We don't really need this, as we can dynamically set plans. However, for compatability of our CI scripts,
+    // we allow selecting a plan using feature at build time.
+    // We should be able to remove this very soon.
+    {
+        use mmtk::util::options::PlanSelector;
+        let force_plan = if cfg!(feature = "nogc") {
+            Some(PlanSelector::NoGC)
+        } else if cfg!(feature = "semispace") {
+            Some(PlanSelector::SemiSpace)
+        } else if cfg!(feature = "gencopy") {
+            Some(PlanSelector::GenCopy)
+        } else if cfg!(feature = "marksweep") {
+            Some(PlanSelector::MarkSweep)
+        } else if cfg!(feature = "markcompact") {
+            Some(PlanSelector::MarkCompact)
+        } else if cfg!(feature = "pageprotect") {
+            Some(PlanSelector::PageProtect)
+        } else if cfg!(feature = "immix") {
+            Some(PlanSelector::Immix)
+        } else {
+            None
+        };
+        if let Some(plan) = force_plan {
+            BUILDER.lock().unwrap().options.plan.set(plan);
+        }
+    }
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::SeqCst));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
+}
+
+#[no_mangle]
+pub extern "C" fn openjdk_is_gc_initialized() -> bool {
+    crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_set_heap_size(size: usize) -> bool {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.heap_size.set(size)
 }
 
 #[no_mangle]
@@ -234,8 +277,9 @@ pub extern "C" fn mmtk_harness_end_impl() {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
+    let mut builder = BUILDER.lock().unwrap();
     memory_manager::process(
-        &SINGLETON,
+        &mut builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
@@ -246,7 +290,8 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process_bulk(options: *const c_char) -> bool {
     let options_str: &CStr = unsafe { CStr::from_ptr(options) };
-    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
+    let mut builder = BUILDER.lock().unwrap();
+    memory_manager::process_bulk(&mut builder, options_str.to_str().unwrap())
 }
 
 #[no_mangle]
@@ -273,6 +318,21 @@ pub extern "C" fn executable() -> bool {
 pub unsafe extern "C" fn mmtk_gen_object_barrier_slow(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
+    slot: Address,
+    target: ObjectReference,
+) {
+    mutator
+        .barrier()
+        .object_reference_write_pre(obj, slot, target);
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_array_copy_pre(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: Address,
+    dst: Address,
+    dst_object: ObjectReference,
+    count: usize,
 ) {
     mutator
         .barrier_impl::<GenObjectBarrier<OpenJDK>>()
