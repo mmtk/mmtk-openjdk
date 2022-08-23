@@ -3,9 +3,11 @@
 
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
-#include "c1/c1_MacroAssembler.hpp"
 
 class MMTkBarrierSetC1;
+class MMTkC1BarrierStub;
+class LIR_Assembler;
+class StubAssembler;
 
 class MMTkBarrierSetAssembler: public BarrierSetAssembler {
   friend class MMTkBarrierSetC1;
@@ -30,5 +32,7 @@ public:
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2);
   }
+
+  static void gen_c1_generic_write_barrier_stub(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

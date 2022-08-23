@@ -3,10 +3,15 @@
 
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
-#include "mmtkBarrierSetAssembler_x86.hpp"
+
+class MMTkBarrierSetAssembler;
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
+  friend class MMTkBarrierSetAssembler;
+
 protected:
+  CodeBlob* _write_barrier_c1_runtime_code_blob;
+
   /// Full pre-barrier
   virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {}
   /// Full post-barrier
@@ -39,22 +44,42 @@ protected:
     return BarrierSetC1::resolve_address(access, resolve_in_register);
   }
 
+  LIR_Opr resolve_address_in_register(LIRAccess& access, bool resolve_in_register) {
+    DecoratorSet decorators = access.decorators();
+    bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
+    bool is_write = (decorators & C1_WRITE_ACCESS) != 0;
+    bool is_array = (decorators & IS_ARRAY) != 0;
+    bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+    bool precise = is_array || on_anonymous;
+    resolve_in_register |= !needs_patching && is_write && access.is_oop() && precise;
+    return BarrierSetC1::resolve_address(access, resolve_in_register);
+  }
+
 public:
-  CodeBlob* _write_barrier_c1_runtime_code_blob;
 
   MMTkBarrierSetC1() {}
 
-  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override {
-    class MMTkBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
-      virtual OopMapSet* generate_code(StubAssembler* sasm) override {
-        MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-        bs->generate_c1_write_barrier_runtime_stub(sasm);
-        return NULL;
-      }
-    };
-    MMTkBarrierCodeGenClosure write_code_gen_cl;
-    _write_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "write_code_gen_cl", false, &write_code_gen_cl);
+  virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
+};
+
+/// C1 write barrier slow-call stub.
+/// The default behaviour is to call `MMTkBarrierSetRuntime::object_reference_write_post_call` and pass all the three args.
+/// Barrier implementations may inherit from this class, and override `emit_code` to perform a specialized slow-path call.
+struct MMTkC1BarrierStub: CodeStub {
+  LIR_Opr src, slot, new_val;
+
+  MMTkC1BarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {}
+
+  virtual void emit_code(LIR_Assembler* ce) override;
+
+  virtual void visit(LIR_OpVisitState* visitor) override {
+    visitor->do_slow_case();
+    if (src != NULL) visitor->do_input(src);
+    if (slot != NULL) visitor->do_input(slot);
+    if (new_val != NULL) visitor->do_input(new_val);
   }
+
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1BarrierStub"); });
 };
 
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP

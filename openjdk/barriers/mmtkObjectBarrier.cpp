@@ -7,7 +7,7 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen(void* src
 }
 
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
-#if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
+#if MMTK_ENABLE_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
   uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   intptr_t shift = (addr >> 3) & 0b111;
@@ -25,7 +25,7 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
-#if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
+#if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
 
   Register tmp3 = rscratch1;
@@ -61,11 +61,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   __ pusha();
   __ movptr(c_rarg0, dst.base());
   __ lea(c_rarg1, dst);
-  if (val == noreg) {
-    __ movptr(c_rarg2, (int32_t) NULL_WORD);
-  } else {
-    __ movptr(c_rarg2, val);
-  }
+  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
   __ popa();
 #endif
@@ -125,9 +121,9 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  CodeStub* slow = new MMTkObjectBarrierStub(src, slot, new_val);
+  CodeStub* slow = new MMTkC1BarrierStub(src, slot, new_val);
 
-#if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
+#if MMTK_ENABLE_BARRIER_FASTPATH
   LIR_Opr addr = src;
   // uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   LIR_Opr offset = gen->new_pointer_register();
@@ -166,7 +162,7 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
 
   MMTkIdealKit ideal(kit, true);
 
-#if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
+#if MMTK_ENABLE_BARRIER_FASTPATH
   Node* no_base = __ top();
   float unlikely  = PROB_UNLIKELY(0.999);
 
