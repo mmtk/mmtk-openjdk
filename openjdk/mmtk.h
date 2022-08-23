@@ -59,7 +59,7 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
 extern PlanSelector mmtk_get_active_plan();
 
 extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* obj, void* slot, void* target);
-extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, void* dst_object, size_t count);
+extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
 extern void mmtk_gen_object_barrier_slow(MMTk_Mutator mutator, void* obj);
 

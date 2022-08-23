@@ -57,7 +57,7 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector);
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) {};
-  virtual void object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) {};
+  virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) {};
   virtual bool is_slow_path_call(address call) {
     return false;
   }
@@ -177,7 +177,9 @@ public:
     static bool oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length) {
-      runtime()->object_reference_array_copy_pre((oop*) src_raw, (oop*) dst_raw, dst_obj, length);
+      T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
+      T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
+      runtime()->object_reference_array_copy_pre((oop*) src, (oop*) dst, length);
       bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
                                        dst_obj, dst_offset_in_bytes, dst_raw,
                                        length);

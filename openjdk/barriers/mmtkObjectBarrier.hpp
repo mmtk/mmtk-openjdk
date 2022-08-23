@@ -28,9 +28,6 @@ struct SlowCall<PlanSelector::GenCopy> {
   static void object_reference_write_pre_slow(void* src) {
     mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
   }
-  static void object_reference_array_copy_pre_slow(void* src) {
-    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
-  }
 };
 
 template<>
@@ -38,14 +35,10 @@ struct SlowCall<PlanSelector::GenImmix> {
   static void object_reference_write_pre_slow(void* src) {
     mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
   }
-  static void object_reference_array_copy_pre_slow(void* src) {
-    mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
-  }
 };
 
 
 typedef void (*object_reference_write_pre_slow_fn)(void* src);
-typedef void (*object_reference_array_copy_pre_slow_fn)(void* src);
 
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
@@ -58,34 +51,21 @@ public:
         return NULL;
     }
   }
-  static object_reference_array_copy_pre_slow_fn object_reference_array_copy_pre_slow() {
-    switch (mmtk_get_active_plan()) {
-      case PlanSelector::GenCopy: return SlowCall<PlanSelector::GenCopy>::object_reference_array_copy_pre_slow;
-      case PlanSelector::GenImmix: return SlowCall<PlanSelector::GenImmix>::object_reference_array_copy_pre_slow;
-      default:
-        guarantee(false, "unreachable");
-        return NULL;
-    }
-  }
   static address object_reference_write_pre_slow_address() {
     return CAST_FROM_FN_PTR(address, object_reference_write_pre_slow());
-  }
-  static address object_reference_array_copy_pre_slow_address() {
-    return CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_slow_fn());
   }
 
   virtual bool is_slow_path_call(address call) {
     return call == object_reference_write_pre_slow_address()
-        || call == object_reference_array_copy_pre_slow_address()
         || call == CAST_FROM_FN_PTR(address, object_reference_write_pre_)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_);
   }
 
   static void object_reference_write_pre_(void* src, void* slot, void* target);
-  static void object_reference_array_copy_pre_(void* src, void* dst, void* dst_object, size_t count);
+  static void object_reference_array_copy_pre_(void* src, void* dst, size_t count);
 
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) override;
-  virtual void object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) override;
+  virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) override;
 };
 
 class MMTkObjectBarrierSetC1;
@@ -102,10 +82,7 @@ public:
       BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
     }
   }
-  virtual bool enable_oop_arraycopy_prologue() const override {
-    return true;
-  }
-  virtual void oop_arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count, Register dst_obj) override;
+  virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
 #define __ sasm->
   void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) {

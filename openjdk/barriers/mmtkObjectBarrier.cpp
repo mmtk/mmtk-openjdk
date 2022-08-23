@@ -6,12 +6,12 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_pre_(void* obj, void* s
   ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, obj, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_(void* src, void* dst, void* dst_object, size_t count) {
-  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, dst_object, count);
+void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_(void* src, void* dst, size_t count) {
+  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre(oop* src, oop* dst, oop dst_object, size_t count) {
-  object_reference_array_copy_pre_((void*) src, (void*) dst, (void*) dst_object, count);
+void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre(oop* src, oop* dst, size_t count) {
+  object_reference_array_copy_pre_((void*) src, (void*) dst, count);
 }
 
 void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) {
@@ -45,15 +45,14 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 }
 
-void MMTkObjectBarrierSetAssembler::oop_arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count, Register dst_obj) {
+void MMTkObjectBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
   const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
   if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
     __ pusha();
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
-    __ movptr(c_rarg2, dst_obj);
     __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_), 4);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_), 3);
     __ popa();
   }
 }

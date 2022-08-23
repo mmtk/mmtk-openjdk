@@ -327,19 +327,6 @@ pub unsafe extern "C" fn mmtk_gen_object_barrier_slow(
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_array_copy_pre(
-    mutator: &'static mut Mutator<OpenJDK>,
-    src: Address,
-    dst: Address,
-    dst_object: ObjectReference,
-    count: usize,
-) {
-    mutator
-        .barrier_impl::<GenObjectBarrier<OpenJDK>>()
-        .gen_object_reference_write_slow(obj)
-}
-
-#[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
@@ -356,12 +343,9 @@ pub extern "C" fn mmtk_array_copy_pre(
     mutator: &'static mut Mutator<OpenJDK>,
     src: Address,
     dst: Address,
-    dst_object: ObjectReference,
     count: usize,
 ) {
-    mutator
-        .barrier()
-        .array_copy_pre(None, src, Some(dst_object), dst, count);
+    mutator.barrier().array_copy_pre(src, dst, count);
 }
 
 // finalization
