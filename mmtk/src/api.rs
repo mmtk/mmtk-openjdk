@@ -315,18 +315,6 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mmtk_gen_object_barrier_slow(
-    mutator: &'static mut Mutator<OpenJDK>,
-    obj: ObjectReference,
-    slot: Address,
-    target: ObjectReference,
-) {
-    mutator
-        .barrier()
-        .object_reference_write_pre(obj, slot, target);
-}
-
-#[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
@@ -339,6 +327,40 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 }
 
 #[no_mangle]
+pub extern "C" fn mmtk_object_reference_write_post(
+    mutator: &'static mut Mutator<OpenJDK>,
+    obj: ObjectReference,
+    slot: Address,
+    target: ObjectReference,
+) {
+    mutator
+        .barrier()
+        .object_reference_write_post(obj, slot, target);
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_object_reference_write_slow(
+    mutator: &'static mut Mutator<OpenJDK>,
+    obj: ObjectReference,
+    slot: Address,
+    target: ObjectReference,
+) {
+    mutator
+        .barrier()
+        .object_reference_write_slow(obj, slot, target);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_gen_object_barrier_slow(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: ObjectReference,
+) {
+    mutator
+        .barrier_impl::<GenObjectBarrier<OpenJDK>>()
+        .gen_object_reference_write_slow(src);
+}
+
+#[no_mangle]
 pub extern "C" fn mmtk_array_copy_pre(
     mutator: &'static mut Mutator<OpenJDK>,
     src: Address,
@@ -346,6 +368,16 @@ pub extern "C" fn mmtk_array_copy_pre(
     count: usize,
 ) {
     mutator.barrier().array_copy_pre(src, dst, count);
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_array_copy_post(
+    mutator: &'static mut Mutator<OpenJDK>,
+    src: Address,
+    dst: Address,
+    count: usize,
+) {
+    mutator.barrier().array_copy_post(src, dst, count);
 }
 
 // finalization

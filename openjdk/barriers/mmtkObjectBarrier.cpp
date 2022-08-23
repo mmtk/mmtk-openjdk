@@ -2,29 +2,34 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::object_reference_write_pre_(void* obj, void* slot, void* target) {
-  ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, obj, slot, target);
+void MMTkObjectBarrierSetRuntime::object_reference_write_post_call(void* src, void* slot, void* target) {
+  ::mmtk_object_reference_write_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_(void* src, void* dst, size_t count) {
-  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
+void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call(void* src, void* slot, void* target) {
+  ::mmtk_object_reference_write_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre(oop* src, oop* dst, size_t count) {
-  object_reference_array_copy_pre_((void*) src, (void*) dst, count);
+void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen(void* src) {
+  ::mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
 }
 
-void MMTkObjectBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) {
+void MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call(void* src, void* dst, size_t count) {
+  ::mmtk_array_copy_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
+}
+
+void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) {
 #if MMTK_ENABLE_OBJECT_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
   uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
   intptr_t shift = (addr >> 3) & 0b111;
   uint8_t byte_val = *meta_addr;
   if (((byte_val >> shift) & 1) == 1) {
-    MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
+    // MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
+    object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
   }
 #else
-  object_reference_write_pre_((void*) src, (void*) slot, (void*) target);
+  object_reference_write_post_call((void*) src, (void*) slot, (void*) target);
 #endif
 }
 
@@ -45,14 +50,14 @@ void MMTkObjectBarrierSetAssembler::oop_store_at(MacroAssembler* masm, Decorator
   BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 }
 
-void MMTkObjectBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
+void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
   const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
   if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
     __ pusha();
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
     __ movptr(c_rarg3, count);
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_pre_), 3);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_array_copy_post_call), 3);
     __ popa();
   }
 }
@@ -86,7 +91,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
 
   __ pusha();
   __ movptr(c_rarg0, dst.base());
-  __ call_VM_leaf_base(MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow_address(), 1);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), 1);
   __ popa();
 
   __ bind(done);
@@ -99,7 +104,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
   } else {
     __ movptr(c_rarg2, val);
   }
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_pre_), 3);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), 3);
   __ popa();
 #endif
 }
@@ -112,7 +117,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write(MacroAssembler* masm,
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
+void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
@@ -182,7 +187,7 @@ void MMTkObjectBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_O
 
 #define __ ideal.
 
-void MMTkObjectBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {
+void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {
   if (can_remove_barrier(kit, &kit->gvn(), src, slot, val, /* skip_const_null */ true)) return;
 
   MMTkIdealKit ideal(kit, true);
@@ -201,11 +206,11 @@ void MMTkObjectBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
     const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow_address(), "mmtk_barrier_call", src);
+    Node* x = __ make_leaf_call(tf,  CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src);
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_pre_), "mmtk_barrier_call", src, slot, val);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
