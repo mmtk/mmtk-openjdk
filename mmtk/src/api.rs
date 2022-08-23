@@ -10,7 +10,6 @@ use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::opaque_pointer::*;
-use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
@@ -24,11 +23,6 @@ use std::sync::atomic::Ordering;
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
-
-#[no_mangle]
-pub extern "C" fn mmtk_get_active_plan() -> PlanSelector {
-    *SINGLETON.options.plan
-}
 
 #[no_mangle]
 pub extern "C" fn get_mmtk_version() -> *const c_char {
@@ -317,37 +311,37 @@ pub extern "C" fn executable() -> bool {
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: &'static mut Mutator<OpenJDK>,
-    obj: ObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: ObjectReference,
 ) {
     mutator
         .barrier()
-        .object_reference_write_pre(obj, slot, target);
+        .object_reference_write_pre(src, slot, target);
 }
 
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_post(
     mutator: &'static mut Mutator<OpenJDK>,
-    obj: ObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: ObjectReference,
 ) {
     mutator
         .barrier()
-        .object_reference_write_post(obj, slot, target);
+        .object_reference_write_post(src, slot, target);
 }
 
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_slow(
     mutator: &'static mut Mutator<OpenJDK>,
-    obj: ObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: ObjectReference,
 ) {
     mutator
         .barrier()
-        .object_reference_write_slow(obj, slot, target);
+        .object_reference_write_slow(src, slot, target);
 }
 
 #[no_mangle]

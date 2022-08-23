@@ -30,40 +30,44 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 
   Register tmp3 = rscratch1;
   Register tmp4 = rscratch2;
-  Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
+  Register obj = dst.base();
+  assert_different_registers(obj, tmp2, tmp3);
+  assert_different_registers(tmp4, rcx);
 
-  // tmp5 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
-  __ movptr(tmp3, dst.base());
+  // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
+  __ movptr(tmp3, obj);
   __ shrptr(tmp3, 6);
-  __ movptr(tmp5, SIDE_METADATA_BASE_ADDRESS);
-  __ movb(tmp5, Address(tmp5, tmp3));
+  __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
+  __ movb(tmp2, Address(tmp2, tmp3));
   // tmp3 = (obj >> 3) & 7
-  __ movptr(tmp3, dst.base());
+  __ movptr(tmp3, obj);
   __ shrptr(tmp3, 3);
   __ andptr(tmp3, 7);
-  // tmp5 = tmp5 >> tmp3
+  // tmp2 = tmp2 >> tmp3
   __ movptr(tmp4, rcx);
   __ movl(rcx, tmp3);
-  __ shrptr(tmp5);
+  __ shrptr(tmp2);
   __ movptr(rcx, tmp4);
-  // if ((tmp5 & 1) == 0) goto slowpath;
-  __ andptr(tmp5, 1);
-  __ cmpptr(tmp5, 1);
+  // if ((tmp2 & 1) == 1) goto slowpath;
+  __ andptr(tmp2, 1);
+  __ cmpptr(tmp2, 1);
   __ jcc(Assembler::notEqual, done);
 
-  __ pusha();
-  __ movptr(c_rarg0, dst.base());
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 1);
-  __ popa();
+  __ movptr(c_rarg0, obj);
+#if USE_SPECIALIZED_SLOW_PATH
+  __ lea(c_rarg1, dst);
+  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+#else
+  __ call_VM_leaf_base(FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), 1);
+#endif
 
   __ bind(done);
 #else
-  __ pusha();
-  __ movptr(c_rarg0, dst.base());
+  __ movptr(c_rarg0, obj);
   __ lea(c_rarg1, dst);
   __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
-  __ popa();
 #endif
 }
 
@@ -175,12 +179,17 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
+  #if USE_SPECIALIZED_SLOW_PATH
     const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf,  FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src);
+    Node* x = __ make_leaf_call(tf,  FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), "mmtk_barrier_call", src);
+  #else
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
+  #endif
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
+  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
