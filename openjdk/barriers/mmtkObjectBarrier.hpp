@@ -12,7 +12,7 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
-#define USE_SPECIALIZED_SLOW_PATH true
+#define USE_SPECIALIZED_SLOW_PATH false
 
 #define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
 #define LOG_BYTES_IN_CHUNK 22
