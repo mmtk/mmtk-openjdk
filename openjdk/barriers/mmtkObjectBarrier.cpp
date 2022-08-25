@@ -55,11 +55,11 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 
   __ movptr(c_rarg0, obj);
 #if USE_SPECIALIZED_SLOW_PATH
+  __ call_VM_leaf_base(FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), 1);
+#else
   __ lea(c_rarg1, dst);
   __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-#else
-  __ call_VM_leaf_base(FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), 1);
 #endif
 
   __ bind(done);
