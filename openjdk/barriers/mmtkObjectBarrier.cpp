@@ -2,10 +2,6 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-void MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen(void* src) {
-  ::mmtk_gen_object_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src);
-}
-
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
 #if MMTK_ENABLE_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
@@ -54,13 +50,9 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   __ jcc(Assembler::notEqual, done);
 
   __ movptr(c_rarg0, obj);
-#if USE_SPECIALIZED_SLOW_PATH
-  __ call_VM_leaf_base(FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), 1);
-#else
   __ lea(c_rarg1, dst);
   __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-#endif
 
   __ bind(done);
 #else
@@ -179,13 +171,8 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
   __ if_then(result, BoolTest::ne, zero, unlikely); {
-  #if USE_SPECIALIZED_SLOW_PATH
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf,  FN_ADDR(MMTkObjectBarrierSetRuntime::object_reference_write_slow_call_gen), "mmtk_barrier_call", src);
-  #else
     const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
     Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
-  #endif
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);

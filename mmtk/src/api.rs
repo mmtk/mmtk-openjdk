@@ -5,7 +5,7 @@ use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::c_char;
 use mmtk::memory_manager;
-use mmtk::plan::{BarrierSelector, GenObjectBarrier};
+use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
@@ -342,16 +342,6 @@ pub extern "C" fn mmtk_object_reference_write_slow(
     mutator
         .barrier()
         .object_reference_write_slow(src, slot, target);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn mmtk_gen_object_barrier_slow(
-    mutator: &'static mut Mutator<OpenJDK>,
-    src: ObjectReference,
-) {
-    mutator
-        .barrier_impl::<GenObjectBarrier<OpenJDK>>()
-        .gen_object_reference_write_slow(src);
 }
 
 #[no_mangle]

@@ -54,9 +54,6 @@ extern void mmtk_object_reference_write_post(MMTk_Mutator mutator, void* src, vo
 /// Generic slow-path
 extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, void* slot, void* target);
 
-/// Generational object barrier slow-path
-extern void mmtk_gen_object_barrier_slow(MMTk_Mutator mutator, void* src);
-
 /// Full array-copy pre-barrier
 extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 

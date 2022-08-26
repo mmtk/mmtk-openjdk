@@ -12,8 +12,6 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
-#define USE_SPECIALIZED_SLOW_PATH false
-
 #define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
 #define LOG_BYTES_IN_CHUNK 22
 #define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
@@ -22,14 +20,6 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
-  /// Specialized slow-path call for generatinoal object barrier
-  static void object_reference_write_slow_call_gen(void* src);
-
-  virtual bool is_slow_path_call(address call) const override {
-    return MMTkBarrierSetRuntime::is_slow_path_call(call)
-        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call_gen);
-  }
-
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
   virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
