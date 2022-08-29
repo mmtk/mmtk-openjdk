@@ -46,8 +46,11 @@ class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
+  /// Barrier elision test
   virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
+  /// Full pre-barrier
   virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+  /// Full post-barrier
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
 
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {

@@ -44,6 +44,7 @@ protected:
     return BarrierSetC1::resolve_address(access, resolve_in_register);
   }
 
+  /// Helper function for C1 barrier implementations to resolve address in registers
   LIR_Opr resolve_address_in_register(LIRAccess& access, bool resolve_in_register) {
     DecoratorSet decorators = access.decorators();
     bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
@@ -59,6 +60,7 @@ public:
 
   MMTkBarrierSetC1() {}
 
+  /// Generate C1 write barrier slow-call C1-LIR code
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
 };
 

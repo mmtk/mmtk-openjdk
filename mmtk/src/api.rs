@@ -308,6 +308,7 @@ pub extern "C" fn executable() -> bool {
     true
 }
 
+/// Full pre barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: &'static mut Mutator<OpenJDK>,
@@ -320,6 +321,7 @@ pub extern "C" fn mmtk_object_reference_write_pre(
         .object_reference_write_pre(src, slot, target);
 }
 
+/// Full post barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_post(
     mutator: &'static mut Mutator<OpenJDK>,
@@ -332,6 +334,7 @@ pub extern "C" fn mmtk_object_reference_write_post(
         .object_reference_write_post(src, slot, target);
 }
 
+/// Barrier slow-path call
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_slow(
     mutator: &'static mut Mutator<OpenJDK>,
@@ -344,6 +347,7 @@ pub extern "C" fn mmtk_object_reference_write_slow(
         .object_reference_write_slow(src, slot, target);
 }
 
+/// Array-copy pre-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_pre(
     mutator: &'static mut Mutator<OpenJDK>,
@@ -354,6 +358,7 @@ pub extern "C" fn mmtk_array_copy_pre(
     mutator.barrier().array_copy_pre(src, dst, count);
 }
 
+/// Array-copy post-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_post(
     mutator: &'static mut Mutator<OpenJDK>,

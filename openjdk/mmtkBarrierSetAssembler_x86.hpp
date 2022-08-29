@@ -13,9 +13,12 @@ class MMTkBarrierSetAssembler: public BarrierSetAssembler {
   friend class MMTkBarrierSetC1;
 
 protected:
+  /// Full pre-barrier
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
+  /// Full post-barrier
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
 
+  /// Barrier elision test
   virtual bool can_remove_barrier(DecoratorSet decorators, Register val, bool skip_const_null) const {
     bool in_heap = (decorators & IN_HEAP) != 0;
     bool as_normal = (decorators & AS_NORMAL) != 0;
@@ -23,6 +26,7 @@ protected:
     return !in_heap || (skip_const_null && val == noreg);
   }
 
+  /// Generate C1 write barrier slow-call assembly code
   virtual void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
@@ -33,6 +37,7 @@ public:
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2);
   }
 
+  /// Generate C1 write barrier slow-call C1-LIR code
   static void gen_c1_generic_write_barrier_stub(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
