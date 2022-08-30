@@ -1,5 +1,5 @@
 use super::gc_work::*;
-use super::{NewBuffer, SINGLETON, UPCALLS};
+use super::{NewBuffer, OpenJDKEdge, SINGLETON, UPCALLS};
 use crate::{EdgesClosure, OpenJDK};
 use mmtk::memory_manager;
 use mmtk::scheduler::WorkBucketStage;
@@ -13,7 +13,7 @@ pub struct VMScanning {}
 
 const WORK_PACKET_CAPACITY: usize = 4096;
 
-extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
+extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<OpenJDKEdge>>(
     ptr: *mut Address,
     length: usize,
     capacity: usize,
@@ -34,7 +34,7 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
     NewBuffer { ptr, capacity }
 }
 
-pub(crate) fn to_edges_closure<F: RootsWorkFactory>(factory: &mut F) -> EdgesClosure {
+pub(crate) fn to_edges_closure<F: RootsWorkFactory<OpenJDKEdge>>(factory: &mut F) -> EdgesClosure {
     EdgesClosure {
         func: report_edges_and_renew_buffer::<F> as *const _,
         data: factory as *mut F as *mut libc::c_void,
@@ -45,7 +45,7 @@ impl Scanning<OpenJDK> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<EV: EdgeVisitor>(
+    fn scan_object<EV: EdgeVisitor<OpenJDKEdge>>(
         tls: VMWorkerThread,
         object: ObjectReference,
         edge_visitor: &mut EV,
@@ -58,7 +58,7 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory) {
+    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory<OpenJDKEdge>) {
         unsafe {
             ((*UPCALLS).scan_all_thread_roots)(to_edges_closure(&mut factory));
         }
@@ -67,7 +67,7 @@ impl Scanning<OpenJDK> for VMScanning {
     fn scan_thread_root(
         _tls: VMWorkerThread,
         mutator: &'static mut Mutator<OpenJDK>,
-        mut factory: impl RootsWorkFactory,
+        mut factory: impl RootsWorkFactory<OpenJDKEdge>,
     ) {
         let tls = mutator.get_tls();
         unsafe {
@@ -75,7 +75,7 @@ impl Scanning<OpenJDK> for VMScanning {
         }
     }
 
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory<OpenJDKEdge>) {
         memory_manager::add_work_packets(
             &SINGLETON,
             WorkBucketStage::Prepare,
