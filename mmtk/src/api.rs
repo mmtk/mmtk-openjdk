@@ -9,6 +9,7 @@ use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
+use mmtk::util::constants::LOG_BYTES_IN_ADDRESS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
@@ -355,7 +356,9 @@ pub extern "C" fn mmtk_array_copy_pre(
     dst: Address,
     count: usize,
 ) {
-    mutator.barrier().array_copy_pre(src, dst, count);
+    mutator
+        .barrier()
+        .memory_region_copy_pre(src, dst, count << LOG_BYTES_IN_ADDRESS);
 }
 
 /// Array-copy post-barrier
@@ -366,7 +369,9 @@ pub extern "C" fn mmtk_array_copy_post(
     dst: Address,
     count: usize,
 ) {
-    mutator.barrier().array_copy_post(src, dst, count);
+    mutator
+        .barrier()
+        .memory_region_copy_post(src, dst, count << LOG_BYTES_IN_ADDRESS);
 }
 
 // finalization
