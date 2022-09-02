@@ -5,6 +5,7 @@ extern crate lazy_static;
 extern crate once_cell;
 
 use std::collections::HashMap;
+use std::ops::Range;
 use std::ptr::null_mut;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
@@ -129,6 +130,7 @@ impl VMBinding for OpenJDK {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = OpenJDKEdge;
+    type VMMemorySlice = Range<Address>;
 }
 
 use std::sync::atomic::AtomicBool;

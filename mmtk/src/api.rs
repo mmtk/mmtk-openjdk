@@ -356,9 +356,10 @@ pub extern "C" fn mmtk_array_copy_pre(
     dst: Address,
     count: usize,
 ) {
+    let bytes = count << LOG_BYTES_IN_ADDRESS;
     mutator
         .barrier()
-        .memory_region_copy_pre(src, dst, count << LOG_BYTES_IN_ADDRESS);
+        .memory_region_copy_pre(src..src + bytes, dst..dst + bytes);
 }
 
 /// Array-copy post-barrier
@@ -369,9 +370,10 @@ pub extern "C" fn mmtk_array_copy_post(
     dst: Address,
     count: usize,
 ) {
+    let bytes = count << LOG_BYTES_IN_ADDRESS;
     mutator
         .barrier()
-        .memory_region_copy_post(src, dst, count << LOG_BYTES_IN_ADDRESS);
+        .memory_region_copy_post(src..src + bytes, dst..dst + bytes);
 }
 
 // finalization
