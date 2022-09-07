@@ -35,14 +35,14 @@ class MMTkObjectBarrierSetC1;
 class MMTkObjectBarrierStub;
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
-  void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2);
+  void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3);
   void record_modified_node(MacroAssembler* masm, Register obj, Register tmp1, Register tmp2);
 public:
-  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2) {
+  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) {
     if (type == T_OBJECT || type == T_ARRAY) {
-      oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+      oop_store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);
     } else {
-      BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
+      BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);
     }
   }
   inline void gen_write_barrier_stub(LIR_Assembler* ce, MMTkObjectBarrierStub* stub);
