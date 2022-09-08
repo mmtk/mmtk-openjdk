@@ -23,6 +23,8 @@ extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 
+extern const char* get_mmtk_version();
+
 /**
  * Allocation
  */
@@ -43,7 +45,8 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
-extern void record_modified_node(MMTk_Mutator mutator, void* obj);
+extern void post_write_barrier(MMTk_Mutator mutator, void* obj);
+extern void post_write_barrier_slow(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 

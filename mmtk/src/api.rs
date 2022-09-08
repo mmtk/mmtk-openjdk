@@ -25,6 +25,11 @@ static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
 
 #[no_mangle]
+pub extern "C" fn get_mmtk_version() -> *const c_char {
+    crate::build_info::MMTK_OPENJDK_FULL_VERSION.as_ptr() as _
+}
+
+#[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
     match SINGLETON.get_plan().constraints().barrier {
         BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
@@ -304,11 +309,20 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(
+pub extern "C" fn post_write_barrier(mutator: &'static mut Mutator<OpenJDK>, obj: ObjectReference) {
+    mutator
+        .barrier()
+        .post_write_barrier(mmtk::plan::BarrierWriteTarget::Object(obj))
+}
+
+#[no_mangle]
+pub extern "C" fn post_write_barrier_slow(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
 ) {
-    mutator.record_modified_node(obj);
+    mutator
+        .barrier()
+        .post_write_barrier_slow(mmtk::plan::BarrierWriteTarget::Object(obj))
 }
 
 // finalization

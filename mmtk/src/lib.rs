@@ -21,6 +21,7 @@ use mmtk::MMTK;
 mod abi;
 pub mod active_plan;
 pub mod api;
+mod build_info;
 pub mod collection;
 mod gc_work;
 pub mod object_model;
@@ -113,12 +114,21 @@ pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
 #[derive(Default)]
 pub struct OpenJDK;
 
+/// The type of edges in OpenJDK.
+///
+/// TODO: We currently make it an alias to Address to make the change minimal.
+/// If we support CompressedOOPs, we should define an enum type to support both
+/// compressed and uncompressed OOPs.
+pub type OpenJDKEdge = Address;
+
 impl VMBinding for OpenJDK {
     type VMObjectModel = object_model::VMObjectModel;
     type VMScanning = scanning::VMScanning;
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    type VMEdge = OpenJDKEdge;
 }
 
 use std::sync::atomic::AtomicBool;
