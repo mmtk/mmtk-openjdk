@@ -33,10 +33,9 @@ MMTkVMCompanionThread::MMTkVMCompanionThread():
     _desired_state(_threads_resumed),
     _reached_state(_threads_resumed) {
   set_name("MMTK VM Companion Thread");
-  _lock = new Monitor(Monitor::nonleaf,
+  _lock = new Monitor(Mutex::nosafepoint,
                       "MMTkVMCompanionThread::_lock",
-                      true,
-                      Monitor::_safepoint_check_never);
+                      true);
 }
 
 MMTkVMCompanionThread::~MMTkVMCompanionThread() {

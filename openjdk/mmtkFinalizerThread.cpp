@@ -119,7 +119,7 @@ void MMTkFinalizerThread::finalizer_thread_entry(JavaThread* thread, TRAPS) {
 
 MMTkFinalizerThread::MMTkFinalizerThread(ThreadFunction entry_point) : JavaThread(entry_point) {
   this->is_scheduled = false;
-  this->m = new Monitor(Mutex::suspend_resume, "mmtk-finalizer-monitor", true, Monitor::_safepoint_check_never);
+  this->m = new Monitor(Mutex::suspend_resume, "mmtk-finalizer-monitor", true);
 }
 
 void MMTkFinalizerThread::schedule() {
