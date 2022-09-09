@@ -97,7 +97,7 @@ static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
   switch (kind) {
     case GC_THREAD_KIND_CONTROLLER: {
       MMTkContextThread* t = new MMTkContextThread(ctx);
-      if (!os::create_thread(t, os::pgc_thread)) {
+      if (!os::create_thread(t, os::gc_thread)) {
         printf("Failed to create thread");
         guarantee(false, "panic");
       }
@@ -107,7 +107,7 @@ static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
     case GC_THREAD_KIND_WORKER: {
       MMTkHeap::heap()->new_collector_thread();
       MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
-      if (!os::create_thread(t, os::pgc_thread)) {
+      if (!os::create_thread(t, os::gc_thread)) {
         printf("Failed to create thread");
         guarantee(false, "panic");
       }

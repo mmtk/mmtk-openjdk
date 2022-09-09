@@ -120,7 +120,7 @@ jint MMTkHeap::initialize() {
   BarrierSet::set_barrier_set(barrier_set);
 
   _companion_thread = new MMTkVMCompanionThread();
-  if (!os::create_thread(_companion_thread, os::pgc_thread)) {
+  if (!os::create_thread(_companion_thread, os::gc_thread)) {
     fprintf(stderr, "Failed to create thread");
     guarantee(false, "panic");
   }
