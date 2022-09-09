@@ -130,7 +130,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     }
   }
 
-  if (x->C->env()->dtrace_alloc_probes() || !MMTK_ENABLE_ALLOCATION_FASTPATH
+  if (!MMTK_ENABLE_ALLOCATION_FASTPATH
       // Malloc allocator has no fastpath
       || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT)) {
     // Force slow-path allocation
@@ -413,7 +413,8 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
       // Slow-path call
       int size = TypeFunc::Parms + 2;
       CallLeafNode *call = new CallLeafNode(OptoRuntime::dtrace_object_alloc_Type(),
-                                            CAST_FROM_FN_PTR(address, SharedRuntime::dtrace_object_alloc_base),
+                                            CAST_FROM_FN_PTR(address,
+                                            static_cast<int (*)(Thread*, oopDesc*)>(SharedRuntime::dtrace_object_alloc)),
                                             "dtrace_object_alloc",
                                             TypeRawPtr::BOTTOM);
 
