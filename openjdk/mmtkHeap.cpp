@@ -49,6 +49,7 @@
 #include "runtime/handles.inline.hpp"
 #include "runtime/java.hpp"
 #include "runtime/thread.hpp"
+#include "runtime/threads.hpp"
 #include "runtime/vmThread.hpp"
 #include "services/management.hpp"
 #include "services/memoryManager.hpp"

@@ -33,7 +33,6 @@
 #include "gc/shared/oopStorageParState.hpp"
 #include "gc/shared/space.hpp"
 #include "gc/shared/strongRootsScope.hpp"
-#include "gc/shared/workgroup.hpp"
 #include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
 #include "mmtkFinalizerThread.hpp"
