@@ -87,7 +87,7 @@ jint MMTkHeap::initialize() {
 
   // Set options
   if (ThirdPartyHeapOptions != NULL) {
-    bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
+    bool set_options = process_bulk(os::strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
 
