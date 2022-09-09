@@ -458,6 +458,11 @@ void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
   if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
 }
 
+bool MMTkHeap::requires_barriers(stackChunkOop obj) const {
+  ShouldNotReachHere();
+  return false;
+}
+
 /*
  * files with prints currently:
  * collectedHeap.inline.hpp, mmtkHeap.cpp,

@@ -174,6 +174,8 @@ public:
 
   bool print_location(outputStream* st, void* addr) const;
 
+  bool requires_barriers(stackChunkOop obj) const;
+
   void register_nmethod(nmethod* nm);
   void unregister_nmethod(nmethod* nm);
 
