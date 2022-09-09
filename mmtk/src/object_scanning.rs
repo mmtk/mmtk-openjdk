@@ -158,7 +158,7 @@ fn oop_iterate_slow(oop: Oop, closure: &mut impl EdgeVisitor, tls: OpaquePointer
 fn oop_iterate(oop: Oop, closure: &mut impl EdgeVisitor) {
     let klass_id = oop.klass.id;
     debug_assert!(
-        klass_id as i32 >= 0 && (klass_id as i32) < 6,
+        klass_id as i32 >= 0 && (klass_id as i32) < KlassID::MaxKlassID as i32,
         "Invalid klass-id: {:x} for oop: {:x}",
         klass_id as i32,
         unsafe { mem::transmute::<Oop, ObjectReference>(oop) }
@@ -188,6 +188,8 @@ fn oop_iterate(oop: Oop, closure: &mut impl EdgeVisitor) {
             let instance_klass = unsafe { oop.klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate(oop, closure);
         } // _ => oop_iterate_slow(oop, closure, tls),
+        KlassID::InstanceStackChunk => {unreachable!("StackChunkOop not supported!")},
+        KlassID::MaxKlassID => {unreachable!("Invalid KlassID")}
     }
 }
 

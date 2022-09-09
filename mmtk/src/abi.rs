@@ -15,8 +15,10 @@ pub enum KlassID {
     InstanceRef,
     InstanceMirror,
     InstanceClassLoader,
+    InstanceStackChunk,
     TypeArray,
     ObjArray,
+    MaxKlassID
 }
 
 #[repr(i32)]
@@ -49,8 +51,8 @@ pub struct Klass {
     #[cfg(debug_assertions)]
     valid: i32,
     pub layout_helper: i32,
-    pub id: KlassID,
-    pub vtable_len: i32,
+    pub id: KlassID, // _kind
+    pub modifier_flags: i32,
     pub super_check_offset: u32,
     pub name: OpaquePointer, // Symbol*
     pub secondary_super_cache: &'static Klass,
@@ -62,15 +64,12 @@ pub struct Klass {
     pub next_sibling: &'static Klass,
     pub next_link: &'static Klass,
     pub class_loader_data: OpaquePointer, // ClassLoaderData*
-    pub modifier_flags: i32,
+    pub vtable_len: i32,
     pub access_flags: i32, // AccessFlags
     pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
-    pub last_biased_lock_bulk_revocation_time: i64,
-    pub prototype_header: u64, // markWord,
-    pub biased_lock_revocation_count: i32,
-    pub shared_class_path_index: i16,
     pub shared_class_flags: u16,
     pub archived_mirror_index: i32,
+    pub padding: i32,
 }
 
 impl Klass {
@@ -126,8 +125,8 @@ pub struct InstanceKlass {
     pub is_marked_dependent: bool, // bool
     pub init_state: u8,
     pub reference_type: ReferenceType,
-    pub kind: u8,
     pub misc_flags: u16,
+    pub init_monitor: OpaquePointer,         // Monitor*
     pub init_thread: OpaquePointer,         // Thread*
     pub oop_map_cache: OpaquePointer,       // OopMapCache*
     pub jni_ids: OpaquePointer,             // JNIid*
@@ -225,7 +224,13 @@ impl InstanceMirrorKlass {
 #[repr(C)]
 pub struct ArrayKlass {
     pub klass: Klass,
-    pub dimension: i32,
+    // Note that dimension actually is i32
+    // However. it shares the same machine word as the Klass.padding in the C++
+    // abi
+    // While in Rust, dimension and padding occupy two separate words
+    // By changing dimension to have size zero, the remaining fields will
+    // Have the correct offset into the struct
+    dimension: (),
     pub higher_dimension: &'static Klass,
     pub lower_dimension: &'static Klass,
 }
@@ -413,5 +418,18 @@ pub fn validate_memory_layouts() {
             ^ mem::size_of::<TypeArrayKlass>()
             ^ mem::size_of::<ObjArrayKlass>()
     };
+    if vm_checksum != binding_checksum {
+        println!("Rust: Klass {} InstanceKlass {} InstanceRefKlass {} InstanceMirrorKlass {} InstanceClassLoaderKlass {} TypeArrayKlass {} ObjArrayKlass {} ArrayKlass {}",
+        mem::size_of::<Klass>()
+        , mem::size_of::<InstanceKlass>()
+        , mem::size_of::<InstanceRefKlass>()
+        , mem::size_of::<InstanceMirrorKlass>()
+        , mem::size_of::<InstanceClassLoaderKlass>()
+        , mem::size_of::<TypeArrayKlass>()
+        , mem::size_of::<ObjArrayKlass>()
+        , mem::size_of::<ArrayKlass>()
+        );
+        panic!("Rust and C++ definitions don't match");
+    }
     assert_eq!(vm_checksum, binding_checksum);
 }

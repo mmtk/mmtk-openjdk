@@ -273,6 +273,16 @@ static int static_oop_field_count_offset() {
 }
 
 static size_t compute_klass_mem_layout_checksum() {
+  // printf("C++: Klass %ld, InstanceKlass %ld, InstanceRefKlass %ld, InstanceMirrorKlass %ld, InstanceClassLoaderKlass %ld, TypeArrayKlass %ld, ObjArrayKlass %ld, ArrayKlass %ld\n",
+  //   sizeof(Klass)
+  //   , sizeof(InstanceKlass)
+  //   , sizeof(InstanceRefKlass)
+  //   , sizeof(InstanceMirrorKlass)
+  //   , sizeof(InstanceClassLoaderKlass)
+  //   , sizeof(TypeArrayKlass)
+  //   , sizeof(ObjArrayKlass)
+  //   , sizeof(ArrayKlass)
+  // );
   return sizeof(Klass)
     ^ sizeof(InstanceKlass)
     ^ sizeof(InstanceRefKlass)
