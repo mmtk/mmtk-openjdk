@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=4ae23b1dc0e14f62c196c12c93818e00e9de7cc5#4ae23b1dc0e14f62c196c12c93818e00e9de7cc5"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -354,6 +354,7 @@ dependencies = [
  "libc",
  "log",
  "mmtk-macros",
+ "num-traits",
  "num_cpus",
  "spin",
  "strum",
@@ -363,7 +364,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=4ae23b1dc0e14f62c196c12c93818e00e9de7cc5#4ae23b1dc0e14f62c196c12c93818e00e9de7cc5"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -380,6 +381,15 @@ dependencies = [
  "libc",
  "mmtk",
  "once_cell",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
