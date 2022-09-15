@@ -110,7 +110,7 @@ jint MMTkHeap::initialize() {
   //_start = (HeapWord*)heap_rs.base();
   //_end = (HeapWord*)(heap_rs.base() + heap_rs.size());
 
-  ReservedHeapSpace heap_rs = Universe::reserve_heap(mmtk_heap_size, HeapAlignment);
+  ReservedHeapSpace heap_rs = Universe::reserve_heap(heap_size, HeapAlignment);
   //  printf("start: %p, end: %p\n", _start, _end);
 
   initialize_reserved_region(heap_rs);
