@@ -82,16 +82,17 @@ jint MMTkHeap::initialize() {
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
   const size_t heap_size = MaxHeapSize;
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
-  size_t mmtk_heap_size = heap_size;
-  /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
   // Set options
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(os::strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
+  // Set heap size
+  bool set_heap_size = mmtk_set_heap_size(heap_size);
+  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %ld\n", heap_size);
 
-  openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
+  openjdk_gc_init(&mmtk_upcalls);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
 
@@ -129,6 +130,10 @@ jint MMTkHeap::initialize() {
   //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
   return JNI_OK;
 
+}
+
+const char* MMTkHeap::version() {
+  return get_mmtk_version();
 }
 
 void MMTkHeap::schedule_finalizer() {
@@ -355,29 +360,39 @@ bool MMTkHeap::print_location(outputStream* st, void* addr) const {
 }
 
 // Registering and unregistering an nmethod (compiled code) with the heap.
-void MMTkHeap::register_nmethod(nmethod* nm) {
-  ScavengableNMethods::register_nmethod(nm);
-}
-void MMTkHeap::unregister_nmethod(nmethod* nm) {
-  ScavengableNMethods::unregister_nmethod(nm);
-}
+// Override with specific mechanism for each specialized heap type.
+class MMTkRegisterNMethodOopClosure: public OopClosure {
+  template <class T> void do_oop_work(T* p) {
+    mmtk_add_nmethod_oop((void*) p);
+  }
+public:
+  void do_oop(oop* p)       { do_oop_work(p); }
+  void do_oop(narrowOop* p) { do_oop_work(p); }
+};
 
+
+void MMTkHeap::register_nmethod(nmethod* nm) {
+  // Scan and report pointers in this nmethod
+  MMTkRegisterNMethodOopClosure reg_cl;
+  nm->oops_do(&reg_cl);
+  // Register the nmethod
+  mmtk_register_nmethod((void*) nm);
+}
 // Callback for when nmethod is about to be deleted.
 void MMTkHeap::flush_nmethod(nmethod* nm) {
 }
 void MMTkHeap::verify_nmethod(nmethod* nm) {
-  ScavengableNMethods::verify_nmethod(nm);
+}
+
+void MMTkHeap::unregister_nmethod(nmethod* nm) {
+  mmtk_unregister_nmethod((void*) nm);
 }
 
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
 
-void MMTkHeap::scan_static_roots(OopClosure& cl) {
-}
-
-
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
-  CodeBlobToOopClosure cb_cl(&cl, true);
+  MarkingCodeBlobClosure cb_cl(&cl, false, true);
   CodeCache::blobs_do(&cb_cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
@@ -388,29 +403,14 @@ void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
   OopStorageSet::strong_oops_do(&cl);
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
+  // XXX zixianc: I don't understand why this is removed in
+  // 24b90dd889da0ea58aaa2b2311ded6f262573830
+  // ResourceMark rm;
   WeakProcessor::oops_do(&cl); // (really needed???)
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
   VMThread::vm_thread()->oops_do(&cl, NULL);
-}
-
-void MMTkHeap::scan_global_roots(OopClosure& cl) {
-  ResourceMark rm;
-
-  CodeBlobToOopClosure cb_cl(&cl, true);
-  CLDToOopClosure cld_cl(&cl, false);
-
-  {
-    MutexLocker lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    CodeCache::blobs_do(&cb_cl);
-  }
-
-  // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
-  ClassLoaderDataGraph::cld_do(&cld_cl);
-  OopStorageSet::strong_oops_do(&cl);
-
-  WeakProcessor::oops_do(&cl); // (really needed???)
 }
 
 void MMTkHeap::scan_thread_roots(OopClosure& cl) {
@@ -450,12 +450,6 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
 
 HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
   return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
-}
-
-void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
-
-void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
-  if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
 }
 
 bool MMTkHeap::requires_barriers(stackChunkOop obj) const {

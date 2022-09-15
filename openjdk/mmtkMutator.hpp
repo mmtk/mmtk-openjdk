@@ -55,7 +55,6 @@ struct ImmixAllocator {
   uint8_t _align[7];
   uint8_t line_opt_tag;
   uintptr_t line_opt;
-  uint8_t alloc_slow_for_stress;
 };
 
 struct MallocAllocator {
@@ -95,6 +94,7 @@ struct MMTkMutatorContext {
   void flush();
 
   static MMTkMutatorContext bind(::Thread* current);
+  static bool is_ready_to_bind();
 
   // Max object size that does not need to go into LOS. We get the value from mmtk-core, and cache its value here.
   static size_t max_non_los_default_alloc_bytes;

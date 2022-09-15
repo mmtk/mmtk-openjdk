@@ -1,23 +1,29 @@
-use mmtk::scheduler::WorkBucketStage;
-use mmtk::scheduler::{ProcessEdgesWork, ScanStackRoot};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext, Scanning, VMBinding};
 use mmtk::{Mutator, MutatorContext};
 
-use crate::OpenJDK;
-use crate::{SINGLETON, UPCALLS};
+use crate::UPCALLS;
+use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-extern "C" fn create_mutator_scan_work<E: ProcessEdgesWork<VM = OpenJDK>>(
-    mutator: &'static mut Mutator<OpenJDK>,
-) {
-    mmtk::memory_manager::add_work_packet(
-        &SINGLETON,
-        WorkBucketStage::Prepare,
-        ScanStackRoot::<E>(mutator),
-    );
+extern "C" fn report_mutator_stop<F>(mutator: *mut Mutator<OpenJDK>, callback: *mut F)
+where
+    F: FnMut(&'static mut Mutator<OpenJDK>),
+{
+    let callback: &mut F = unsafe { &mut *callback };
+    callback(unsafe { &mut *mutator });
+}
+
+fn to_mutator_closure<F>(callback: &mut F) -> MutatorClosure
+where
+    F: FnMut(&'static mut Mutator<OpenJDK>),
+{
+    MutatorClosure {
+        func: report_mutator_stop::<F> as *const _,
+        data: callback as *mut F as *mut libc::c_void,
+    }
 }
 
 const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
@@ -28,16 +34,19 @@ impl Collection<OpenJDK> for VMCollection {
     /// the OpenJDK binding allows any MMTk GC thread to stop/start the world.
     const COORDINATOR_ONLY_STW: bool = false;
 
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = OpenJDK>>(tls: VMWorkerThread) {
-        let f = {
-            if <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT {
-                0usize as _
-            } else {
-                create_mutator_scan_work::<E> as *const extern "C" fn(&'static mut Mutator<OpenJDK>)
-            }
-        };
+    fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
+    where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        let scan_mutators_in_safepoint =
+            <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT;
+
         unsafe {
-            ((*UPCALLS).stop_all_mutators)(tls, f);
+            ((*UPCALLS).stop_all_mutators)(
+                tls,
+                scan_mutators_in_safepoint,
+                to_mutator_closure(&mut mutator_visitor),
+            );
         }
     }
 

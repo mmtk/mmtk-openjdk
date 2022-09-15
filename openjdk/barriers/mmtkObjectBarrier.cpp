@@ -3,7 +3,11 @@
 #include "runtime/interfaceSupport.inline.hpp"
 
 void MMTkObjectBarrierSetRuntime::record_modified_node_slow(void* obj) {
-  ::record_modified_node((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+  ::post_write_barrier_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
+}
+
+void MMTkObjectBarrierSetRuntime::record_modified_node_full(void* obj) {
+  ::post_write_barrier((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) obj);
 }
 
 void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
@@ -16,7 +20,7 @@ void MMTkObjectBarrierSetRuntime::record_modified_node(oop src) {
     record_modified_node_slow((void*) src);
   }
 #else
-  record_modified_node_slow((void*) src);
+  record_modified_node_full((void*) src);
 #endif
 }
 
@@ -73,7 +77,7 @@ void MMTkObjectBarrierSetAssembler::record_modified_node(MacroAssembler* masm, R
 #else
   assert_different_registers(c_rarg0, obj);
   __ movptr(c_rarg0, obj);
-  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+  __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_full), 1);
 #endif
 }
 
@@ -194,7 +198,7 @@ void MMTkObjectBarrierSetC2::record_modified_node(GraphKit* kit, Node* src, Node
   } __ end_if();
 #else
   const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), "record_modified_node", src);
+  Node* x = __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_full), "record_modified_node", src);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.

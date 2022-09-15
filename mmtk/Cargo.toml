@@ -1,8 +1,9 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.12.0"
+version = "0.14.1"
 authors = [" <>"]
 rust-version = "1.57.0"
+build = "build.rs"
 
 [lib]
 name = "mmtk_openjdk"
@@ -16,7 +17,7 @@ lto = true
 [package.metadata.openjdk]
 # Our CI matches the following line and extract mmtk/openjdk. If this line is updated, please check ci yaml files and make sure it works.
 openjdk_repo = "https://github.com/caizixian/jdk-mmtk.git"
-openjdk_version = "78bffa2a51793d9ac0fb560e060014c7dd06bd91"
+openjdk_version = "5c63e99fc20b071f91693a45cf141008584faf50"
 
 [dependencies]
 libc = "0.2"
@@ -28,9 +29,12 @@ once_cell = "1.10.0"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "e0273429f5239ab03407b4a93b52b21f45930d88" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "4ae23b1dc0e14f62c196c12c93818e00e9de7cc5" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
+
+[build-dependencies]
+built = { version = "0.5.1", features = ["git2"] }
 
 [features]
 default = []

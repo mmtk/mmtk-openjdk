@@ -23,9 +23,10 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
   static void record_modified_node_slow(void* src);
+  static void record_modified_node_full(void* src);
 
   virtual bool is_slow_path_call(address call) {
-    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow);
+    return call == CAST_FROM_FN_PTR(address, record_modified_node_slow) || call == CAST_FROM_FN_PTR(address, record_modified_node_full);
   }
 
   virtual void record_modified_node(oop src);
@@ -68,7 +69,7 @@ public:
 
     __ save_live_registers_no_oop_map(true);
 
-    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_slow), 1);
+    __ call_VM_leaf_base(CAST_FROM_FN_PTR(address, MMTkObjectBarrierSetRuntime::record_modified_node_full), 1);
 
     __ restore_live_registers(true);
 

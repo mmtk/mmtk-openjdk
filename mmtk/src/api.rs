@@ -1,5 +1,6 @@
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
+use crate::BUILDER;
 use crate::SINGLETON;
 use crate::UPCALLS;
 use libc::c_char;
@@ -13,14 +14,20 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MutatorContext;
-use mmtk::MMTK;
 use once_cell::sync;
+use std::cell::RefCell;
 use std::ffi::{CStr, CString};
+use std::sync::atomic::Ordering;
 
 // Supported barriers:
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
+
+#[no_mangle]
+pub extern "C" fn get_mmtk_version() -> *const c_char {
+    crate::build_info::MMTK_OPENJDK_FULL_VERSION.as_ptr() as _
+}
 
 #[no_mangle]
 pub extern "C" fn mmtk_active_barrier() -> *const c_char {
@@ -41,14 +48,52 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capaci
 }
 
 #[no_mangle]
-pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls, heap_size: usize) {
+pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     unsafe { UPCALLS = calls };
     crate::abi::validate_memory_layouts();
-    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
-    #[allow(clippy::cast_ref_to_mut)]
-    let singleton_mut =
-        unsafe { &mut *(&*SINGLETON as *const MMTK<OpenJDK> as *mut MMTK<OpenJDK>) };
-    memory_manager::gc_init(singleton_mut, heap_size);
+
+    // We don't really need this, as we can dynamically set plans. However, for compatability of our CI scripts,
+    // we allow selecting a plan using feature at build time.
+    // We should be able to remove this very soon.
+    {
+        use mmtk::util::options::PlanSelector;
+        let force_plan = if cfg!(feature = "nogc") {
+            Some(PlanSelector::NoGC)
+        } else if cfg!(feature = "semispace") {
+            Some(PlanSelector::SemiSpace)
+        } else if cfg!(feature = "gencopy") {
+            Some(PlanSelector::GenCopy)
+        } else if cfg!(feature = "marksweep") {
+            Some(PlanSelector::MarkSweep)
+        } else if cfg!(feature = "markcompact") {
+            Some(PlanSelector::MarkCompact)
+        } else if cfg!(feature = "pageprotect") {
+            Some(PlanSelector::PageProtect)
+        } else if cfg!(feature = "immix") {
+            Some(PlanSelector::Immix)
+        } else {
+            None
+        };
+        if let Some(plan) = force_plan {
+            BUILDER.lock().unwrap().options.plan.set(plan);
+        }
+    }
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::SeqCst));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
+}
+
+#[no_mangle]
+pub extern "C" fn openjdk_is_gc_initialized() -> bool {
+    crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_set_heap_size(size: usize) -> bool {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.heap_size.set(size)
 }
 
 #[no_mangle]
@@ -226,8 +271,9 @@ pub extern "C" fn mmtk_harness_end_impl() {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
+    let mut builder = BUILDER.lock().unwrap();
     memory_manager::process(
-        &SINGLETON,
+        &mut builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
@@ -238,7 +284,8 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process_bulk(options: *const c_char) -> bool {
     let options_str: &CStr = unsafe { CStr::from_ptr(options) };
-    memory_manager::process_bulk(&SINGLETON, options_str.to_str().unwrap())
+    let mut builder = BUILDER.lock().unwrap();
+    memory_manager::process_bulk(&mut builder, options_str.to_str().unwrap())
 }
 
 #[no_mangle]
@@ -262,11 +309,20 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn record_modified_node(
+pub extern "C" fn post_write_barrier(mutator: &'static mut Mutator<OpenJDK>, obj: ObjectReference) {
+    mutator
+        .barrier()
+        .post_write_barrier(mmtk::plan::BarrierWriteTarget::Object(obj))
+}
+
+#[no_mangle]
+pub extern "C" fn post_write_barrier_slow(
     mutator: &'static mut Mutator<OpenJDK>,
     obj: ObjectReference,
 ) {
-    mutator.record_modified_node(obj);
+    mutator
+        .barrier()
+        .post_write_barrier_slow(mmtk::plan::BarrierWriteTarget::Object(obj))
 }
 
 // finalization
@@ -280,5 +336,53 @@ pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
         None => unsafe { Address::ZERO.to_object_reference() },
+    }
+}
+
+thread_local! {
+    /// Cache all the pointers reported by the current thread.
+    static NMETHOD_SLOTS: RefCell<Vec<Address>> = RefCell::new(vec![]);
+}
+
+/// Report a list of pointers in nmethod to mmtk.
+#[no_mangle]
+pub extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
+    NMETHOD_SLOTS.with(|x| x.borrow_mut().push(addr))
+}
+
+/// Register a nmethod.
+/// The c++ part of the binding should scan the nmethod and report all the pointers to mmtk first, before calling this function.
+/// This function will transfer all the locally cached pointers of this nmethod to the global storage.
+#[no_mangle]
+pub extern "C" fn mmtk_register_nmethod(nm: Address) {
+    let slots = NMETHOD_SLOTS.with(|x| {
+        if x.borrow().len() == 0 {
+            return None;
+        }
+        Some(x.replace(vec![]))
+    });
+    let slots = match slots {
+        Some(slots) => slots,
+        _ => return,
+    };
+    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
+    // Relaxed add instead of `fetch_add`, since we've already acquired the lock.
+    crate::CODE_CACHE_ROOTS_SIZE.store(
+        crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) + slots.len(),
+        Ordering::Relaxed,
+    );
+    roots.insert(nm, slots);
+}
+
+/// Unregister a nmethod.
+#[no_mangle]
+pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
+    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
+    if let Some(slots) = roots.remove(&nm) {
+        // Relaxed sub instead of `fetch_sub`, since we've already acquired the lock.
+        crate::CODE_CACHE_ROOTS_SIZE.store(
+            crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) - slots.len(),
+            Ordering::Relaxed,
+        );
     }
 }

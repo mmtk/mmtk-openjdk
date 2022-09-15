@@ -36,6 +36,7 @@
 #include "mmtkVMCompanionThread.hpp"
 #include "oops/access.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/atomic.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/safepoint.hpp"
@@ -46,11 +47,10 @@
 #include "runtime/vmThread.hpp"
 #include "utilities/debug.hpp"
 
-static size_t mmtk_start_the_world_count = 0;
+// Note: This counter must be accessed using the Atomic class.
+static volatile size_t mmtk_start_the_world_count = 0;
 
-static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(void* mutator)) {
-  MMTkHeap::_create_stack_scan_work = create_stack_scan_work;
-
+static void mmtk_stop_all_mutators(void *tls, bool scan_mutators_in_safepoint, MutatorClosure closure) {
   ClassLoaderDataGraph::clear_claimed_marks();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
@@ -60,24 +60,27 @@ static void mmtk_stop_all_mutators(void *tls, void (*create_stack_scan_work)(voi
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
 
-  nmethod::oops_do_marking_prologue();
-  {
+  if (!scan_mutators_in_safepoint) {
     JavaThreadIteratorWithHandle jtiwh;
     while (JavaThread *cur = jtiwh.next()) {
-      MMTkHeap::heap()->report_java_thread_yield(cur);
+      closure.invoke((void*)&cur->third_party_heap_mutator);
     }
   }
   log_debug(gc)("Finished enumerating threads.");
+  nmethod::oops_do_marking_prologue();
 }
 
 static void mmtk_resume_mutators(void *tls) {
-  ClassLoaderDataGraph::purge(true);
   nmethod::oops_do_marking_epilogue();
+  // ClassLoaderDataGraph::purge();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
 
-  MMTkHeap::_create_stack_scan_work = NULL;
+  // Note: we don't have to hold gc_lock to increment the counter.
+  // The increment has to be done before mutators can be resumed
+  // otherwise, mutators might see a stale value
+  Atomic::inc(&mmtk_start_the_world_count);
 
   log_debug(gc)("Requesting the VM to resume all mutators...");
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_resumed, true);
@@ -85,7 +88,6 @@ static void mmtk_resume_mutators(void *tls) {
 
   {
     MutexLocker locker(MMTkHeap::heap()->gc_lock());
-    mmtk_start_the_world_count++;
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
   log_debug(gc)("Mutators notified.");
@@ -124,12 +126,25 @@ static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
 static void mmtk_block_for_gc() {
   MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
   log_debug(gc)("Thread (id=%d) will block waiting for GC to finish.", Thread::current()->osthread()->thread_id());
-  {
-    MutexLocker locker(MMTkHeap::heap()->gc_lock());
-    size_t my_count = mmtk_start_the_world_count;
-    size_t next_count = my_count + 1;
 
-    while (mmtk_start_the_world_count < next_count) {
+  // We must read the counter before entering safepoint.
+  // This thread has just triggered GC.
+  // Before this thread enters safe point, the GC cannot start, and therefore cannot finish,
+  // and cannot increment the counter mmtk_start_the_world_count.
+  // Otherwise, if we attempt to acquire the gc_lock first, GC may have triggered stop-the-world
+  // first, and this thread will be blocked for the entire stop-the-world duration before it can
+  // get the lock.  Once that happens, the current thread will read the counter after the GC, and
+  // wait for the next non-existing GC forever.
+  size_t my_count = Atomic::load(&mmtk_start_the_world_count);
+  size_t next_count = my_count + 1;
+
+  {
+    // Once this thread acquires the lock, the VM will consider this thread to be "in safe point".
+    MutexLocker locker(MMTkHeap::heap()->gc_lock());
+
+    while (Atomic::load(&mmtk_start_the_world_count) < next_count) {
+      // wait() may wake up spuriously, but the authoritative condition for unblocking is
+      // mmtk_start_the_world_count being incremented.
       MMTkHeap::heap()->gc_lock()->wait();
     }
   }
@@ -198,30 +213,15 @@ static void mmtk_reset_mutator_iterator() {
 }
 
 
-static void mmtk_compute_global_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
-  MMTkHeap::heap()->scan_global_roots(cl);
-}
-
-static void mmtk_compute_static_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
-  MMTkHeap::heap()->scan_static_roots(cl);
-}
-
-static void mmtk_compute_thread_roots(void* trace, void* tls) {
-  MMTkRootsClosure cl(trace);
+static void mmtk_scan_all_thread_roots(EdgesClosure closure) {
+  MMTkRootsClosure2 cl(closure);
   MMTkHeap::heap()->scan_thread_roots(cl);
 }
 
-static void mmtk_scan_thread_roots(ProcessEdgesFn process_edges) {
-  MMTkRootsClosure2 cl(process_edges);
-  MMTkHeap::heap()->scan_thread_roots(cl);
-}
-
-static void mmtk_scan_thread_root(ProcessEdgesFn process_edges, void* tls) {
+static void mmtk_scan_thread_roots(EdgesClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
-  MMTkRootsClosure2 cl(process_edges);
+  MMTkRootsClosure2 cl(closure);
   MarkingCodeBlobClosure cb_cl(&cl, false, true);
   thread->oops_do(&cl, &cb_cl);
 }
@@ -254,7 +254,6 @@ static void mmtk_harness_begin() {
   JavaThread* current = ((JavaThread*) Thread::current());
   ThreadInVMfromNative tiv(current);
   mmtk_harness_begin_impl();
-  
 }
 
 static void mmtk_harness_end() {
@@ -310,11 +309,11 @@ static void mmtk_schedule_finalizer() {
   MMTkHeap::heap()->schedule_finalizer();
 }
 
-static void mmtk_scan_code_cache_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_class_loader_data_graph_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
-static void mmtk_scan_oop_storage_set_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
-static void mmtk_scan_weak_processor_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
-static void mmtk_scan_vm_thread_roots(ProcessEdgesFn process_edges) { MMTkRootsClosure2 cl(process_edges); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
+static void mmtk_scan_code_cache_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_oop_storage_set_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
+static void mmtk_scan_weak_processor_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();
@@ -356,9 +355,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_out_of_memory,
   mmtk_get_next_mutator,
   mmtk_reset_mutator_iterator,
-  mmtk_compute_static_roots,
-  mmtk_compute_global_roots,
-  mmtk_compute_thread_roots,
   mmtk_scan_object,
   mmtk_dump_object,
   mmtk_get_object_size,
@@ -372,8 +368,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   referent_offset,
   discovered_offset,
   dump_object_string,
+  mmtk_scan_all_thread_roots,
   mmtk_scan_thread_roots,
-  mmtk_scan_thread_root,
   mmtk_scan_code_cache_roots,
   mmtk_scan_class_loader_data_graph_roots,
   mmtk_scan_oop_storage_set_roots,
