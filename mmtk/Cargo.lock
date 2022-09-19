@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?branch=barrier-refactor#ed115c7b37fe7515c064006d9a27a16696cee7b8"
+source = "git+https://github.com/mmtk/mmtk-core.git?branch=barrier-refactor#80291ea968b714f69b21868c73e59ed20655f337"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -354,6 +354,7 @@ dependencies = [
  "libc",
  "log",
  "mmtk-macros",
+ "num-traits",
  "num_cpus",
  "spin",
  "strum",
@@ -363,7 +364,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?branch=barrier-refactor#ed115c7b37fe7515c064006d9a27a16696cee7b8"
+source = "git+https://github.com/mmtk/mmtk-core.git?branch=barrier-refactor#80291ea968b714f69b21868c73e59ed20655f337"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -380,6 +381,15 @@ dependencies = [
  "libc",
  "mmtk",
  "once_cell",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
