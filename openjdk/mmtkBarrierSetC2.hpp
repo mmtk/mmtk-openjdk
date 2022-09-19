@@ -60,7 +60,7 @@ protected:
     return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-     if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
     Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
     if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
     return result;

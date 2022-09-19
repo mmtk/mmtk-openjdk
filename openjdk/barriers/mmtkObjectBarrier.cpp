@@ -69,7 +69,7 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
     __ pusha();
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
-    __ movptr(c_rarg3, count);
+    __ movptr(c_rarg2, count);
     __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);
     __ popa();
   }
