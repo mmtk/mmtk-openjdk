@@ -185,7 +185,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 
 #define __ ce->masm()->
 
-void MMTkBarrierSetAssembler::gen_c1_generic_write_barrier_stub(LIR_Assembler* ce, MMTkC1BarrierStub* stub) {
+void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub) {
   MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
   ce->store_parameter(stub->src->as_pointer_register(), 0);

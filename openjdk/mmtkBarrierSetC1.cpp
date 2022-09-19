@@ -17,5 +17,5 @@ void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
 
 void MMTkC1BarrierStub::emit_code(LIR_Assembler* ce) {
   MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->gen_c1_generic_write_barrier_stub(ce, this);
+  bs->generate_c1_write_barrier_stub_call(ce, this);
 }

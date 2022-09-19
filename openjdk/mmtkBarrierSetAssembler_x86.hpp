@@ -37,7 +37,7 @@ public:
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2);
   }
 
-  /// Generate C1 write barrier slow-call C1-LIR code
-  static void gen_c1_generic_write_barrier_stub(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
+  /// Generate C1 write barrier slow-call stub
+  static void generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
