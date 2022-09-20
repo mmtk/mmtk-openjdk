@@ -27,9 +27,11 @@
 #include "interpreter/interp_masm.hpp"
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetAssembler_x86.hpp"
+#include "mmtkBarrierSetC1.hpp"
 #include "mmtkMutator.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
+#include "c1/c1_LIRAssembler.hpp"
 
 #define __ masm->
 
@@ -138,3 +140,59 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   }
 }
 
+#undef __
+
+#define __ sasm->
+
+void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const {
+  __ prologue("mmtk_write_barrier", false);
+
+  Address store_addr(rbp, 4*BytesPerWord);
+
+  Label done, runtime;
+
+  __ push(c_rarg0);
+  __ push(c_rarg1);
+  __ push(c_rarg2);
+  __ push(rax);
+
+  __ load_parameter(0, c_rarg0);
+  __ load_parameter(1, c_rarg1);
+  __ load_parameter(2, c_rarg2);
+
+  __ bind(runtime);
+
+  __ save_live_registers_no_oop_map(true);
+
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+#else
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+#endif
+
+  __ restore_live_registers(true);
+
+  __ bind(done);
+  __ pop(rax);
+  __ pop(c_rarg2);
+  __ pop(c_rarg1);
+  __ pop(c_rarg0);
+
+  __ epilogue();
+}
+
+#undef __
+
+#define __ ce->masm()->
+
+void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub) {
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+  __ bind(*stub->entry());
+  ce->store_parameter(stub->src->as_pointer_register(), 0);
+  ce->store_parameter(stub->slot->as_pointer_register(), 1);
+  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
+  __ call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
+  __ jmp(*stub->continuation());
+}
+
+#undef __
