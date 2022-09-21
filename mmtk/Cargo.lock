@@ -339,13 +339,14 @@ dependencies = [
 
 [[package]]
 name = "mmtk"
-version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+version = "0.15.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=8f090227777e8a37726fe9c8729725ff74e22b25#8f090227777e8a37726fe9c8729725ff74e22b25"
 dependencies = [
  "atomic",
  "atomic-traits",
  "atomic_refcell",
  "built",
+ "cfg-if 1.0.0",
  "crossbeam",
  "downcast-rs",
  "enum-map",
@@ -354,6 +355,7 @@ dependencies = [
  "libc",
  "log",
  "mmtk-macros",
+ "num-traits",
  "num_cpus",
  "spin",
  "strum",
@@ -362,8 +364,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+version = "0.15.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=8f090227777e8a37726fe9c8729725ff74e22b25#8f090227777e8a37726fe9c8729725ff74e22b25"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -373,13 +375,22 @@ dependencies = [
 
 [[package]]
 name = "mmtk_openjdk"
-version = "0.14.1"
+version = "0.15.0"
 dependencies = [
  "built",
  "lazy_static",
  "libc",
  "mmtk",
  "once_cell",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]

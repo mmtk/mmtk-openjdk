@@ -46,17 +46,36 @@ class TypeFunc;
 
 class MMTkBarrierSetC2: public BarrierSetC2 {
 protected:
+  /// Barrier elision test
+  virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
+  /// Full pre-barrier
+  virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+  /// Full post-barrier
+  virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    return BarrierSetC2::store_at_resolved(access, val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), val.node());
+    Node* store = BarrierSetC2::store_at_resolved(access, val);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), val.node());
+    return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return result;
   }
   virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return load_store;
   }
   virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-    return BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
+    if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
+    return result;
   }
 
 public:
@@ -67,7 +86,9 @@ public:
     return true;
   }
   virtual bool is_gc_barrier_node(Node* node) const {
-    return BarrierSetC2::is_gc_barrier_node(node);
+    if (node->Opcode() != Op_CallLeaf) return false;
+    CallLeafNode *call = node->as_CallLeaf();
+    return call->_name != NULL && strcmp(call->_name, "mmtk_barrier_call") == 0;
   }
   static void expand_allocate(PhaseMacroExpand* x,
                               AllocateNode* alloc, // allocation node to be expanded
@@ -82,7 +103,7 @@ class MMTkIdealKit: public IdealKit {
   template<class T, class... Types>
   inline void build_type_func_helper(const Type** fields, T t, Types... ts) {
     fields[0] = t;
-    build_type_func_helper(fields + 1);
+    build_type_func_helper(fields + 1, ts...);
   }
 public:
   using IdealKit::IdealKit;
@@ -95,9 +116,10 @@ public:
 
   template<class... Types>
   inline const TypeFunc* func_type(Types... types) {
-    const Type** fields = TypeTuple::fields(sizeof...(types));
+    const int num_types = sizeof...(types);
+    const Type** fields = TypeTuple::fields(num_types);
     build_type_func_helper(fields + TypeFunc::Parms, types...);
-    const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+1, fields);
+    const TypeTuple *domain = TypeTuple::make(TypeFunc::Parms+num_types, fields);
     fields = TypeTuple::fields(0);
     const TypeTuple *range = TypeTuple::make(TypeFunc::Parms+0, fields);
     return TypeFunc::make(domain, range);

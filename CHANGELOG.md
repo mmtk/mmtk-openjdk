@@ -1,3 +1,10 @@
+0.15.0 (2022-09-20)
+===
+
+* Add MMTk build info to `-Xinternalversion`.
+* Implement `arraycopy` barriers.
+* Update to mmtk-core 0.15.0.
+
 0.14.1 (2022-08-10)
 ===
 
