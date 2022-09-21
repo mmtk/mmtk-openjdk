@@ -25,6 +25,7 @@
 #ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 #define MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP
 
+#ifdef COMPILER2
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
@@ -103,5 +104,8 @@ public:
     return TypeFunc::make(domain, range);
   }
 };
+#else
+class MMTkBarrierSetC2;
+#endif
 
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C2_HPP

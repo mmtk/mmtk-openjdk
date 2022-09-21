@@ -58,3 +58,5 @@ gencopy = []
 marksweep = []
 pageprotect = []
 immix = []
+
+jfr = []

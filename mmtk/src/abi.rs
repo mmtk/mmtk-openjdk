@@ -66,6 +66,7 @@ pub struct Klass {
     pub class_loader_data: OpaquePointer, // ClassLoaderData*
     pub vtable_len: i32,
     pub access_flags: i32, // AccessFlags
+    #[cfg(feature = "jfr")]
     pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
     pub shared_class_flags: u16,
     pub archived_mirror_index: i32,

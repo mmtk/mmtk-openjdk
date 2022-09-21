@@ -21,7 +21,7 @@
  * questions.
  *
  */
-
+#ifndef ZERO
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "interpreter/interp_masm.hpp"
@@ -137,4 +137,4 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ addq(Address(r15_thread, in_bytes(JavaThread::allocated_bytes_offset())), extra_header);
   }
 }
-
+#endif

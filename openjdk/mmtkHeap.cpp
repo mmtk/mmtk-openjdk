@@ -42,7 +42,9 @@
 #include "mmtkUpcalls.hpp"
 #include "mmtkVMCompanionThread.hpp"
 #include "oops/oop.inline.hpp"
+#ifdef COMPILER2
 #include "opto/runtime.hpp"
+#endif
 #include "prims/jvmtiExport.hpp"
 #include "runtime/jniHandles.hpp"
 #include "runtime/atomic.hpp"

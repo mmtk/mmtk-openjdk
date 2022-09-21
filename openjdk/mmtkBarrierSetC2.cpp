@@ -22,6 +22,7 @@
  *
  */
 
+#ifdef COMPILER2
 #include "precompiled.hpp"
 #include "mmtk.h"
 #include "mmtkBarrierSet.hpp"
@@ -593,3 +594,4 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   x->transform_later(result_phi_i_o);
   // This completes all paths into the result merge point
 }
+#endif
