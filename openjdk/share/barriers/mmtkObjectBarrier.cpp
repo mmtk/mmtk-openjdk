@@ -17,6 +17,7 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 #endif
 }
 
+#ifndef ZERO
 #define __ masm->
 
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
@@ -51,7 +52,11 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 
   __ movptr(c_rarg0, obj);
   __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+  if (val == noreg) {
+    __ movptr(c_rarg2, NULL_WORD);
+  } else {
+    __ movptr(c_rarg2, val);
+  }
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
 
   __ bind(done);
@@ -77,6 +82,9 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 
 #undef __
 
+#endif
+
+#ifdef COMPILER1
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -150,7 +158,9 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
 }
 
 #undef __
+#endif
 
+#ifdef COMPILER2
 #define __ ideal.
 
 void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {
@@ -183,3 +193,4 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
 }
 
 #undef __
+#endif

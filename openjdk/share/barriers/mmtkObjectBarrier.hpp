@@ -3,14 +3,21 @@
 
 #include "../mmtk.h"
 #include "../mmtkBarrierSet.hpp"
-#include "../mmtkBarrierSetAssembler_x86.hpp"
+#ifndef ZERO
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
+#endif
+#ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
-#include "../mmtkBarrierSetC2.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
-#include "gc/shared/barrierSet.hpp"
+#endif
+#ifdef COMPILER2
+#include "../mmtkBarrierSetC2.hpp"
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
+#endif
+#include "gc/shared/barrierSet.hpp"
 
 #define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
 #define LOG_BYTES_IN_CHUNK 22
@@ -27,13 +34,18 @@ public:
   }
 };
 
+#ifdef ZERO
+class MMTkObjectBarrierSetAssembler;
+#else
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
 protected:
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
 public:
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
 };
+#endif
 
+#ifdef COMPILER1
 class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
 protected:
   virtual void object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
@@ -42,11 +54,18 @@ protected:
     return MMTkBarrierSetC1::resolve_address_in_register(access, resolve_in_register);
   }
 };
+#else
+class MMTkObjectBarrierSetC1;
+#endif
 
+#ifdef COMPILER2
 class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
 protected:
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 };
+#else
+class MMTkObjectBarrierSetC2;
+#endif
 
 struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetRuntime,

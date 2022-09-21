@@ -1,9 +1,6 @@
 #ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
 #define MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
 
-#ifdef ZERO
-class MMTkBarrierSetAssembler;
-#else
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
 
@@ -33,8 +30,8 @@ protected:
   virtual void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
-  virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) override;
-  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) override {
+  virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case);
+  virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) {
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_pre(masm, decorators, dst, val, tmp1, tmp2);
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2);
@@ -43,5 +40,4 @@ public:
   /// Generate C1 write barrier slow-call stub
   static void generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
 };
-#endif
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

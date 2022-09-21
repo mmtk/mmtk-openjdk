@@ -2,7 +2,8 @@
 #define MMTK_OPENJDK_BARRIERS_MMTK_NO_BARRIER_HPP
 
 #include "../mmtkBarrierSet.hpp"
-#include "../mmtkBarrierSetAssembler_x86.hpp"
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
 class MMTkNoBarrierSetC1: public MMTkBarrierSetC1 {};

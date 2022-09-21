@@ -21,7 +21,6 @@
  * questions.
  *
  */
-#ifndef ZERO
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "interpreter/interp_masm.hpp"
@@ -32,6 +31,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
 #include "c1/c1_LIRAssembler.hpp"
+#include "c1/c1_MacroAssembler.hpp"
 
 #define __ masm->
 
@@ -196,4 +196,3 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler*
 }
 
 #undef __
-#endif

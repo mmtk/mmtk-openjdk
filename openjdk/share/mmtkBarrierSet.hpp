@@ -30,12 +30,12 @@
 #include "gc/shared/barrierSetConfig.hpp"
 #include "memory/memRegion.hpp"
 #include "mmtk.h"
-#include "mmtkBarrierSetAssembler_x86.hpp"
 #include "oops/access.hpp"
 #include "oops/accessBackend.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
 #include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 #define MMTK_ENABLE_BARRIER_FASTPATH true

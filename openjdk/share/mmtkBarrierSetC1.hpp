@@ -1,6 +1,6 @@
 #ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
 #define MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
-
+#ifdef COMPILER1
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
 
@@ -48,7 +48,7 @@ protected:
   LIR_Opr resolve_address_in_register(LIRAccess& access, bool resolve_in_register) {
     DecoratorSet decorators = access.decorators();
     bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
-    bool is_write = (decorators & C1_WRITE_ACCESS) != 0;
+    bool is_write = (decorators & ACCESS_WRITE) != 0;
     bool is_array = (decorators & IS_ARRAY) != 0;
     bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
     bool precise = is_array || on_anonymous;
@@ -83,5 +83,5 @@ struct MMTkC1BarrierStub: CodeStub {
 
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1BarrierStub"); });
 };
-
+#endif
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP

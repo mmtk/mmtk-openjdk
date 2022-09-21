@@ -24,9 +24,10 @@
 
 #include "precompiled.hpp"
 #include "barriers/mmtkNoBarrier.hpp"
-// #include "barriers/mmtkObjectBarrier.hpp"
+#include "barriers/mmtkObjectBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
-#include "mmtkBarrierSetAssembler_x86.hpp"
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 #include "runtime/interfaceSupport.inline.hpp"
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
@@ -77,9 +78,9 @@ MMTkBarrierBase* get_selected_barrier() {
   static MMTkBarrierBase* selected_barrier = NULL;
   if (selected_barrier) return selected_barrier;
   const char* barrier = mmtk_active_barrier();
-  printf("mmtk_active_barrier %s\n", barrier);
+  // printf("mmtk_active_barrier %s\n", barrier);
   if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
-  // else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
+  else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
   else guarantee(false, "Unimplemented");
   return selected_barrier;
 }

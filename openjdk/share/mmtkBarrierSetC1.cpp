@@ -1,6 +1,8 @@
+#ifdef COMPILER1
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
-#include "mmtkBarrierSetAssembler_x86.hpp"
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 #include "mmtkBarrierSetC1.hpp"
 
 void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
@@ -19,3 +21,4 @@ void MMTkC1BarrierStub::emit_code(LIR_Assembler* ce) {
   MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
   bs->generate_c1_write_barrier_stub_call(ce, this);
 }
+#endif
