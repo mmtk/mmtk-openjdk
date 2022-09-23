@@ -45,8 +45,20 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
-extern void post_write_barrier(MMTk_Mutator mutator, void* obj);
-extern void post_write_barrier_slow(MMTk_Mutator mutator, void* obj);
+/// Full pre-barrier
+extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, void* slot, void* target);
+
+/// Full post-barrier
+extern void mmtk_object_reference_write_post(MMTk_Mutator mutator, void* src, void* slot, void* target);
+
+/// Generic slow-path
+extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, void* slot, void* target);
+
+/// Full array-copy pre-barrier
+extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
+
+/// Full array-copy post-barrier
+extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 

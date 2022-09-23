@@ -26,7 +26,8 @@
 #include "barriers/mmtkNoBarrier.hpp"
 #include "barriers/mmtkObjectBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
-#include "mmtkBarrierSetAssembler_x86.hpp"
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 #include "runtime/interfaceSupport.inline.hpp"
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
@@ -77,6 +78,7 @@ MMTkBarrierBase* get_selected_barrier() {
   static MMTkBarrierBase* selected_barrier = NULL;
   if (selected_barrier) return selected_barrier;
   const char* barrier = mmtk_active_barrier();
+  // printf("mmtk_active_barrier %s\n", barrier);
   if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
   else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
   else guarantee(false, "Unimplemented");
@@ -84,9 +86,9 @@ MMTkBarrierBase* get_selected_barrier() {
 }
 
 MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
-  BarrierSet(get_selected_barrier()->create_assembler(),
-             get_selected_barrier()->create_c1(),
-             get_selected_barrier()->create_c2(),
+  BarrierSet((BarrierSetAssembler*) get_selected_barrier()->create_assembler(),
+             (BarrierSetC1*) get_selected_barrier()->create_c1(),
+             (BarrierSetC2*) get_selected_barrier()->create_c2(),
              NULL,
              BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
   _whole_heap(whole_heap),
@@ -130,4 +132,24 @@ void MMTkBarrierSet::print_on(outputStream* st) const {
 
 bool MMTkBarrierSet::is_slow_path_call(address call) {
   return runtime()->is_slow_path_call(call);
+}
+
+void MMTkBarrierSetRuntime::object_reference_write_pre_call(void* src, void* slot, void* target) {
+  ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
+}
+
+void MMTkBarrierSetRuntime::object_reference_write_post_call(void* src, void* slot, void* target) {
+  ::mmtk_object_reference_write_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
+}
+
+void MMTkBarrierSetRuntime::object_reference_write_slow_call(void* src, void* slot, void* target) {
+  ::mmtk_object_reference_write_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, slot, target);
+}
+
+void MMTkBarrierSetRuntime::object_reference_array_copy_pre_call(void* src, void* dst, size_t count) {
+  ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
+}
+
+void MMTkBarrierSetRuntime::object_reference_array_copy_post_call(void* src, void* dst, size_t count) {
+  ::mmtk_array_copy_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
 }
