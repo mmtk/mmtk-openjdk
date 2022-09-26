@@ -13,6 +13,10 @@ MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
   return *((MMTkMutatorContext*) ::bind_mutator((void*) current));
 }
 
+bool MMTkMutatorContext::is_ready_to_bind() {
+  return ::openjdk_is_gc_initialized();
+}
+
 HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
   // All allocations with size larger than max non-los bytes will get to this slowpath here.
   // We will use LOS for those.

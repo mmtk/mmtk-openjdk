@@ -593,3 +593,43 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   x->transform_later(result_phi_i_o);
   // This completes all paths into the result merge point
 }
+
+bool MMTkBarrierSetC2::can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const {
+  // Skip barrier if the new target is a null pointer.
+  if (skip_const_null && val != NULL && val->is_Con() && val->bottom_type() == TypePtr::NULL_PTR) {
+    return true;
+  }
+  // Barrier elision based on allocation node does not working well with slowpath-only allocation.
+  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) return false;
+  // No barrier required for newly allocated objects.
+  if (src == kit->just_allocated_object(kit->control())) return true;
+
+  // Test if this store operation happens right after allocation.
+
+  intptr_t      offset = 0;
+  Node*         base   = AddPNode::Ideal_base_and_offset(slot, phase, offset);
+  AllocateNode* alloc  = AllocateNode::Ideal_allocation(base, phase);
+
+  if (offset == Type::OffsetBot) {
+    return false; // cannot unalias unless there are precise offsets
+  }
+
+  if (alloc == NULL) {
+     return false; // No allocation found
+  }
+
+  // Start search from Store node
+  Node* mem = kit->control();
+  if (mem->is_Proj() && mem->in(0)->is_Initialize()) {
+
+    InitializeNode* st_init = mem->in(0)->as_Initialize();
+    AllocateNode*  st_alloc = st_init->allocation();
+
+    // Make sure we are looking at the same allocation
+    if (alloc == st_alloc) {
+      return true;
+    }
+  }
+
+  return false;
+}

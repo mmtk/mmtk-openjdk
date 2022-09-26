@@ -4,18 +4,25 @@ extern crate mmtk;
 extern crate lazy_static;
 extern crate once_cell;
 
+use std::collections::HashMap;
+use std::ops::Range;
 use std::ptr::null_mut;
+use std::sync::atomic::AtomicUsize;
+use std::sync::Mutex;
 
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
+use mmtk::MMTKBuilder;
 use mmtk::Mutator;
 use mmtk::MMTK;
+
 mod abi;
 pub mod active_plan;
 pub mod api;
+mod build_info;
 pub mod collection;
 mod gc_work;
 pub mod object_model;
@@ -30,13 +37,27 @@ pub struct NewBuffer {
     pub capacity: usize,
 }
 
-type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
+/// A closure for reporting mutators.  The C++ code should pass `data` back as the last argument.
+#[repr(C)]
+pub struct MutatorClosure {
+    pub func: *const extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
+    pub data: *mut libc::c_void,
+}
+
+/// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
+#[repr(C)]
+pub struct EdgesClosure {
+    pub func:
+        *const extern "C" fn(buf: *mut Address, size: usize, cap: usize, data: *const libc::c_void),
+    pub data: *const libc::c_void,
+}
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
     pub stop_all_mutators: extern "C" fn(
         tls: VMWorkerThread,
-        create_stack_scan_work: *const extern "C" fn(&'static mut Mutator<OpenJDK>),
+        scan_mutators_in_safepoint: bool,
+        closure: MutatorClosure,
     ),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
@@ -44,9 +65,6 @@ pub struct OpenJDK_Upcalls {
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
     pub reset_mutator_iterator: extern "C" fn(),
-    pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_global_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_thread_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
@@ -60,20 +78,20 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_thread_root: extern "C" fn(process_edges: ProcessEdgesFn, tls: VMMutatorThread),
-    pub scan_universe_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_jni_handle_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_object_synchronizer_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_management_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_jvmti_export_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_aot_loader_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_system_dictionary_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_code_cache_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_string_table_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_class_loader_data_graph_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_weak_processor_roots: extern "C" fn(process_edges: ProcessEdgesFn),
-    pub scan_vm_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_all_thread_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
+    pub scan_universe_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_jni_handle_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_object_synchronizer_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_management_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_jvmti_export_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_aot_loader_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_system_dictionary_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_code_cache_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_string_table_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_class_loader_data_graph_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_weak_processor_roots: extern "C" fn(closure: EdgesClosure),
+    pub scan_vm_thread_roots: extern "C" fn(closure: EdgesClosure),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
@@ -100,34 +118,48 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t = std::mem::size_of::<mmtk::util:
 #[derive(Default)]
 pub struct OpenJDK;
 
+/// The type of edges in OpenJDK.
+///
+/// TODO: We currently make it an alias to Address to make the change minimal.
+/// If we support CompressedOOPs, we should define an enum type to support both
+/// compressed and uncompressed OOPs.
+pub type OpenJDKEdge = Address;
+
 impl VMBinding for OpenJDK {
     type VMObjectModel = object_model::VMObjectModel;
     type VMScanning = scanning::VMScanning;
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    type VMEdge = OpenJDKEdge;
+    type VMMemorySlice = Range<Address>;
 }
 
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+
+pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
 lazy_static! {
+    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
     pub static ref SINGLETON: MMTK<OpenJDK> = {
-        #[cfg(feature = "nogc")]
-        std::env::set_var("MMTK_PLAN", "NoGC");
-        #[cfg(feature = "semispace")]
-        std::env::set_var("MMTK_PLAN", "SemiSpace");
-        #[cfg(feature = "gencopy")]
-        std::env::set_var("MMTK_PLAN", "GenCopy");
-        #[cfg(feature = "marksweep")]
-        std::env::set_var("MMTK_PLAN", "MarkSweep");
-        #[cfg(feature = "markcompact")]
-        std::env::set_var("MMTK_PLAN", "MarkCompact");
-        #[cfg(feature = "pageprotect")]
-        std::env::set_var("MMTK_PLAN", "PageProtect");
-        #[cfg(feature = "immix")]
-        std::env::set_var("MMTK_PLAN", "Immix");
-        MMTK::new()
+        let builder = BUILDER.lock().unwrap();
+        assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        let ret = mmtk::memory_manager::mmtk_init(&builder);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+        *ret
     };
 }
 
 #[no_mangle]
 pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
+
+lazy_static! {
+    /// A global storage for all the cached CodeCache root pointers
+    static ref CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+}
+
+/// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
+static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);

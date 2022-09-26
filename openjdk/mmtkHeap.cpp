@@ -75,16 +75,17 @@ jint MMTkHeap::initialize() {
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
   const size_t heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
-  size_t mmtk_heap_size = heap_size;
-  /*forcefully*/ //mmtk_heap_size = (1<<31) -1;
 
   // Set options
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
+  // Set heap size
+  bool set_heap_size = mmtk_set_heap_size(heap_size);
+  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %ld\n", heap_size);
 
-  openjdk_gc_init(&mmtk_upcalls, mmtk_heap_size);
+  openjdk_gc_init(&mmtk_upcalls);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
 
@@ -123,6 +124,10 @@ jint MMTkHeap::initialize() {
   //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
   return JNI_OK;
 
+}
+
+const char* MMTkHeap::version() {
+  return get_mmtk_version();
 }
 
 void MMTkHeap::schedule_finalizer() {
@@ -335,135 +340,76 @@ void MMTkHeap::print_tracing_info() const {
 }
 
 
-// An object is scavengable if its location may move during a scavenge.
-// (A scavenge is a GC which is not a full GC.)
-bool MMTkHeap::is_scavengable(oop obj) {return false;}
 // Registering and unregistering an nmethod (compiled code) with the heap.
 // Override with specific mechanism for each specialized heap type.
+class MMTkRegisterNMethodOopClosure: public OopClosure {
+  template <class T> void do_oop_work(T* p) {
+    mmtk_add_nmethod_oop((void*) p);
+  }
+public:
+  void do_oop(oop* p)       { do_oop_work(p); }
+  void do_oop(narrowOop* p) { do_oop_work(p); }
+};
+
+
+void MMTkHeap::register_nmethod(nmethod* nm) {
+  // Scan and report pointers in this nmethod
+  MMTkRegisterNMethodOopClosure reg_cl;
+  nm->oops_do(&reg_cl);
+  // Register the nmethod
+  mmtk_register_nmethod((void*) nm);
+}
+
+void MMTkHeap::unregister_nmethod(nmethod* nm) {
+  mmtk_unregister_nmethod((void*) nm);
+}
 
 // Heap verification
 void MMTkHeap::verify(VerifyOption option) {}
 
-template<int MAX_TASKS = 12>
-struct MMTkRootScanWorkScope {
-  int* _num_root_scan_tasks;
-  int _current_task_ordinal;
-  MMTkRootScanWorkScope(int* num_root_scan_tasks): _num_root_scan_tasks(num_root_scan_tasks), _current_task_ordinal(0) {
-    _current_task_ordinal = Atomic::add(1, _num_root_scan_tasks);
-    if (_current_task_ordinal == 1) {
-      nmethod::oops_do_marking_prologue();
-    }
-  }
-  ~MMTkRootScanWorkScope() {
-    if (_current_task_ordinal == MAX_TASKS) {
-      _current_task_ordinal = 0;
-      nmethod::oops_do_marking_epilogue();
-    }
-  }
-};
-
-void MMTkHeap::scan_static_roots(OopClosure& cl) {
-}
-
-
 void MMTkHeap::scan_universe_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Universe::oops_do(&cl);
 }
 void MMTkHeap::scan_jni_handle_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JNIHandles::oops_do(&cl);
 }
 void MMTkHeap::scan_object_synchronizer_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   ObjectSynchronizer::oops_do(&cl);
 }
 void MMTkHeap::scan_management_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Management::oops_do(&cl);
 }
 void MMTkHeap::scan_jvmti_export_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   JvmtiExport::oops_do(&cl);
 }
 void MMTkHeap::scan_aot_loader_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   AOTLoader::oops_do(&cl);
 }
 void MMTkHeap::scan_system_dictionary_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   SystemDictionary::oops_do(&cl);
 }
 void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-  CodeBlobToOopClosure cb_cl(&cl, true);
-  {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    CodeCache::scavenge_root_nmethods_do(&cb_cl);
-    CodeCache::blobs_do(&cb_cl);
-  }
+  MarkingCodeBlobClosure cb_cl(&cl, false);
+  CodeCache::blobs_do(&cb_cl);
 }
 void MMTkHeap::scan_string_table_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   StringTable::oops_do(&cl);
 }
 void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   CLDToOopClosure cld_cl(&cl, false);
   ClassLoaderDataGraph::cld_do(&cld_cl);
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   WeakProcessor::oops_do(&cl); // (really needed???)
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   VMThread::vm_thread()->oops_do(&cl, NULL);
-}
-
-void MMTkHeap::scan_global_roots(OopClosure& cl) {
-  ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
-
-  CodeBlobToOopClosure cb_cl(&cl, true);
-  CLDToOopClosure cld_cl(&cl, false);
-
-  Universe::oops_do(&cl);
-  JNIHandles::oops_do(&cl);
-  ObjectSynchronizer::oops_do(&cl);
-  Management::oops_do(&cl);
-  JvmtiExport::oops_do(&cl);
-  AOTLoader::oops_do(&cl);
-  SystemDictionary::oops_do(&cl);
-  {
-    MutexLockerEx lock(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    CodeCache::blobs_do(&cb_cl);
-  }
-
-  OopStorage::ParState<false, false> _par_state_string(StringTable::weak_storage());
-  StringTable::possibly_parallel_oops_do(&_par_state_string, &cl);
-
-  // if (!_root_tasks->is_task_claimed(MMTk_ClassLoaderDataGraph_oops_do)) ClassLoaderDataGraph::roots_cld_do(&cld_cl, &cld_cl);
-  ClassLoaderDataGraph::cld_do(&cld_cl);
-
-  WeakProcessor::oops_do(&cl); // (really needed???)
 }
 
 void MMTkHeap::scan_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  MMTkRootScanWorkScope<> root_scan_work(&_num_root_scan_tasks);
   Threads::possibly_parallel_oops_do(false, &cl, NULL);
 }
 
@@ -509,12 +455,6 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
 
 HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
   return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
-}
-
-void (*MMTkHeap::_create_stack_scan_work)(void*) = NULL;
-
-void MMTkHeap::report_java_thread_yield(JavaThread* thread) {
-  if (_create_stack_scan_work != NULL) _create_stack_scan_work((void*) &thread->third_party_heap_mutator);
 }
 
 /*
