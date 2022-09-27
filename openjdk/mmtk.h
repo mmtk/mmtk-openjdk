@@ -141,7 +141,7 @@ struct EdgesClosure {
 typedef struct {
     void (*stop_all_mutators) (void *tls, bool scan_mutators_in_safepoint, MutatorClosure closure);
     void (*resume_mutators) (void *tls);
-    void (*spawn_collector_thread) (void *tls, int kind, void *ctx);
+    void (*spawn_gc_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
     void* (*get_next_mutator) ();
