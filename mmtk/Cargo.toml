@@ -29,7 +29,7 @@ once_cell = "1.10.0"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/paigereeves/mmtk-core.git", rev = "a26b6a7591ff55dc3e024a0ad590fd83cd883a98" }
+mmtk = { git = "https://github.com/paigereeves/mmtk-core.git", rev = "53dc9d39ec2fadb7671a79f1aad796d727d3fe44" }
 # Uncomment the following to build locally
 # mmtk = { path = "../../mmtk-core" }
 
@@ -48,6 +48,9 @@ global_alloc_bit = ["mmtk/global_alloc_bit"]
 # This compile time constant places the mark bit in the header of the object instead of on the side.
 mark_bit_in_header = []
 
+# Use malloc mark sweep - we should only run marksweep with this feature turned on.
+malloc_mark_sweep = ["mmtk/malloc_mark_sweep"]
+
 # We can select plan at runtime. So no need to use any of these features.
 # However, if any of these is provided during build-time, we will ignore any runtime flag and
 # always run this plan. Performance-wise there is no difference. The main reason for these features
@@ -55,6 +58,6 @@ mark_bit_in_header = []
 nogc = []
 semispace = []
 gencopy = []
-marksweep = []
+marksweep = ["mmtk/malloc_mark_sweep"]
 pageprotect = []
 immix = []

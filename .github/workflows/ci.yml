@@ -22,6 +22,8 @@ jobs:
           ./.github/scripts/ci-test-only-normal.sh
       - name: DaCapo Tests for Global Allocation Bit
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
+      - name: DaCapo Tests for malloc mark sweep
+        run: ./.github/scripts/ci-test-malloc-mark-sweep.sh
 
       # Style check
       - name: Style checks

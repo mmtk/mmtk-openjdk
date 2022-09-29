@@ -113,7 +113,8 @@ pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
     crate::mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
 
 #[no_mangle]
-pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t = std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK>>();
+pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
+    std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK>>();
 
 #[derive(Default)]
 pub struct OpenJDK;

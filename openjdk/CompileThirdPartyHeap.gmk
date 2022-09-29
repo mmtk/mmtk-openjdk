@@ -38,6 +38,14 @@ ifeq ($(MMTK_EXTREME_ASSERTIONS), 1)
   endif
 endif
 
+ifeq ($(MMTK_MALLOC_MARK_SWEEP), 1)
+  ifndef GC_FEATURES
+    GC_FEATURES=--features malloc_mark_sweep
+  else
+    GC_FEATURES:=$(strip $(GC_FEATURES))",malloc_mark_sweep"
+  endif
+endif
+
 LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
 
 ifeq ($(DEBUG_LEVEL), release)
