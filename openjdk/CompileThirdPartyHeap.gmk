@@ -55,15 +55,31 @@ else
   CARGO_PROFILE = debug
 endif
 
+CARGO_EXECUTABLE = cargo
+CARGO_TARGET = .
+CARGO_TARGET_FLAG =
+
+ifeq ($(COMPILE_TYPE), cross)
+	ifneq ($(CREATING_BUILDJDK), true)
+		CARGO_EXECUTABLE = cross
+		CARGO_TARGET = riscv64gc-unknown-linux-gnu
+		CARGO_TARGET_FLAG = --target $(CARGO_TARGET)
+	endif
+endif
+
 $(LIB_MMTK): FORCE
 	if [[ "$(OPENJDK_VERSION)" != "$(OPENJDK_LOCAL_VERSION)" ]]; then \
 		echo -e $(YELLOW)WARNING: Local OpenJDK version does not match version specified in mmtk/Cargo.toml$(NC); \
 		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
 		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
 	fi
-	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
-	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	if [[ "$(OPENJDK_TARGET_CPU)" != "riscv64" ]] && [[ $(CARGO_EXECUTABLE) == "cross" ]]; then \
+		echo -e "Only cross compiling to riscv64 is supported"; \
+		exit 1; \
+	fi
+	echo "cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
+	cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
+	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_TARGET)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
