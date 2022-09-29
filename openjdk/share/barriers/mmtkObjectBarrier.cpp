@@ -21,7 +21,8 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 #define __ masm->
 
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
-  if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+  //if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+  /*
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
 
@@ -66,18 +67,21 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
 #endif
+*/
+  assert(false, "Not implemented");
 }
 
 void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
-  const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
-  if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
-    __ pusha();
-    __ movptr(c_rarg0, src);
-    __ movptr(c_rarg1, dst);
-    __ movptr(c_rarg2, count);
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);
-    __ popa();
-  }
+  // const bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
+  // if ((type == T_OBJECT || type == T_ARRAY) && !dest_uninitialized) {
+  //   __ pusha();
+  //   __ movptr(c_rarg0, src);
+  //   __ movptr(c_rarg1, dst);
+  //   __ movptr(c_rarg2, count);
+  //   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);
+  //   __ popa();
+  // }
+  assert(false, "Not implemented");
 }
 
 #undef __
