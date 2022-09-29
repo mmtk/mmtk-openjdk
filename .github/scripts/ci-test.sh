@@ -12,4 +12,4 @@ cd $cur
 cd $cur
 ./ci-test-global-alloc-bit.sh
 cd $cur
-./ci-test-header-mark-bit.sh
+./ci-test-malloc-mark-sweep.sh
