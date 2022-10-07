@@ -23,7 +23,7 @@ const int MAX_BUMP_ALLOCATORS = 6;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 2;
 const int MAX_MALLOC_ALLOCATORS = 1;
 const int MAX_IMMIX_ALLOCATORS = 1;
-const int MAX_FREE_LIST_ALLOCATORS = 1;
+const int MAX_FREE_LIST_ALLOCATORS = 2;
 const int MAX_MARK_COMPACT_ALLOCATORS = 1;
 
 // The following types should have the same layout as the types with the same name in MMTk core (Rust)
@@ -69,15 +69,14 @@ struct FLBlockList {
   char lock;
 };
 
-
 struct FreeListAllocator {
   void* tls;
   void* space;
   RustDynPtr plan;
-  FLBlockList available_blocks [49];
-  FLBlockList available_blocks_stress [49];
-  FLBlockList unswept_blocks [49];
-  FLBlockList consumed_blocks [49];
+  FLBlockList* available_blocks;
+  FLBlockList* available_blocks_stress;
+  FLBlockList* unswept_blocks;
+  FLBlockList* consumed_blocks;
 };
 
 struct MallocAllocator {
