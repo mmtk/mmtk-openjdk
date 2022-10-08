@@ -4,6 +4,7 @@
 #include "../mmtkBarrierSet.hpp"
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
+#include CPU_HEADER(mmtkNoBarrierSetAssembler)
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
 class MMTkNoBarrierSetC1: public MMTkBarrierSetC1 {};
@@ -19,12 +20,6 @@ class MMTkNoBarrierSetC2;
 #endif
 
 class MMTkNoBarrierSetRuntime: public MMTkBarrierSetRuntime {};
-
-#ifndef ZERO
-class MMTkNoBarrierSetAssembler: public MMTkBarrierSetAssembler {};
-#else
-class MMTkNoBarrierSetAssembler;
-#endif
 
 struct MMTkNoBarrier: MMTkBarrierImpl<
   MMTkNoBarrierSetRuntime,
