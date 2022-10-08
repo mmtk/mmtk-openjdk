@@ -45,6 +45,7 @@
 #include "runtime/thread.inline.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
+#include "runtime/osThread.hpp"
 #include "utilities/debug.hpp"
 
 // Note: This counter must be accessed using the Atomic class.
