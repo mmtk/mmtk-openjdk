@@ -140,4 +140,14 @@ public:
 //   }
 // };
 
+class CodeBlobFixRelocationClosure: public CodeBlobClosure {
+ public:
+  inline virtual void do_code_blob(CodeBlob* cb) {
+    nmethod* nm = cb->as_nmethod_or_null();
+    if (nm != NULL) {
+      nm->fix_oop_relocations();
+    }
+  }
+};
+
 #endif // MMTK_OPENJDK_MMTK_ROOTS_CLOSURE_HPP
