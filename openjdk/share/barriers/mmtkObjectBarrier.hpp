@@ -6,6 +6,7 @@
 #ifndef ZERO
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
+#include CPU_HEADER(mmtkObjectBarrierSetAssembler)
 #endif
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
@@ -33,17 +34,6 @@ public:
     object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
 };
-
-#ifdef ZERO
-class MMTkObjectBarrierSetAssembler;
-#else
-class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
-protected:
-  virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
-public:
-  virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count);
-};
-#endif
 
 #ifdef COMPILER1
 class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
