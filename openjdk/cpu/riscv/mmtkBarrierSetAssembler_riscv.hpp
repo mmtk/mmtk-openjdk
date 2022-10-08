@@ -30,7 +30,15 @@ protected:
   virtual void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
-  virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case);
+  virtual void eden_allocate(MacroAssembler* masm,
+    Register obj,                      // result: pointer to object after successful allocation
+    Register var_size_in_bytes,        // object size in bytes if unknown at compile time; invalid otherwise
+    int      con_size_in_bytes,        // object size in bytes if   known at compile time
+    Register tmp1,                     // temp register
+    Register tmp2,                     // temp register
+    Label&   slow_case,                // continuation point if fast allocation fails
+    bool is_far = false
+  ) override;
   virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) {
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_pre(masm, decorators, dst, val, tmp1, tmp2);
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);
