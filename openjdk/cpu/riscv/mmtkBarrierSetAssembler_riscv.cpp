@@ -138,7 +138,39 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
 #define __ sasm->
 
 void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const {
-  // assert(false, "Not implemented");
+  // printf("xxx MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub\n");
+  // See also void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler* sasm)
+  __ prologue("mmtk_write_barrier", false);
+
+  Label done, runtime;
+
+  // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
+  // ld(reg, Address(fp, offset_in_words * BytesPerWord));
+  // ra is free to use here, because calll prologue/epilogue handles it
+  const Register src = t0;
+  const Register slot = t1;
+  const Register new_val = ra;
+  __ load_parameter(0, src);
+  __ load_parameter(1, slot);
+  __ load_parameter(2, new_val);
+
+  __ bind(runtime);
+
+  // Push integer registers x7, x10-x17, x28-x31.
+  //                        t2, a0-a7,   t3-t6
+  __ push_call_clobbered_registers();
+
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), src, slot, new_val);
+#else
+  __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), src, slot, new_val);
+#endif
+
+  __ pop_call_clobbered_registers();
+
+  __ bind(done);
+
+  __ epilogue();
 }
 
 #undef __
@@ -146,7 +178,20 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 #define __ ce->masm()->
 
 void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub) {
-//  assert(false, "Not implemented");
+  // printf("xxx MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call\n");
+  // See also void G1BarrierSetAssembler::gen_post_barrier_stub(LIR_Assembler* ce, G1PostBarrierStub* stub)
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+  __ bind(*stub->entry());
+  assert(stub->src->is_register(), "Precondition");
+  assert(stub->slot->is_register(), "Precondition");
+  assert(stub->new_val->is_register(), "Precondition");
+  // LIR_Assembler::store_parameter(Register r, int offset_from_rsp_in_words)
+  // __ sd(r, Address(sp, offset_from_rsp_in_bytes));
+  ce->store_parameter(stub->src->as_pointer_register(), 0);
+  ce->store_parameter(stub->slot->as_pointer_register(), 1);
+  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
+  __ far_call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
+  __ j(*stub->continuation());
 }
 
 #undef __
