@@ -135,6 +135,10 @@ impl VMBinding for OpenJDK {
 
     type VMEdge = OpenJDKEdge;
     type VMMemorySlice = Range<Address>;
+
+    const MIN_ALIGNMENT: usize = 8;
+    const MAX_ALIGNMENT: usize = 8;
+    const USE_ALLOCATION_OFFSET: bool = false;
 }
 
 use std::sync::atomic::AtomicBool;
