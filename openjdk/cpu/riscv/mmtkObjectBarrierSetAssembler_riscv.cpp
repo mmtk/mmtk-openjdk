@@ -69,10 +69,10 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 //   __ bind(done);
 // #else
   // __ push_reg(c_rarg0, obj);
-//   // __ mv(c_rarg0, obj);
+  __ mv(c_rarg0, obj);
 //   // //__ la(c_rarg1, dst);
 //   // //__ mv(c_rarg2, val == noreg ? zr : val);
-//   // __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
 //   __ pop_reg(c_rarg0, obj);
 // #endif
   __ pop_reg(saved, sp);
