@@ -62,8 +62,9 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   // tmp1 = tmp1 >> tmp2
   __ sraw(tmp1, tmp1, tmp2);
   // if ((tmp1 & 1) == 1) fall through to slowpath;
+  // equivalently ((tmp1 & 1) == 0) go to done
   __ andi(tmp1, tmp1, 1);
-  __ bnez(tmp1, done); // (tmp1 & 1) == 1 is equivalent to (tmp1 & 1) != 0
+  __ beqz(tmp1, done);
   // setup calling convention
   __ mv(c_rarg0, obj);
   __ la(c_rarg1, dst);
