@@ -146,7 +146,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 
   // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
   // ld(reg, Address(fp, offset_in_words * BytesPerWord));
-  // ra is free to use here, because calll prologue/epilogue handles it
+  // ra is free to use here, because call prologue/epilogue handles it
   const Register src = t0;
   const Register slot = t1;
   const Register new_val = ra;
