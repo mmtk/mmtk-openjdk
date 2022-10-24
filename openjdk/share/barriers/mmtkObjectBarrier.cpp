@@ -113,13 +113,15 @@ void MMTkObjectBarrierSetC2::object_reference_write_post(GraphKit* kit, Node* sr
   shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
 
+  // XXX zixianc
+  // Workaround C2 bug in compare-and-swap codegen on RISC-V
   __ if_then(result, BoolTest::ne, zero, unlikely); {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
+    const TypeFunc* tf = __ func_type(src->bottom_type());
+    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src);
   } __ end_if();
 #else
-  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src, slot, val);
+  const TypeFunc* tf = __ func_type(src->bottom_type());
+  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), "mmtk_barrier_call", src);
 #endif
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
