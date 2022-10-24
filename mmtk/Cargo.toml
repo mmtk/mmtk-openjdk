@@ -17,7 +17,7 @@ lto = true
 [package.metadata.openjdk]
 # Our CI matches the following line and extract mmtk/openjdk. If this line is updated, please check ci yaml files and make sure it works.
 openjdk_repo = "https://github.com/caizixian/jdk-mmtk.git"
-openjdk_version = "e6c607ee6cae86a54cb5f061ddbd29585a517fe0"
+openjdk_version = "9efdbe4fe8cc1b7e5dc6afc157bcbe11f295af44"
 
 [dependencies]
 libc = "0.2"
