@@ -100,7 +100,7 @@ static void mmtk_resume_mutators(void *tls) {
 
 static const int GC_THREAD_KIND_CONTROLLER = 0;
 static const int GC_THREAD_KIND_WORKER = 1;
-static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
+static void mmtk_spawn_gc_thread(void* tls, int kind, void* ctx) {
   switch (kind) {
     case GC_THREAD_KIND_CONTROLLER: {
       MMTkContextThread* t = new MMTkContextThread(ctx);
@@ -355,7 +355,7 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
-  mmtk_spawn_collector_thread,
+  mmtk_spawn_gc_thread,
   mmtk_block_for_gc,
   mmtk_out_of_memory,
   mmtk_get_next_mutator,
