@@ -21,12 +21,12 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+  Register obj = dst.base();
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
 
   Register tmp3 = rscratch1;
   Register tmp4 = rscratch2;
-  Register obj = dst.base();
   assert_different_registers(obj, tmp2, tmp3);
   assert_different_registers(tmp4, rcx);
 
