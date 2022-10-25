@@ -101,7 +101,8 @@ public:
                               AllocateNode* alloc, // allocation node to be expanded
                               Node* length,  // array length for an array allocation
                               const TypeFunc* slow_call_type, // Type of slow call
-                              address slow_call_address);  // Address of slow call
+                              address slow_call_address,  // Address of slow call
+                              Node* valid_length_test); // whether length is valid or not
 };
 
 class MMTkIdealKit: public IdealKit {

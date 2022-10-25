@@ -47,7 +47,8 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
                                        AllocateNode* alloc, // allocation node to be expanded
                                        Node* length,  // array length for an array allocation
                                        const TypeFunc* slow_call_type, // Type of slow call
-                                       address slow_call_address) {  // Address of slow call
+                                       address slow_call_address,
+                                       Node* valid_length_test) {  // Address of slow call
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
   Node* i_o  = alloc->in(TypeFunc::I_O);
@@ -465,6 +466,12 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // Copy debug information and adjust JVMState information, then replace
   // allocate node with the call
   call->copy_call_debug_info(&(x->_igvn), (SafePointNode*) alloc);
+  // For array allocations, copy the valid length check to the call node so Compile::final_graph_reshaping() can verify
+  // that the call has the expected number of CatchProj nodes (in case the allocation always fails and the fallthrough
+  // path dies).
+  if (valid_length_test != NULL) {
+    call->add_req(valid_length_test);
+  }
   if (!always_slow) {
     call->set_cnt(PROB_UNLIKELY_MAG(4));  // Same effect as RC_UNCOMMON.
   } else {
