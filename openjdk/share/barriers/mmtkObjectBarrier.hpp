@@ -3,11 +3,9 @@
 
 #include "../mmtk.h"
 #include "../mmtkBarrierSet.hpp"
-#ifndef ZERO
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
 #include CPU_HEADER(mmtkObjectBarrierSetAssembler)
-#endif
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
 #include "c1/c1_LIRAssembler.hpp"
