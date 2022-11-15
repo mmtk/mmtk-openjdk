@@ -211,7 +211,7 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 
 #[no_mangle]
 pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
-    memory_manager::is_in_mmtk_spaces(object)
+    memory_manager::is_in_mmtk_spaces::<OpenJDK>(object)
 }
 
 #[no_mangle]
@@ -386,7 +386,7 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
-        None => unsafe { Address::ZERO.to_object_reference() },
+        None => ObjectReference::NULL,
     }
 }
 
