@@ -78,18 +78,22 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         unimplemented!()
     }
 
+    #[inline(always)]
     fn ref_to_object_start(object: ObjectReference) -> Address {
         object.to_raw_address()
     }
 
+    #[inline(always)]
     fn ref_to_address(object: ObjectReference) -> Address {
         object.to_raw_address()
     }
 
+    #[inline(always)]
     fn ref_to_header(object: ObjectReference) -> Address {
         object.to_raw_address()
     }
 
+    #[inline(always)]
     fn address_to_ref(address: Address) -> ObjectReference {
         ObjectReference::from_raw_address(address)
     }
