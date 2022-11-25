@@ -17,11 +17,11 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<OpenJDKEdge>>(
     ptr: *mut Address,
     length: usize,
     capacity: usize,
-    factory_ptr: *mut F,
+    factory_ptr: *mut libc::c_void,
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        let factory: &mut F = unsafe { &mut *factory_ptr };
+        let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
         factory.create_process_edge_roots_work(buf);
     }
     let (ptr, _, capacity) = {
@@ -36,7 +36,7 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<OpenJDKEdge>>(
 
 pub(crate) fn to_edges_closure<F: RootsWorkFactory<OpenJDKEdge>>(factory: &mut F) -> EdgesClosure {
     EdgesClosure {
-        func: report_edges_and_renew_buffer::<F> as *const _,
+        func: report_edges_and_renew_buffer::<F>,
         data: factory as *mut F as *mut libc::c_void,
     }
 }
