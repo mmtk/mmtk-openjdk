@@ -4,6 +4,7 @@ version = "0.15.0"
 authors = [" <>"]
 rust-version = "1.57.0"
 build = "build.rs"
+edition = "2021"
 
 [lib]
 name = "mmtk_openjdk"

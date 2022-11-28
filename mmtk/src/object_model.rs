@@ -1,5 +1,5 @@
-use super::UPCALLS;
 use crate::abi::Oop;
+use crate::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::copy::*;
