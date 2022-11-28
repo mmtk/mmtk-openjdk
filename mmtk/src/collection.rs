@@ -8,11 +8,13 @@ use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-extern "C" fn report_mutator_stop<F>(mutator: *mut Mutator<OpenJDK>, callback: *mut F)
-where
+extern "C" fn report_mutator_stop<F>(
+    mutator: *mut Mutator<OpenJDK>,
+    callback_ptr: *mut libc::c_void,
+) where
     F: FnMut(&'static mut Mutator<OpenJDK>),
 {
-    let callback: &mut F = unsafe { &mut *callback };
+    let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
     callback(unsafe { &mut *mutator });
 }
 
@@ -21,7 +23,7 @@ where
     F: FnMut(&'static mut Mutator<OpenJDK>),
 {
     MutatorClosure {
-        func: report_mutator_stop::<F> as *const _,
+        func: report_mutator_stop::<F>,
         data: callback as *mut F as *mut libc::c_void,
     }
 }

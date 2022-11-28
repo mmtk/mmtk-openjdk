@@ -40,15 +40,19 @@ pub struct NewBuffer {
 /// A closure for reporting mutators.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct MutatorClosure {
-    pub func: *const extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
+    pub func: extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
     pub data: *mut libc::c_void,
 }
 
 /// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct EdgesClosure {
-    pub func:
-        *const extern "C" fn(buf: *mut Address, size: usize, cap: usize, data: *const libc::c_void),
+    pub func: extern "C" fn(
+        buf: *mut Address,
+        size: usize,
+        cap: usize,
+        data: *mut libc::c_void,
+    ) -> NewBuffer,
     pub data: *const libc::c_void,
 }
 
