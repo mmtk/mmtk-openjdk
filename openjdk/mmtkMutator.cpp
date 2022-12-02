@@ -6,7 +6,7 @@
 size_t MMTkMutatorContext::max_non_los_default_alloc_bytes = 0;
 
 MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
-    if (FREE_LIST_ALLOCATOR_SIZE != sizeof(FreeListAllocator)) {
+  if (FREE_LIST_ALLOCATOR_SIZE != sizeof(FreeListAllocator)) {
     printf("ERROR: Unmatched free list allocator size: rs=%zu cpp=%zu\n", FREE_LIST_ALLOCATOR_SIZE, sizeof(FreeListAllocator));
     guarantee(false, "ERROR");
   }
