@@ -13,9 +13,12 @@ dependencies = [
 
 [[package]]
 name = "atomic"
-version = "0.4.6"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64f46ca51dca4837f1520754d1c8c36636356b81553d928dc9c177025369a06e"
+checksum = "b88d82667eca772c4aa12f0f1348b3ae643424c8876448f3f7bd5787032e234c"
+dependencies = [
+ "autocfg",
+]
 
 [[package]]
 name = "atomic-traits"
@@ -355,7 +358,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.15.0"
-source = "git+https://github.com/paigereeves/mmtk-core.git?rev=7002d5f259773f36d70a7b3ff50913476dfceb1b#7002d5f259773f36d70a7b3ff50913476dfceb1b"
+source = "git+https://github.com/paigereeves/mmtk-core.git?rev=c06bd5faea049b165d2a1431a2883b08024323cb#c06bd5faea049b165d2a1431a2883b08024323cb"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -381,7 +384,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.15.0"
-source = "git+https://github.com/paigereeves/mmtk-core.git?rev=7002d5f259773f36d70a7b3ff50913476dfceb1b#7002d5f259773f36d70a7b3ff50913476dfceb1b"
+source = "git+https://github.com/paigereeves/mmtk-core.git?rev=c06bd5faea049b165d2a1431a2883b08024323cb#c06bd5faea049b165d2a1431a2883b08024323cb"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
