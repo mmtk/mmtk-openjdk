@@ -1,4 +1,4 @@
-use super::UPCALLS;
+use crate::UPCALLS;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
 use mmtk::util::ObjectReference;

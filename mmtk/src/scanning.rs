@@ -1,6 +1,6 @@
-use super::gc_work::*;
-use super::{NewBuffer, OpenJDKEdge, SINGLETON, UPCALLS};
+use crate::gc_work::*;
 use crate::{EdgesClosure, OpenJDK};
+use crate::{NewBuffer, OpenJDKEdge, SINGLETON, UPCALLS};
 use mmtk::memory_manager;
 use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;

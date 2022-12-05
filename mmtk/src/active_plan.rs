@@ -1,6 +1,6 @@
-use super::UPCALLS;
 use crate::OpenJDK;
 use crate::SINGLETON;
+use crate::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
