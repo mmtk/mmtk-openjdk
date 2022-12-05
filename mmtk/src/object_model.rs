@@ -18,6 +18,9 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     const LOCAL_MARK_BIT_SPEC: VMLocalMarkBitSpec = vm_metadata::MARKING_METADATA_SPEC;
     const LOCAL_LOS_MARK_NURSERY_SPEC: VMLocalLOSMarkNurserySpec = vm_metadata::LOS_METADATA_SPEC;
 
+    const UNIFIED_OBJECT_REFERENCE_ADDRESS: bool = true;
+    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = 0;
+
     #[inline]
     fn copy(
         from: ObjectReference,
