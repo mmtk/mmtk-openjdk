@@ -1,3 +1,12 @@
+0.16.0 (2022-12-06)
+===
+
+* MMTk OpenJDK binding now uses Rust edition 2021.
+* Support MMTk's native mark sweep plan.
+* Rename a few functions so they have consistent names across Rust and C++.
+* Fix a compilation error when barrier fast path is disabled.
+* Fix the wrong function pointer type in Rust that refers to a native function pointer.
+
 0.15.0 (2022-09-20)
 ===
 
