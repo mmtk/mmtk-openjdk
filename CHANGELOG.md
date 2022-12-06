@@ -6,6 +6,7 @@
 * Rename a few functions so they have consistent names across Rust and C++.
 * Fix a compilation error when barrier fast path is disabled.
 * Fix the wrong function pointer type in Rust that refers to a native function pointer.
+* Update to mmtk-core 0.16.0.
 
 0.15.0 (2022-09-20)
 ===
