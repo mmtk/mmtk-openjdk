@@ -348,7 +348,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.16.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=4aa643773ec3ec9c4f47f696533bdd56554c03df#4aa643773ec3ec9c4f47f696533bdd56554c03df"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=39c038f5534833bbd6677f5abfbee395c13258e5#39c038f5534833bbd6677f5abfbee395c13258e5"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -369,12 +369,13 @@ dependencies = [
  "spin",
  "strum",
  "strum_macros",
+ "sys-info",
 ]
 
 [[package]]
 name = "mmtk-macros"
 version = "0.16.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=4aa643773ec3ec9c4f47f696533bdd56554c03df#4aa643773ec3ec9c4f47f696533bdd56554c03df"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=39c038f5534833bbd6677f5abfbee395c13258e5#39c038f5534833bbd6677f5abfbee395c13258e5"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -588,6 +589,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "sys-info"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b3a0d0aba8bf96a0e1ddfdc352fc53b3df7f39318c71854910c3c4b024ae52c"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]

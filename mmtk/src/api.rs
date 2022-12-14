@@ -92,9 +92,15 @@ pub extern "C" fn openjdk_is_gc_initialized() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_set_heap_size(size: usize) -> bool {
+pub extern "C" fn mmtk_set_heap_size(min: usize, max: usize) -> bool {
+    use mmtk::util::options::GCTriggerSelector;
     let mut builder = BUILDER.lock().unwrap();
-    builder.options.heap_size.set(size)
+    let policy = if min == max {
+        GCTriggerSelector::FixedHeapSize(min)
+    } else {
+        GCTriggerSelector::DynamicHeapSize(min, max)
+    };
+    builder.options.gc_trigger.set(policy)
 }
 
 #[no_mangle]
