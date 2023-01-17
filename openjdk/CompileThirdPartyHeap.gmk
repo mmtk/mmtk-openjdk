@@ -10,6 +10,9 @@ MMTK_CPP_ROOT = $(THIRD_PARTY_HEAP)
 OPENJDK_VERSION=`cd $(MMTK_RUST_ROOT) ; cargo read-manifest --manifest-path=Cargo.toml | python3 -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["openjdk"]["openjdk_version"])'`
 OPENJDK_LOCAL_VERSION=`git rev-parse HEAD`
 
+# Get the current host triple. This is used for the PGO build
+HOST_TRIPLE=`rustc -vV | grep host | cut -d' ' -f2`
+
 ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
 endif
@@ -61,9 +64,10 @@ $(LIB_MMTK): FORCE
 		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
 		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
 	fi
-	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
-	cp $(MMTK_RUST_ROOT)/target/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	cargo --version
+	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)"
+	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)
+	cp $(MMTK_RUST_ROOT)/target/$(HOST_TRIPLE)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
