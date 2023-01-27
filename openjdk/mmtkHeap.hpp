@@ -48,7 +48,7 @@ class MemoryPool;
 class MMTkVMCompanionThread;
 class MMTkHeap : public CollectedHeap {
   MMTkCollectorPolicy* _collector_policy;
-  SoftRefPolicy* _soft_ref_policy;
+  SoftRefPolicy _soft_ref_policy;
   MMTkMemoryPool* _mmtk_pool;
   GCMemoryManager* _mmtk_manager;
   HeapWord* _start;
