@@ -32,6 +32,7 @@
 #include "mmtk.h"
 #include "mmtkBarrierSetAssembler_x86.hpp"
 #include "oops/access.hpp"
+#include "oops/arrayOop.hpp"
 #include "oops/accessBackend.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
