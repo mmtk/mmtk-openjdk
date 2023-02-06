@@ -106,4 +106,9 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
             ((*UPCALLS).dump_object)(object);
         }
     }
+
+    fn is_object_sane(object: ObjectReference) -> bool {
+        let oop = Oop::from(object);
+        oop.klass.id as i32 >= 0 && (oop.klass.id as i32) < 6
+    }
 }
