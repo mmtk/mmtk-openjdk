@@ -151,11 +151,12 @@ First we compile MMTk with profiling support:
 $ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 $ rm -rf /tmp/$USER/pgo-data/*
 ```
-We clear the `/tmp/$USER/pgo-data` directory as during the compilation process,
-the JVM we have created is used in a bootstrap process, resulting in profile
-data being emitted.
+We clear the `/tmp/$USER/pgo-data` directory as during compilation, the JVM we
+have created is used in a bootstrap process, resulting in profile data being
+emitted.
 
-We then run `fop` three times in order to get some profiling data:
+We then run `fop` three times in order to get some profiling data. Note that
+your location for the DaCapo benchmarks may be different:
 
 ```bash
 for i in {0..2}; do
