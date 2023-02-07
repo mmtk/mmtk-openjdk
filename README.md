@@ -174,7 +174,7 @@ The location of your version of `llvm-profdata` may be different to what we
 have above. *Make sure to only use a version of `llvm-profdata` that matches
 your Rust version.*
 
-Finally, we build a new image using the profiling data as an inpute:
+Finally, we build a new image using the profiling data as an input:
 
 ```console
 $ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
