@@ -126,6 +126,67 @@ $ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-ope
 
 The output jdk is then found at `./build/linux-x86_64-normal-server-release/images/jdk`.
 
+### Profile-Guided Optimized Build
+
+In order to get the best performance, we recommend using a profile-guided
+optimized (PGO) build. Rust supports [PGO
+builds](https://doc.rust-lang.org/rustc/profile-guided-optimization.html) by
+directly hooking into the LLVM profiling infrastructure. In order to have the
+correct LLVM tools version, you should install the relevant `llvm-tools-preview`
+component using `rustup`:
+
+```console
+$ rustup component add llvm-tools-preview
+```
+
+In this example, we focus on the DaCapo benchmarks and the `GenImmix`
+collector. For best results, it is recommended to profile the workload you are
+interested in measuring. We use `fop` as it is a relatively small benchmark but
+also exercises the GC. In order to best tune our GC performance, we use a
+stress factor of 4 MB in order to trigger more GC events.
+
+First we compile MMTk with profiling support:
+
+```console
+$ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ rm -rf /tmp/$USER/pgo-data/*
+```
+We clear the `/tmp/$USER/pgo-data` directory as during compilation, the JVM we
+have created is used in a bootstrap process, resulting in profile data being
+emitted.
+
+We then run `fop` in order to get some profiling data. Note that your location
+for the DaCapo benchmarks may be different:
+
+```bash
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
+```
+
+We have to merge the profiling data into something we can feed into the Rust
+compiler using `llvm-profdata`:
+
+```console
+$ /opt/rust/toolchains/1.66.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
+```
+
+The location of your version of `llvm-profdata` may be different to what we
+have above. *Make sure to only use a version of `llvm-profdata` that matches
+your Rust version.*
+
+Finally, we build a new image using the profiling data as an input:
+
+```console
+$ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+```
+
+We now have an OpenJDK build under
+`./build/linux-x86_64-normal-server-release/images/jdk` with MMTk that has been
+optimized using PGO.
+
+For ease of use, we have provided an example script which does the above in
+`.github/scripts/pgo-build.sh` that you may adapt for your purposes. Note that
+you may have to change the location of `llvm-profdata`.
+
 ### Location of Mark-bit
 The location of the mark-bit can be specified by the environment variable
 `MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
