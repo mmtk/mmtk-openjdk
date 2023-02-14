@@ -109,6 +109,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
 
     fn is_object_sane(object: ObjectReference) -> bool {
         let oop = Oop::from(object);
+        // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
+        // If oop.klass is not a valid pointer, we may segfault here.
         oop.klass.id as i32 >= 0 && (oop.klass.id as i32) < 6
     }
 }
