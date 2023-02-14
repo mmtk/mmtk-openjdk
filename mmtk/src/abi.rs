@@ -83,17 +83,14 @@ impl Klass {
         &*(self as *const _ as usize as *const T)
     }
     /// Force slow-path for instance size calculation?
-    #[inline(always)]
     const fn layout_helper_needs_slow_path(lh: i32) -> bool {
         (lh & Self::LH_INSTANCE_SLOW_PATH_BIT) != 0
     }
     /// Get log2 array element size
-    #[inline(always)]
     const fn layout_helper_log2_element_size(lh: i32) -> i32 {
         (lh >> Self::LH_LOG2_ELEMENT_SIZE_SHIFT) & Self::LH_LOG2_ELEMENT_SIZE_MASK
     }
     /// Get array header size
-    #[inline(always)]
     const fn layout_helper_header_size(lh: i32) -> i32 {
         (lh >> Self::LH_HEADER_SIZE_SHIFT) & Self::LH_HEADER_SIZE_MASK
     }
@@ -281,7 +278,6 @@ pub struct OopDesc {
 }
 
 impl OopDesc {
-    #[inline(always)]
     pub fn start(&self) -> Address {
         unsafe { mem::transmute(self) }
     }
@@ -300,7 +296,6 @@ pub type Oop = &'static OopDesc;
 
 /// Convert ObjectReference to Oop
 impl From<ObjectReference> for &OopDesc {
-    #[inline(always)]
     fn from(o: ObjectReference) -> Self {
         unsafe { mem::transmute(o) }
     }
@@ -308,7 +303,6 @@ impl From<ObjectReference> for &OopDesc {
 
 /// Convert Oop to ObjectReference
 impl From<&OopDesc> for ObjectReference {
-    #[inline(always)]
     fn from(o: &OopDesc) -> Self {
         unsafe { mem::transmute(o) }
     }
@@ -324,13 +318,11 @@ impl OopDesc {
     }
 
     /// Slow-path for calculating object instance size
-    #[inline(always)]
     unsafe fn size_slow(&self) -> usize {
         ((*UPCALLS).get_object_size)(self.into())
     }
 
     /// Calculate object instance size
-    #[inline(always)]
     pub unsafe fn size(&self) -> usize {
         let klass = self.klass;
         let lh = klass.layout_helper;
