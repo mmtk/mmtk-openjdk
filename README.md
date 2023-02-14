@@ -139,11 +139,11 @@ component using `rustup`:
 $ rustup component add llvm-tools-preview
 ```
 
-We use `fop` as it is a relatively small benchmark but also exercises the GC.
-In order to best tune our GC performance, we use a stress factor of 4 MB in
-order to trigger more GC events. We use three invocations of the benchmark to
-reduce variance in results. We use the `GenImmix` collector as the collector of
-choice for profiling as it is currently our best performing GC algorithm.
+In this example, we focus on the DaCapo benchmarks and the `GenImmix`
+collector. For best results, it is recommended to profile the workload you are
+interested in measuring. We use `fop` as it is a relatively small benchmark but
+also exercises the GC. In order to best tune our GC performance, we use a
+stress factor of 4 MB in order to trigger more GC events.
 
 First we compile MMTk with profiling support:
 
@@ -155,13 +155,11 @@ We clear the `/tmp/$USER/pgo-data` directory as during compilation, the JVM we
 have created is used in a bootstrap process, resulting in profile data being
 emitted.
 
-We then run `fop` three times in order to get some profiling data. Note that
-your location for the DaCapo benchmarks may be different:
+We then run `fop` in order to get some profiling data. Note that your location
+for the DaCapo benchmarks may be different:
 
 ```bash
-for i in {0..2}; do
-    MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
-done
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
 ```
 
 We have to merge the profiling data into something we can feed into the Rust
@@ -185,9 +183,9 @@ We now have an OpenJDK build under
 `./build/linux-x86_64-normal-server-release/images/jdk` with MMTk that has been
 optimized using PGO.
 
-For ease of use, we have provided a script which does the above in
-`.github/scripts/pgo-build.sh`. Note that you may have to change the location
-of `llvm-profdata`.
+For ease of use, we have provided an example script which does the above in
+`.github/scripts/pgo-build.sh` that you may adapt for your purposes. Note that
+you may have to change the location of `llvm-profdata`.
 
 ### Location of Mark-bit
 The location of the mark-bit can be specified by the environment variable

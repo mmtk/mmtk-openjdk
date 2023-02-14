@@ -10,7 +10,9 @@ MMTK_CPP_ROOT = $(THIRD_PARTY_HEAP)
 OPENJDK_VERSION=`cd $(MMTK_RUST_ROOT) ; cargo read-manifest --manifest-path=Cargo.toml | python3 -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["openjdk"]["openjdk_version"])'`
 OPENJDK_LOCAL_VERSION=`git rev-parse HEAD`
 
-# Get the current host triple. This is used for the PGO build
+# Get the current host triple. This is used for the PGO build as mentioned in
+# the best practices for PGO here:
+# https://doc.rust-lang.org/rustc/profile-guided-optimization.html#a-complete-cargo-workflow
 HOST_TRIPLE=`rustc -vV | grep host | cut -d' ' -f2`
 
 ifdef MMTK_PLAN
