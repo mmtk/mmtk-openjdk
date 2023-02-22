@@ -1,4 +1,4 @@
-0.17.0 (2022-02-17)
+0.17.0 (2023-02-17)
 ===
 
 * MMTk OpenJDK binding now uses Rust 1.66.1.
