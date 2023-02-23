@@ -15,7 +15,7 @@ Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-The minimal supported Rust version for MMTk-OpenJDK binding is 1.57.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
+The minimal supported Rust version for MMTk-OpenJDK binding is 1.61.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
 binding with Rust 1.66.1 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
