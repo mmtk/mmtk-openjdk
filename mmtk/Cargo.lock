@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "mmtk_openjdk"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "built 0.5.2",
  "lazy_static",
