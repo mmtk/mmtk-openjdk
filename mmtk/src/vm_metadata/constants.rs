@@ -3,7 +3,7 @@ use mmtk::vm::*;
 #[cfg(target_pointer_width = "64")]
 pub(crate) const FORWARDING_BITS_OFFSET: isize = 56;
 #[cfg(target_pointer_width = "32")]
-pub(crate) const FORWARDING_BITS_OFFSET: isize = unimplemenged!();
+pub(crate) const FORWARDING_BITS_OFFSET: isize = unimplemented!();
 
 pub(crate) const FORWARDING_POINTER_OFFSET: isize = 0;
 
