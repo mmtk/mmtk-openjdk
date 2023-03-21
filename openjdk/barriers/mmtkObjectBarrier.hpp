@@ -25,6 +25,7 @@ public:
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
     object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
+  virtual void on_slowpath_allocation_exit(oop new_obj) const override;
 };
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {

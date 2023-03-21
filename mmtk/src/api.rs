@@ -382,6 +382,15 @@ pub extern "C" fn mmtk_array_copy_post(
         .memory_region_copy_post(src..src + bytes, dst..dst + bytes);
 }
 
+/// C2 Slowpath allocation barrier
+#[no_mangle]
+pub extern "C" fn mmtk_on_slowpath_allocation_exit(
+    mutator: &'static mut Mutator<OpenJDK>,
+    obj: ObjectReference,
+) {
+    mutator.barrier().on_slowpath_allocation_exit(obj);
+}
+
 // finalization
 #[no_mangle]
 pub extern "C" fn add_finalizer(object: ObjectReference) {

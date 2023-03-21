@@ -2,6 +2,21 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
+void MMTkObjectBarrierSetRuntime::on_slowpath_allocation_exit(oop new_obj) const {
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  intptr_t addr = (intptr_t) (void*) new_obj;
+  uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
+  intptr_t shift = (addr >> 3) & 0b111;
+  uint8_t byte_val = *meta_addr;
+  if (((byte_val >> shift) & 1) == 1) {
+    // only promoted objects will reach here
+    mmtk_on_slowpath_allocation_exit((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) new_obj);
+  }
+#else
+  mmtk_on_slowpath_allocation_exit((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) new_obj);
+#endif
+}
+
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
 #if MMTK_ENABLE_BARRIER_FASTPATH
   intptr_t addr = (intptr_t) (void*) src;
