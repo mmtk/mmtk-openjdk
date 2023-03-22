@@ -74,13 +74,13 @@ runtimes:
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
 configs:
-  - "jdk11-master|ms|s|c2|mmtk_gc-SemiSpace|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-GenCopy|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-Immix|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-GenImmix|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-StickyImmix|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-MarkSweep|tph"
-  - "jdk11-master|ms|s|c2|mmtk_gc-MarkCompact|tph"
+  - "jdk11-master|ms|s|mmtk_gc-SemiSpace|tph"
+  - "jdk11-master|ms|s|mmtk_gc-GenCopy|tph"
+  - "jdk11-master|ms|s|mmtk_gc-Immix|tph"
+  - "jdk11-master|ms|s|mmtk_gc-GenImmix|tph"
+  - "jdk11-master|ms|s|mmtk_gc-StickyImmix|tph"
+  - "jdk11-master|ms|s|mmtk_gc-MarkSweep|tph"
+  - "jdk11-master|ms|s|mmtk_gc-MarkCompact|tph"
 
 benchmarks:
   dacapochopin-04132797-ci:
