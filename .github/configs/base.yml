@@ -1,0 +1,86 @@
+includes:
+  - "$RUNNING_NG_PACKAGE_DATA/base/runbms.yml"
+
+suites:
+  dacapochopin-04132797-ci:
+    type: DaCapo
+    release: evaluation
+    path: "DACAPO_PATH/dacapo-evaluation-git-04132797.jar"
+    minheap: mmtk-openjdk-11-MarkCompact
+    minheap_values:
+      mmtk-openjdk-11-MarkCompact:
+        avrora: 8
+        batik: 426
+        biojava: 197
+        cassandra: 117
+        eclipse: 439
+        fop: 24
+        graphchi: 195
+        h2: 1122
+        h2o: 136
+        jme: 236
+        jython: 48
+        kafka: 243
+        luindex: 25
+        lusearch: 36
+        pmd: 291
+        spring: 110
+        sunflow: 37
+        tradebeans: .inf
+        tradesoap: .inf
+        tomcat: 55
+        xalan: 19
+        zxing: 427
+      nominal-heap-sizes:
+        avrora: 7
+        batik: 192
+        biojava: 97
+        cassandra: 74
+        eclipse: 346
+        fop: 17
+        graphchi: 179
+        h2: 506
+        h2o: 102
+        jme: 29
+        jython: 29
+        kafka: 207
+        luindex: 44
+        lusearch: 19
+        pmd: 114
+        spring: 47
+        sunflow: 25
+        tradebeans: 101
+        tradesoap: 89
+        tomcat: 17
+        xalan: 9
+        zxing: 66
+    timing_iteration: 3
+    timeout: 900
+
+overrides:
+  invocations: 3
+  remote_host: null
+
+modifiers:
+  mmtk_gc:
+    type: "EnvVar"
+    var: "MMTK_PLAN"
+    val: "{0}"
+
+runtimes:
+  jdk11-master:
+    type: OpenJDK
+    release: 11
+    home: "/home/runner/work/mmtk-ci/mmtk-ci/bundles/jdk"
+
+configs:
+  - "jdk11-master|ms|s|c2|mmtk_gc-SemiSpace|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-GenCopy|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-Immix|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-GenImmix|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-StickyImmix|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-MarkSweep|tph"
+  - "jdk11-master|ms|s|c2|mmtk_gc-MarkCompact|tph"
+
+benchmarks:
+  dacapochopin-04132797-ci:
