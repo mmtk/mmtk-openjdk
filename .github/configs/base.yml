@@ -71,7 +71,7 @@ runtimes:
   jdk11-master:
     type: OpenJDK
     release: 11
-    home: "/home/runner/work/mmtk-ci/mmtk-ci/bundles/jdk"
+    home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
 configs:
   - "jdk11-master|ms|s|c2|mmtk_gc-SemiSpace|tph"
