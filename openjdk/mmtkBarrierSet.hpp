@@ -90,7 +90,7 @@ public:
   /// Called at the end of every C2 slowpath allocation.
   /// Deoptimization can happen after C2 slowpath allocation, and the newly allocated object can be promoted.
   /// So this callback is requierd for any generational collectors.
-  virtual void on_slowpath_allocation_exit(oop new_obj) const {};
+  virtual void object_probable_write(oop new_obj) const {};
 };
 
 class MMTkBarrierC1;
@@ -139,7 +139,7 @@ public:
   virtual void on_thread_detach(JavaThread* thread);
 
   virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) override {
-    runtime()->on_slowpath_allocation_exit(new_obj);
+    runtime()->object_probable_write(new_obj);
   }
 
   // Inform the BarrierSet that the the covered heap region that starts

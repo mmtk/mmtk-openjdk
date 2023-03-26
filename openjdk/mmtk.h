@@ -62,7 +62,7 @@ extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size
 extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
 /// C2 slowpath allocation barrier
-extern void mmtk_on_slowpath_allocation_exit(MMTk_Mutator mutator, void* obj);
+extern void mmtk_object_probable_write(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
