@@ -50,7 +50,7 @@ jobs:
           retention-days: 2
 
   cache-dacapo:
-    name: linux-x64
+    name: Cache DaCapo Chopin git-04132797
     runs-on: ubuntu-22.04
     steps:
       - name: Check DaCapo Chopin git-04132797 cache
@@ -114,7 +114,7 @@ jobs:
         with:
           path: dacapo/dacapo-evaluation-git-04132797.zip
           key: dacapo-chopin-git-04132797
-          fail-on-cache-miss: true    # This should never be true as we cache DaCapo in an earlier job
+          fail-on-cache-miss: true    # We should never have a cache miss here as we cache DaCapo in an earlier job
       - name: Unzip DaCapo Chopin git-04132797
         run: |
           pushd dacapo
