@@ -1,9 +1,13 @@
-name: Dacapo Tests
+name: DaCapo Tests
 
 on:
   pull_request:
     branches:
       - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -16,13 +20,13 @@ jobs:
           ./.github/scripts/ci-setup.sh
 
       # Run the tests
-      - name: Dacapo Tests
+      - name: DaCapo Tests
         run: |
           ./.github/scripts/ci-build.sh
           ./.github/scripts/ci-test-only-normal.sh
-      - name: DaCapo Tests for Global Allocation Bit
+      - name: DaCapo Tests with global allocation bit
         run: ./.github/scripts/ci-test-global-alloc-bit.sh
-      - name: DaCapo Tests for malloc mark sweep
+      - name: DaCapo Tests with malloc Mark-Sweep
         run: ./.github/scripts/ci-test-malloc-mark-sweep.sh
 
       # Style check
@@ -39,10 +43,23 @@ jobs:
           ./.github/scripts/ci-setup.sh
 
       # Run the tests
-      - name: Dacapo Tests with Weak ref
+      - name: DaCapo Tests with weak reference processing
         run: |
           ./.github/scripts/ci-build.sh
           ./.github/scripts/ci-test-only-weak-ref.sh
+
+  test-assertions:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Environments
+        run: |
+            ./.github/scripts/ci-checkout.sh
+            ./.github/scripts/ci-setup.sh
+
+      # Run the tests with assertions
+      - name: DaCapo Test (with extreme_assertions)
+        run: ./.github/scripts/ci-test-assertions.sh
 
   msrv:
     runs-on: ubuntu-18.04
