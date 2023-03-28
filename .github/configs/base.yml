@@ -54,11 +54,11 @@ suites:
         tomcat: 17
         xalan: 9
         zxing: 66
-    timing_iteration: 3
-    timeout: 900
+    timing_iteration: 1
+    timeout: 300
 
 overrides:
-  invocations: 3
+  invocations: 1
   remote_host: null
 
 modifiers:
