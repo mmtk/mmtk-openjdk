@@ -1,0 +1,308 @@
+results:
+  fastdebug:
+    avrora:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    batik:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    biojava:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    cassandra:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    eclipse:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    fop:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    graphchi:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    h2:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    h2o:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    jme:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    jython:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    kafka:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    luindex:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    lusearch:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    pmd:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    sunflow:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    tomcat:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    xalan:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    zxing:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+
+release:
+    avrora:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    batik:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    biojava:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    cassandra:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    eclipse:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    fop:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    graphchi:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    h2:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    h2o:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    jme:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    jython:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    kafka:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    luindex:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    lusearch:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    pmd:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    sunflow:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    tomcat:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    xalan:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true
+    zxing:
+      SemiSpace: true
+      GenCopy: true
+      Immix: true
+      GenImmix: true
+      StickyImmix: true
+      MarkSweep: true
+      MarkCompact: true

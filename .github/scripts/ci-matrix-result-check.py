@@ -1,0 +1,107 @@
+import yaml
+import sys
+import os
+import re
+
+if len(sys.argv) < 3:
+    raise ValueError("Invalid arguments")
+
+script_dir = os.path.dirname(os.path.abspath(__file__));
+config_path = os.path.join(script_dir, "..", "configs", "base.yml")
+expected_results_path = os.path.join(script_dir, "ci-expected-results.yml")
+
+build = sys.argv[1]
+benchmark = sys.argv[2]
+
+def read_in_plans():
+    # Load the YAML file
+    with open(config_path, "r") as f:
+        data = yaml.safe_load(f)
+
+    # Extract the values from the "configs" field
+    configs = data["configs"]
+
+    # Define the dictionary to store the values
+    results = {}
+
+    pattern = r"mmtk_gc-(.+?)\|"
+
+    # Loop through each property in configs
+    for i, prop in enumerate(configs):
+        # Extract the value behind "mmtk_gc-"
+        m = re.search(pattern, prop)
+        if m:
+            value = m.group(1)
+        else:
+            raise ValueError(f"Cannot find a plan string in {prop}")
+        
+        # Store the value in the dictionary
+        key = chr(97+i)
+        results[key] = value
+    
+    return results
+
+def read_in_actual_results(line, plan_dict):
+    # Read the input from stdin
+    input_string = line.strip()
+
+    # Extract the benchmark name and discard the rest
+    benchmark_name = input_string.split()[0]
+
+    # Extract the strings from the input, like 0abcdef or 1a.c.ef
+    pattern = r"(\d+[a-z\.]+)"
+    matches = re.findall(pattern, input_string)
+
+    # list[0] = "abcdef", list[1] = "a.cd.f", etc
+    raw_results = list()
+    for m in matches:
+        index = int(m[0])
+        result = m[1:]
+        assert len(raw_results) == index
+        raw_results.append(result)
+
+    # Format the raw results into a dict
+    # dict['SemiSpace'] = True, etc
+    result_dict = {}
+    for s in raw_results:
+        key = 97
+        for c in s:
+            plan = plan_dict[chr(key)]
+            key += 1
+            success = (c != '.')
+            if plan in result_dict:
+                result_dict[plan] = result_dict[plan] and success
+            else:
+                result_dict[plan] = success
+    return result_dict
+
+def read_in_expected_results(build, benchmark):
+    # Load the YAML file
+    with open(expected_results_path, "r") as f:
+        data = yaml.safe_load(f)
+
+    return data["results"][build][benchmark]
+
+# dict['a'] = 'SemiSpace', etc
+plan_dict = read_in_plans()
+
+actual = read_in_actual_results(sys.stdin.readline(), plan_dict)
+expected = read_in_expected_results(build, benchmark)
+
+print("Expected:")
+print(expected)
+print("Actual:")
+print(actual)
+
+print("=====")
+
+error_no = 0
+for plan in expected:
+    if plan in actual and actual[plan] != expected[plan]:
+        error_no = 1
+        if expected[plan] == True:
+            print(f"Expect {plan} to pass, but it failed.")
+        else:
+            print(f"Expect {plan} to fail, but it passed -- if we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
+
+exit(error_no)
