@@ -3,15 +3,16 @@ import sys
 import os
 import re
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 4:
     raise ValueError("Invalid arguments")
 
 script_dir = os.path.dirname(os.path.abspath(__file__));
 config_path = os.path.join(script_dir, "..", "configs", "base.yml")
 expected_results_path = os.path.join(script_dir, "ci-expected-results.yml")
 
-build = sys.argv[1]
-benchmark = sys.argv[2]
+arch = sys.argv[1]
+build = sys.argv[2]
+benchmark = sys.argv[3]
 
 def read_in_plans():
     # Load the YAML file
@@ -47,6 +48,7 @@ def read_in_actual_results(line, plan_dict):
 
     # Extract the benchmark name and discard the rest
     benchmark_name = input_string.split()[0]
+    input_string = input_string.removeprefix(benchmark_name)
 
     # Extract the strings from the input, like 0abcdef or 1a.c.ef
     pattern = r"(\d+[a-z\.]+)"
@@ -55,6 +57,7 @@ def read_in_actual_results(line, plan_dict):
     # list[0] = "abcdef", list[1] = "a.cd.f", etc
     raw_results = list()
     for m in matches:
+        print(m)
         index = int(m[0])
         result = m[1:]
         assert len(raw_results) == index
@@ -80,7 +83,7 @@ def read_in_expected_results(build, benchmark):
     with open(expected_results_path, "r") as f:
         data = yaml.safe_load(f)
 
-    return data["results"][build][benchmark]
+    return data["results"][arch][build][benchmark]
 
 # dict['a'] = 'SemiSpace', etc
 plan_dict = read_in_plans()
