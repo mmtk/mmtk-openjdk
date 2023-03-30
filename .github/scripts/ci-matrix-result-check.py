@@ -64,7 +64,7 @@ def read_in_actual_results(line, plan_dict):
         raw_results.append(result)
 
     # Format the raw results into a dict
-    # dict['SemiSpace'] = True, etc
+    # dict['SemiSpace'] = { pass: True }, etc
     result_dict = {}
     for s in raw_results:
         key = 97
@@ -73,9 +73,10 @@ def read_in_actual_results(line, plan_dict):
             key += 1
             success = (c != '.')
             if plan in result_dict:
-                result_dict[plan] = result_dict[plan] and success
+                result_dict[plan]['pass'] = result_dict[plan]['pass'] and success
             else:
-                result_dict[plan] = success
+                result_dict[plan] = {}
+                result_dict[plan]['pass'] = success
     return result_dict
 
 def read_in_expected_results(build, benchmark):
@@ -100,11 +101,14 @@ print("=====")
 
 error_no = 0
 for plan in expected:
-    if plan in actual and actual[plan] != expected[plan]:
+    if plan in actual and actual[plan]['pass'] != expected[plan]['pass']:
         error_no = 1
-        if expected[plan] == True:
+        if expected[plan]['pass'] == True:
             print(f"Expect {plan} to pass, but it failed.")
+            if "note" in expected[plan]:
+                print(f"- Note for the result: {expected[plan]['note']}")
         else:
-            print(f"Expect {plan} to fail, but it passed -- if we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
+            print(f"Expect {plan} to fail, but it passed.")
+            print(f"- If we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
 
 exit(error_no)
