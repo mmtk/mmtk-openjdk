@@ -1,5 +1,4 @@
 use crate::OpenJDK;
-use crate::SINGLETON;
 use crate::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
@@ -9,19 +8,19 @@ use std::sync::Mutex;
 
 pub struct VMActivePlan {}
 
-impl ActivePlan<OpenJDK> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM = OpenJDK> {
-        SINGLETON.get_plan()
+impl<const COMPRESSED: bool> ActivePlan<OpenJDK<COMPRESSED>> for VMActivePlan {
+    fn global() -> &'static dyn Plan<VM = OpenJDK<COMPRESSED>> {
+        crate::singleton::<COMPRESSED>().get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
         unsafe { ((*UPCALLS).is_mutator)(tls) }
     }
 
-    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK> {
+    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK<COMPRESSED>> {
         unsafe {
             let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-            &mut *m
+            &mut *(m as *mut Mutator<OpenJDK<COMPRESSED>>)
         }
     }
 
@@ -31,14 +30,14 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut Mutator<OpenJDK>> {
+    fn get_next_mutator() -> Option<&'static mut Mutator<OpenJDK<COMPRESSED>>> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();
             if m.is_null() {
                 None
             } else {
-                Some(&mut *m)
+                Some(&mut *(m as *mut Mutator<OpenJDK<COMPRESSED>>))
             }
         }
     }

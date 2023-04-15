@@ -1,112 +1,129 @@
-use crate::SINGLETON;
-
-use crate::abi::*;
-use crate::{OpenJDKEdge, UPCALLS};
-use mmtk::util::constants::*;
+use super::abi::*;
+use super::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::edge_shape::Edge;
 use mmtk::vm::EdgeVisitor;
+use std::cell::UnsafeCell;
 use std::{mem, slice};
 
 trait OopIterate: Sized {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>);
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    );
 }
 
 impl OopIterate for OopMapBlock {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
+        let log_bytes_in_oop = if COMPRESSED { 2 } else { 3 };
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
-            let edge = start + (i << LOG_BYTES_IN_ADDRESS);
+            let edge = E::from_address(start + (i << log_bytes_in_oop));
             closure.visit_edge(edge);
         }
     }
 }
 
 impl OopIterate for InstanceKlass {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
-            map.oop_iterate(oop, closure)
+            map.oop_iterate::<E, V, COMPRESSED>(oop, closure)
         }
     }
 }
 
 impl OopIterate for InstanceMirrorKlass {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
-        self.instance_klass.oop_iterate(oop, closure);
-        // if (Devirtualizer::do_metadata(closure)) {
-        //     Klass* klass = java_lang_Class::as_Klass(obj);
-        //     // We'll get NULL for primitive mirrors.
-        //     if (klass != NULL) {
-        //       if (klass->is_instance_klass() && InstanceKlass::cast(klass)->is_anonymous()) {
-        //         // An anonymous class doesn't have its own class loader, so when handling
-        //         // the java mirror for an anonymous class we need to make sure its class
-        //         // loader data is claimed, this is done by calling do_cld explicitly.
-        //         // For non-anonymous classes the call to do_cld is made when the class
-        //         // loader itself is handled.
-        //         Devirtualizer::do_cld(closure, klass->class_loader_data());
-        //       } else {
-        //         Devirtualizer::do_klass(closure, klass);
-        //       }
-        //     } else {
-        //       // We would like to assert here (as below) that if klass has been NULL, then
-        //       // this has been a mirror for a primitive type that we do not need to follow
-        //       // as they are always strong roots.
-        //       // However, we might get across a klass that just changed during CMS concurrent
-        //       // marking if allocation occurred in the old generation.
-        //       // This is benign here, as we keep alive all CLDs that were loaded during the
-        //       // CMS concurrent phase in the class loading, i.e. they will be iterated over
-        //       // and kept alive during remark.
-        //       // assert(java_lang_Class::is_primitive(obj), "Sanity check");
-        //     }
-        // }
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
+        self.instance_klass
+            .oop_iterate::<_, _, COMPRESSED>(oop, closure);
 
         // static fields
-        let start: *const Oop = Self::start_of_static_fields(oop).to_ptr::<Oop>();
+        let start = Self::start_of_static_fields(oop);
         let len = Self::static_oop_field_count(oop);
-        let slice = unsafe { slice::from_raw_parts(start, len as _) };
-        for oop in slice {
-            closure.visit_edge(Address::from_ref(oop as &Oop));
+        if COMPRESSED {
+            let start: *const NarrowOop = start.to_ptr::<NarrowOop>();
+            let slice = unsafe { slice::from_raw_parts(start, len as _) };
+            for narrow_oop in slice {
+                closure.visit_edge(E::from_address(narrow_oop.slot()));
+            }
+        } else {
+            let start: *const Oop = start.to_ptr::<Oop>();
+            let slice = unsafe { slice::from_raw_parts(start, len as _) };
+            for oop in slice {
+                closure.visit_edge(E::from_address(Address::from_ref(oop as &Oop)));
+            }
         }
     }
 }
 
 impl OopIterate for InstanceClassLoaderKlass {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
-        self.instance_klass.oop_iterate(oop, closure);
-        // if (Devirtualizer::do_metadata(closure)) {
-        //     ClassLoaderData* cld = java_lang_ClassLoader::loader_data(obj);
-        //     // cld can be null if we have a non-registered class loader.
-        //     if (cld != NULL) {
-        //         Devirtualizer::do_cld(closure, cld);
-        //     }
-        // }
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
+        self.instance_klass
+            .oop_iterate::<_, _, COMPRESSED>(oop, closure);
     }
 }
 
 impl OopIterate for ObjArrayKlass {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
         let array = unsafe { oop.as_array_oop() };
-        for oop in unsafe { array.data::<Oop>(BasicType::T_OBJECT) } {
-            closure.visit_edge(Address::from_ref(oop as &Oop));
+        if COMPRESSED {
+            for narrow_oop in unsafe { array.data::<NarrowOop, COMPRESSED>(BasicType::T_OBJECT) } {
+                closure.visit_edge(E::from_address(narrow_oop.slot()));
+            }
+        } else {
+            for oop in unsafe { array.data::<Oop, COMPRESSED>(BasicType::T_OBJECT) } {
+                closure.visit_edge(E::from_address(Address::from_ref(oop as &Oop)));
+            }
         }
     }
 }
 
 impl OopIterate for TypeArrayKlass {
-    fn oop_iterate(&self, _oop: Oop, _closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        _oop: Oop,
+        _closure: &mut V,
+    ) {
         // Performance tweak: We skip processing the klass pointer since all
         // TypeArrayKlasses are guaranteed processed via the null class loader.
     }
 }
 
 impl OopIterate for InstanceRefKlass {
-    fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
+    fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+        &self,
+        oop: Oop,
+        closure: &mut V,
+    ) {
         use crate::abi::*;
         use crate::api::{add_phantom_candidate, add_soft_candidate, add_weak_candidate};
-        self.instance_klass.oop_iterate(oop, closure);
+        self.instance_klass
+            .oop_iterate::<_, _, COMPRESSED>(oop, closure);
 
-        if Self::should_scan_weak_refs() {
+        if Self::should_scan_weak_refs::<COMPRESSED>() {
             let reference = ObjectReference::from(oop);
             match self.instance_klass.reference_type {
                 ReferenceType::None => {
@@ -128,27 +145,43 @@ impl OopIterate for InstanceRefKlass {
 }
 
 impl InstanceRefKlass {
-    fn should_scan_weak_refs() -> bool {
-        !*SINGLETON.get_options().no_reference_types
+    fn should_scan_weak_refs<const COMPRESSED: bool>() -> bool {
+        !*crate::singleton::<COMPRESSED>()
+            .get_options()
+            .no_reference_types
     }
-    fn process_ref_as_strong(oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
-        let referent_addr = Self::referent_address(oop);
+    fn process_ref_as_strong<E: Edge, V: EdgeVisitor<E>>(oop: Oop, closure: &mut V) {
+        let referent_addr = Self::referent_address::<E>(oop);
         closure.visit_edge(referent_addr);
-        let discovered_addr = Self::discovered_address(oop);
+        let discovered_addr = Self::discovered_address::<E>(oop);
         closure.visit_edge(discovered_addr);
     }
 }
 
 #[allow(unused)]
-fn oop_iterate_slow(oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>, tls: OpaquePointer) {
+fn oop_iterate_slow<E: Edge, V: EdgeVisitor<E>>(oop: Oop, closure: &mut V, tls: OpaquePointer) {
     unsafe {
-        ((*UPCALLS).scan_object)(closure as *mut _ as _, mem::transmute(oop), tls);
+        CLOSURE.with(|x| *x.get() = closure as *mut V as *mut u8);
+        ((*UPCALLS).scan_object)(
+            mem::transmute(scan_object_fn::<E, V> as *const unsafe extern "C" fn(edge: Address)),
+            mem::transmute(oop),
+            tls,
+        );
     }
 }
 
-fn oop_iterate(oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
-    let klass_id = oop.klass.id;
-    debug_assert!(
+fn oop_iterate<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
+    oop: Oop,
+    closure: &mut V,
+    klass: Option<Address>,
+) {
+    let klass = if let Some(klass) = klass {
+        unsafe { &*(klass.as_usize() as *const Klass) }
+    } else {
+        oop.klass::<COMPRESSED>()
+    };
+    let klass_id = klass.id;
+    assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < 6,
         "Invalid klass-id: {:x} for oop: {:x}",
         klass_id as i32,
@@ -156,41 +189,48 @@ fn oop_iterate(oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
     );
     match klass_id {
         KlassID::Instance => {
-            let instance_klass = unsafe { oop.klass.cast::<InstanceKlass>() };
-            instance_klass.oop_iterate(oop, closure);
+            let instance_klass = unsafe { klass.cast::<InstanceKlass>() };
+            instance_klass.oop_iterate::<E, V, COMPRESSED>(oop, closure);
         }
         KlassID::InstanceClassLoader => {
-            let instance_klass = unsafe { oop.klass.cast::<InstanceClassLoaderKlass>() };
-            instance_klass.oop_iterate(oop, closure);
+            let instance_klass = unsafe { klass.cast::<InstanceClassLoaderKlass>() };
+            instance_klass.oop_iterate::<E, V, COMPRESSED>(oop, closure);
         }
         KlassID::InstanceMirror => {
-            let instance_klass = unsafe { oop.klass.cast::<InstanceMirrorKlass>() };
-            instance_klass.oop_iterate(oop, closure);
+            let instance_klass = unsafe { klass.cast::<InstanceMirrorKlass>() };
+            instance_klass.oop_iterate::<E, V, COMPRESSED>(oop, closure);
         }
         KlassID::ObjArray => {
-            let array_klass = unsafe { oop.klass.cast::<ObjArrayKlass>() };
-            array_klass.oop_iterate(oop, closure);
+            let array_klass = unsafe { klass.cast::<ObjArrayKlass>() };
+            array_klass.oop_iterate::<E, V, COMPRESSED>(oop, closure);
         }
         KlassID::TypeArray => {
-            let array_klass = unsafe { oop.klass.cast::<TypeArrayKlass>() };
-            array_klass.oop_iterate(oop, closure);
+            //     let array_klass = unsafe { oop.klass::<COMPRESSED>().cast::<TypeArrayKlass>() };
+            //     array_klass.oop_iterate::<C, COMPRESSED>(oop, closure);
         }
         KlassID::InstanceRef => {
-            let instance_klass = unsafe { oop.klass.cast::<InstanceRefKlass>() };
-            instance_klass.oop_iterate(oop, closure);
-        } // _ => oop_iterate_slow(oop, closure, tls),
+            let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };
+            instance_klass.oop_iterate::<E, V, COMPRESSED>(oop, closure);
+        }
+        #[allow(unreachable_patterns)]
+        _ => unreachable!(), // _ => oop_iterate_slow(oop, closure, OpaquePointer::UNINITIALIZED),
     }
 }
 
-pub fn scan_object(
+thread_local! {
+    static CLOSURE: UnsafeCell<*mut u8> = UnsafeCell::new(std::ptr::null_mut());
+}
+
+pub unsafe extern "C" fn scan_object_fn<E: Edge, V: EdgeVisitor<E>>(edge: Address) {
+    let ptr: *mut u8 = CLOSURE.with(|x| *x.get());
+    let closure = &mut *(ptr as *mut V);
+    closure.visit_edge(E::from_address(edge));
+}
+
+pub fn scan_object<E: Edge, V: EdgeVisitor<E>, const COMPRESSED: bool>(
     object: ObjectReference,
-    closure: &mut impl EdgeVisitor<OpenJDKEdge>,
+    closure: &mut V,
     _tls: VMWorkerThread,
 ) {
-    // println!("*****scan_object(0x{:x}) -> \n 0x{:x}, 0x{:x} \n",
-    //     object,
-    //     unsafe { *(object.value() as *const usize) },
-    //     unsafe { *((object.value() + 8) as *const usize) }
-    // );
-    unsafe { oop_iterate(mem::transmute(object), closure) }
+    unsafe { oop_iterate::<E, V, COMPRESSED>(mem::transmute(object), closure, None) }
 }

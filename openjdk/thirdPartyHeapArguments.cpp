@@ -43,8 +43,8 @@ void ThirdPartyHeapArguments::initialize() {
   GCArguments::initialize();
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
-  FLAG_SET_DEFAULT(UseCompressedOops, false);
-  FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
+  if (UseCompressedOops) mmtk_use_compressed_ptrs();
+  FLAG_SET_DEFAULT(UseCompressedClassPointers, UseCompressedOops);
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {

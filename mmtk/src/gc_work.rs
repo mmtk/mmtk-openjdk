@@ -1,25 +1,32 @@
 use std::sync::atomic::Ordering;
 
 use crate::scanning::to_edges_closure;
-use crate::{OpenJDK, OpenJDKEdge, UPCALLS};
+use crate::Edge;
+use crate::UPCALLS;
 use mmtk::scheduler::*;
 use mmtk::vm::RootsWorkFactory;
+use mmtk::vm::*;
 use mmtk::MMTK;
+use std::marker::PhantomData;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {
-        pub struct $struct_name<F: RootsWorkFactory<OpenJDKEdge>> {
+        pub struct $struct_name<VM: VMBinding, F: RootsWorkFactory<VM::VMEdge>> {
             factory: F,
+            _p: std::marker::PhantomData<VM>,
         }
 
-        impl<F: RootsWorkFactory<OpenJDKEdge>> $struct_name<F> {
+        impl<VM: VMBinding, F: RootsWorkFactory<VM::VMEdge>> $struct_name<VM, F> {
             pub fn new(factory: F) -> Self {
-                Self { factory }
+                Self {
+                    factory,
+                    _p: std::marker::PhantomData,
+                }
             }
         }
 
-        impl<F: RootsWorkFactory<OpenJDKEdge>> GCWork<OpenJDK> for $struct_name<F> {
-            fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+        impl<VM: VMBinding, F: RootsWorkFactory<VM::VMEdge>> GCWork<VM> for $struct_name<VM, F> {
+            fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
                 unsafe {
                     ((*UPCALLS).$func_name)(to_edges_closure(&mut self.factory));
                 }
@@ -43,27 +50,35 @@ scan_roots_work!(
 scan_roots_work!(ScanWeakProcessorRoots, scan_weak_processor_roots);
 scan_roots_work!(ScanVMThreadRoots, scan_vm_thread_roots);
 
-pub struct ScanCodeCacheRoots<F: RootsWorkFactory<OpenJDKEdge>> {
+pub struct ScanCodeCacheRoots<E: Edge, F: RootsWorkFactory<E>> {
     factory: F,
+    _p: PhantomData<E>,
 }
 
-impl<F: RootsWorkFactory<OpenJDKEdge>> ScanCodeCacheRoots<F> {
+impl<E: Edge, F: RootsWorkFactory<E>> ScanCodeCacheRoots<E, F> {
     pub fn new(factory: F) -> Self {
-        Self { factory }
+        Self {
+            factory,
+            _p: PhantomData,
+        }
     }
 }
 
-impl<F: RootsWorkFactory<OpenJDKEdge>> GCWork<OpenJDK> for ScanCodeCacheRoots<F> {
-    fn do_work(&mut self, _worker: &mut GCWorker<OpenJDK>, _mmtk: &'static MMTK<OpenJDK>) {
+impl<VM: VMBinding, F: RootsWorkFactory<VM::VMEdge>> GCWork<VM>
+    for ScanCodeCacheRoots<VM::VMEdge, F>
+{
+    fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
         // Collect all the cached roots
         let mut edges = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
         for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
             for r in roots {
-                edges.push(*r)
+                edges.push(VM::VMEdge::from_address(*r))
             }
         }
         // Create work packet
-        self.factory.create_process_edge_roots_work(edges);
+        if !edges.is_empty() {
+            self.factory.create_process_edge_roots_work(edges);
+        }
         // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
         // unsafe {
         //     ((*UPCALLS).scan_code_cache_roots)(create_process_edges_work::<E> as _);

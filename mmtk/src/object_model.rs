@@ -8,7 +8,7 @@ use mmtk::vm::*;
 
 pub struct VMObjectModel {}
 
-impl ObjectModel<OpenJDK> for VMObjectModel {
+impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
@@ -24,9 +24,13 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     fn copy(
         from: ObjectReference,
         copy: CopySemantics,
-        copy_context: &mut GCWorkerCopyContext<OpenJDK>,
+        copy_context: &mut GCWorkerCopyContext<OpenJDK<COMPRESSED>>,
     ) -> ObjectReference {
-        let bytes = unsafe { Oop::from(from).size() };
+        let bytes = if crate::use_compressed_oops() {
+            unsafe { Oop::from(from).size::<true>() }
+        } else {
+            unsafe { Oop::from(from).size::<false>() }
+        };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
         // Copy
         let src = from.to_raw_address();
@@ -48,9 +52,9 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
                 unsafe { (dst + i).store((src + i).load::<u8>()) };
             }
         }
-        let start = Self::ref_to_object_start(to);
+        let start = <Self as ObjectModel<OpenJDK<COMPRESSED>>>::ref_to_object_start(to);
         if region != Address::ZERO {
-            fill_alignment_gap::<OpenJDK>(region, start);
+            fill_alignment_gap::<OpenJDK<COMPRESSED>>(region, start);
         }
         start + bytes
     }
@@ -60,11 +64,15 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        unsafe { Oop::from(object).size() }
+        if COMPRESSED {
+            unsafe { Oop::from(object).size::<true>() }
+        } else {
+            unsafe { Oop::from(object).size::<false>() }
+        }
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
-        Self::get_current_size(object)
+        <Self as ObjectModel<OpenJDK<COMPRESSED>>>::get_current_size(object)
     }
 
     fn get_align_when_copied(_object: ObjectReference) -> usize {
@@ -106,6 +114,11 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         let oop = Oop::from(object);
         // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
         // If oop.klass is not a valid pointer, we may segfault here.
-        oop.klass.id as i32 >= 0 && (oop.klass.id as i32) < 6
+        let klass_id = if crate::use_compressed_oops() {
+            oop.klass::<true>().id
+        } else {
+            oop.klass::<false>().id
+        } as i32;
+        klass_id >= 0 && klass_id < 6
     }
 }

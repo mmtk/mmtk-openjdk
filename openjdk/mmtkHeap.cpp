@@ -77,8 +77,6 @@ MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) :
 
 jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
-  assert(!UseCompressedOops , "should disable CompressedOops");
-  assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
   const size_t min_heap_size = collector_policy()->min_heap_byte_size();
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
@@ -113,6 +111,10 @@ jint MMTkHeap::initialize() {
   _start = (HeapWord*) starting_heap_address();
   _end = (HeapWord*) last_heap_address();
   //  printf("start: %p, end: %p\n", _start, _end);
+  if (UseCompressedOops) {
+    Universe::set_narrow_oop_base((address) mmtk_narrow_oop_base());
+    Universe::set_narrow_oop_shift(mmtk_narrow_oop_shift());
+  }
 
   initialize_reserved_region(_start, _end);
 
