@@ -11,8 +11,8 @@ use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::{
     BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_INT,
 };
-use mmtk::util::heap::layout::vm_layout_constants::VM_LAYOUT_CONSTANTS;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::VM_LAYOUT_CONSTANTS;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::edge_shape::{Edge, MemorySlice};
 use mmtk::vm::VMBinding;
