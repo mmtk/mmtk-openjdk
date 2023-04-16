@@ -5,7 +5,7 @@ set -xe
 unset JAVA_TOOL_OPTIONS
 
 export MMTK_EXTREME_ASSERTIONS=0
-export GLOBAL_ALLOC_BIT=1
+export VO_BIT=1
 . $(dirname "$0")/ci-build.sh
 
 cd $OPENJDK_PATH

@@ -19,11 +19,11 @@ ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
 endif
 
-ifeq ($(GLOBAL_ALLOC_BIT), 1)
+ifeq ($(VO_BIT), 1)
   ifndef GC_FEATURES
-    GC_FEATURES=--features global_alloc_bit
+    GC_FEATURES=--features vo_bit
   else
-    GC_FEATURES:=$(strip $(GC_FEATURES))",global_alloc_bit"
+    GC_FEATURES:=$(strip $(GC_FEATURES))",vo_bit"
   endif
 endif
 
@@ -79,8 +79,8 @@ FORCE:
 TARGETS += $(LIB_MMTK)
 JVM_SRC_DIRS += $(MMTK_CPP_ROOT) $(MMTK_CPP_ROOT)/barriers
 JVM_CFLAGS += -std=c++11 -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
-ifeq ($(GLOBAL_ALLOC_BIT), 1)
-  JVM_CFLAGS += -DMMTK_ENABLE_GLOBAL_ALLOC_BIT
+ifeq ($(VO_BIT), 1)
+  JVM_CFLAGS += -DMMTK_ENABLE_VO_BIT
 endif
 
 $(BUILD_LIBJVM): $(LIB_MMTK)

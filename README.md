@@ -197,12 +197,14 @@ building OpenJDK, we can change its location to be in the object's header:
 $ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
-### Alloc bit
-To support the `global_alloc_bit` feature in mmtk-core, you can set the environment variable `GLOBAL_ALLOC_BIT=1` when
-building OpenJDK. This will set the feature for mmtk-core, as well as compiling the fastpath for the alloc bit.
+### Valid object bit
+
+To support the `vo_bit` (valid object bit) feature in mmtk-core, you can set the
+environment variable `VO_BIT=1` when building OpenJDK. This will set the feature
+for mmtk-core, as well as compiling the fastpath for the VO bit.
 
 ```console
-$ GLOBAL_ALLOC_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ## Test
