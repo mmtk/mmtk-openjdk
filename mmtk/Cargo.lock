@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.18.0"
-source = "git+https://github.com/wks/mmtk-core.git?branch=rename-to-vo-bit2#b935a286160819f1072bdf6added3a0f33e43b08"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=df146b7af6cf41cc7d6996e1ca538fd2b32950f5#df146b7af6cf41cc7d6996e1ca538fd2b32950f5"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -448,7 +448,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.18.0"
-source = "git+https://github.com/wks/mmtk-core.git?branch=rename-to-vo-bit2#b935a286160819f1072bdf6added3a0f33e43b08"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=df146b7af6cf41cc7d6996e1ca538fd2b32950f5#df146b7af6cf41cc7d6996e1ca538fd2b32950f5"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
