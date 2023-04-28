@@ -32,10 +32,6 @@ const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
 impl Collection<OpenJDK> for VMCollection {
-    /// With the presence of the "VM companion thread",
-    /// the OpenJDK binding allows any MMTk GC thread to stop/start the world.
-    const COORDINATOR_ONLY_STW: bool = false;
-
     fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
     where
         F: FnMut(&'static mut Mutator<OpenJDK>),
