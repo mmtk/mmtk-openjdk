@@ -5,7 +5,34 @@ use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
 use mmtk::Plan;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
+
+struct OpenJDKMutatorIterator<'a> {
+    _guard: MutexGuard<'a, ()>,
+}
+
+impl<'a> OpenJDKMutatorIterator<'a> {
+    fn new(guard: MutexGuard<'a, ()>) -> Self {
+        // Reset mutator iterator
+        unsafe {
+            ((*UPCALLS).reset_mutator_iterator)();
+        }
+        Self { _guard: guard }
+    }
+}
+
+impl<'a> Iterator for OpenJDKMutatorIterator<'a> {
+    type Item = &'a mut Mutator<OpenJDK>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = unsafe { ((*UPCALLS).get_next_mutator)() };
+        if next.is_null() {
+            None
+        } else {
+            Some(unsafe { &mut *next })
+        }
+    }
+}
 
 pub struct VMActivePlan {}
 
@@ -25,22 +52,9 @@ impl ActivePlan<OpenJDK> for VMActivePlan {
         }
     }
 
-    fn reset_mutator_iterator() {
-        unsafe {
-            ((*UPCALLS).reset_mutator_iterator)();
-        }
-    }
-
-    fn get_next_mutator() -> Option<&'static mut Mutator<OpenJDK>> {
-        let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
-        unsafe {
-            let m = ((*UPCALLS).get_next_mutator)();
-            if m.is_null() {
-                None
-            } else {
-                Some(&mut *m)
-            }
-        }
+    fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<OpenJDK>> + 'a> {
+        let guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
+        Box::new(OpenJDKMutatorIterator::new(guard))
     }
 
     fn number_of_mutators() -> usize {
