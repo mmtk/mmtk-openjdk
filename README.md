@@ -209,6 +209,10 @@ $ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$P
 
 ## Test
 
+We support most MMTk GC plans in OpenJDK, such as `SemiSpace`, `Immix`, `GenImmix`, `StickyImmix`, `GenCopy`, `MarkCompact`, `MarkSweep`, `PageProtect`, and `NoGC`.
+When you run with the OpenJDK build from previous steps, you can choose one of the plans by setting an environment variable `MMTK_PLAN`. In the following examples, we use
+the generational immix plan, `GenImmix`.
+
 ### Run HelloWorld (without MMTk)
 
 ```console
@@ -219,7 +223,7 @@ class HelloWorld {
     }
 }
 $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/javac HelloWorld.java
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
+$ MMTK_PLAN=GenImmix ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
 Hello World!
 ```
 
@@ -233,7 +237,7 @@ $ wget https://sourceforge.net/projects/dacapobench/files/9.12-bach-MR1/dacapo-9
 Run a DaCapo benchmark (e.g. `lusearch`):
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
+$ MMTK_PLAN=GenImmix ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
 ===== DaCapo 9.12-MR1 lusearch starting =====
 4 query batches completed
