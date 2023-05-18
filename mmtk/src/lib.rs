@@ -62,8 +62,6 @@ pub struct OpenJDK_Upcalls {
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
-    pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
-    pub reset_mutator_iterator: extern "C" fn(),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
@@ -95,6 +93,9 @@ pub struct OpenJDK_Upcalls {
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
+    pub new_java_thread_iterator: extern "C" fn(iter: *mut abi::JavaThreadIteratorWithHandle),
+    pub java_thread_iterator_next:
+        extern "C" fn(iter: *mut abi::JavaThreadIteratorWithHandle) -> *mut Mutator<OpenJDK>,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

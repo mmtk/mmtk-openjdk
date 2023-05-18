@@ -404,6 +404,38 @@ pub fn validate_memory_layouts() {
             ^ mem::size_of::<InstanceClassLoaderKlass>()
             ^ mem::size_of::<TypeArrayKlass>()
             ^ mem::size_of::<ObjArrayKlass>()
+            ^ mem::size_of::<JavaThreadIteratorWithHandle>()
     };
     assert_eq!(vm_checksum, binding_checksum);
+}
+
+// hotspot/share/runtime/threadSMR.hpp
+#[repr(C)]
+pub struct SafeThreadsListPtr {
+    _previous: *mut libc::c_void,
+    _thread: *mut libc::c_void,
+    _list: *mut libc::c_void,
+    _has_ref_count: bool,
+    _needs_release: bool,
+}
+
+#[repr(C)]
+pub struct ElapsedTimer {
+    _counter: i64,
+    _start_counter: i64,
+    _active: bool,
+}
+
+#[repr(C)]
+pub struct ThreadsListHandle {
+    vtable: *mut libc::c_void,
+    _list_ptr: SafeThreadsListPtr,
+    _timer: ElapsedTimer,
+}
+
+#[repr(C)]
+pub struct JavaThreadIteratorWithHandle {
+    vtable: *mut libc::c_void,
+    _tlh: ThreadsListHandle,
+    _index: u32,
 }

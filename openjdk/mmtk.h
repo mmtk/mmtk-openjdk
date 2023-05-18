@@ -149,8 +149,6 @@ typedef struct {
     void (*spawn_gc_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
-    void* (*get_next_mutator) ();
-    void (*reset_mutator_iterator) ();
     void (*scan_object) (void* trace, void* object, void* tls);
     void (*dump_object) (void* object);
     size_t (*get_object_size) (void* object);
@@ -182,6 +180,8 @@ typedef struct {
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
     void (*enqueue_references)(void** objects, size_t len);
+    void (*new_java_thread_iterator)(void*);
+    void* (*java_thread_iterator_next)(void*);
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls);

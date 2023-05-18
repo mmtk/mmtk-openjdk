@@ -190,26 +190,17 @@ private:
   char _data[sizeof(T)];
 };
 
-static MaybeUninit<JavaThreadIteratorWithHandle> jtiwh;
-static bool mutator_iteration_start = true;
+static void mmtk_new_java_thread_iterator(void* iter) {
+  *(JavaThreadIteratorWithHandle*)iter = JavaThreadIteratorWithHandle();
+}
 
-static void* mmtk_get_next_mutator() {
-  if (mutator_iteration_start) {
-    *jtiwh = JavaThreadIteratorWithHandle();
-    mutator_iteration_start = false;
-  }
-  JavaThread *thr = jtiwh->next();
+static void* mmtk_java_thread_iterator_next(void* iter) {
+  JavaThread *thr = ((JavaThreadIteratorWithHandle*)iter)->next();
   if (thr == NULL) {
-    mutator_iteration_start = true;
     return NULL;
   }
   return (void*) &thr->third_party_heap_mutator;
 }
-
-static void mmtk_reset_mutator_iterator() {
-  mutator_iteration_start = true;
-}
-
 
 static void mmtk_scan_all_thread_roots(EdgesClosure closure) {
   MMTkRootsClosure2 cl(closure);
@@ -276,7 +267,8 @@ static size_t compute_klass_mem_layout_checksum() {
     ^ sizeof(InstanceMirrorKlass)
     ^ sizeof(InstanceClassLoaderKlass)
     ^ sizeof(TypeArrayKlass)
-    ^ sizeof(ObjArrayKlass);
+    ^ sizeof(ObjArrayKlass)
+    ^ sizeof(JavaThreadIteratorWithHandle);
 }
 
 static int referent_offset() {
@@ -347,8 +339,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_spawn_gc_thread,
   mmtk_block_for_gc,
   mmtk_out_of_memory,
-  mmtk_get_next_mutator,
-  mmtk_reset_mutator_iterator,
   mmtk_scan_object,
   mmtk_dump_object,
   mmtk_get_object_size,
@@ -379,5 +369,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
-  mmtk_enqueue_references
+  mmtk_enqueue_references,
+  mmtk_new_java_thread_iterator,
+  mmtk_java_thread_iterator_next,
 };
