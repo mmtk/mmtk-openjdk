@@ -428,6 +428,11 @@ pub struct ElapsedTimer {
 
 #[repr(C)]
 pub struct ThreadsListHandle {
+    // This is speculative:
+    // SafeThreadsListPtr is 32 bytes, and ElapsedTimer is 24 bytes.
+    // But ThreadsListHandle in C++ has a size of 64 bytes in debug builds, but 56 bytes in release builds.
+    // I am guessing the compiler includes a vtable pointer in debug builds, and optimize it away in release builds.
+    #[cfg(debug_assertions)]
     vtable: *mut libc::c_void,
     _list_ptr: SafeThreadsListPtr,
     _timer: ElapsedTimer,
