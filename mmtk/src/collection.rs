@@ -8,26 +8,6 @@ use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-extern "C" fn report_mutator_stop<F>(
-    mutator: *mut Mutator<OpenJDK>,
-    callback_ptr: *mut libc::c_void,
-) where
-    F: FnMut(&'static mut Mutator<OpenJDK>),
-{
-    let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
-    callback(unsafe { &mut *mutator });
-}
-
-fn to_mutator_closure<F>(callback: &mut F) -> MutatorClosure
-where
-    F: FnMut(&'static mut Mutator<OpenJDK>),
-{
-    MutatorClosure {
-        func: report_mutator_stop::<F>,
-        data: callback as *mut F as *mut libc::c_void,
-    }
-}
-
 const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
@@ -43,7 +23,7 @@ impl Collection<OpenJDK> for VMCollection {
             ((*UPCALLS).stop_all_mutators)(
                 tls,
                 scan_mutators_in_safepoint,
-                to_mutator_closure(&mut mutator_visitor),
+                MutatorClosure::from_rust_closure(&mut mutator_visitor),
             );
         }
     }

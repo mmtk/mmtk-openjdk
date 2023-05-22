@@ -39,6 +39,28 @@ pub struct MutatorClosure {
     pub data: *mut libc::c_void,
 }
 
+impl MutatorClosure {
+    fn from_rust_closure<F>(callback: &mut F) -> Self
+    where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        Self {
+            func: Self::call_rust_closure::<F>,
+            data: callback as *mut F as *mut libc::c_void,
+        }
+    }
+
+    extern "C" fn call_rust_closure<F>(
+        mutator: *mut Mutator<OpenJDK>,
+        callback_ptr: *mut libc::c_void,
+    ) where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
+        callback(unsafe { &mut *mutator });
+    }
+}
+
 /// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct EdgesClosure {
@@ -62,8 +84,7 @@ pub struct OpenJDK_Upcalls {
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
-    pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
-    pub reset_mutator_iterator: extern "C" fn(),
+    pub get_mutators: extern "C" fn(closure: MutatorClosure),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,

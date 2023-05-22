@@ -149,8 +149,7 @@ typedef struct {
     void (*spawn_gc_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
-    void* (*get_next_mutator) ();
-    void (*reset_mutator_iterator) ();
+    void (*get_mutators) (MutatorClosure closure);
     void (*scan_object) (void* trace, void* object, void* tls);
     void (*dump_object) (void* object);
     size_t (*get_object_size) (void* object);
