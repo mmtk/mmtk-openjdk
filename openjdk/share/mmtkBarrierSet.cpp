@@ -90,6 +90,7 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
              (BarrierSetC1*) get_selected_barrier()->create_c1(),
              (BarrierSetC2*) get_selected_barrier()->create_c2(),
              NULL,
+             NULL,
              BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
   _whole_heap(whole_heap),
   _runtime(get_selected_barrier()->create_runtime()) {}

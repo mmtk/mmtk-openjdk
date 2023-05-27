@@ -411,7 +411,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
       }
     }
 
-    if (x->C->env()->dtrace_extended_probes()) {
+    if (x->C->env()->dtrace_alloc_probes()) {
       // Slow-path call
       int size = TypeFunc::Parms + 2;
       CallLeafNode *call = new CallLeafNode(OptoRuntime::dtrace_object_alloc_Type(),

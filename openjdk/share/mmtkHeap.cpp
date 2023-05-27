@@ -34,6 +34,7 @@
 #include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
+#include "gc/shared/gcLocker.inline.hpp"
 #include "logging/log.hpp"
 #include "memory/resourceArea.hpp"
 #include "mmtk.h"
@@ -332,7 +333,7 @@ void MMTkHeap::initialize_serviceability() {//OK
 
   _mmtk_pool = new MMTkMemoryPool(_start, _end, "MMTk pool", MinHeapSize, false);
 
-  _mmtk_manager = new GCMemoryManager("MMTk GC", "end of GC");
+  _mmtk_manager = new GCMemoryManager("MMTk GC");
   _mmtk_manager->add_pool(_mmtk_pool);
 }
 
@@ -458,6 +459,17 @@ bool MMTkHeap::requires_barriers(stackChunkOop obj) const {
   ShouldNotReachHere();
   return false;
 }
+
+void MMTkHeap::pin_object(JavaThread* thread, oop obj) {
+  // TODO use mmtk-core pin_object
+  GCLocker::lock_critical(thread);
+}
+
+void MMTkHeap::unpin_object(JavaThread* thread, oop obj) {
+  // TODO use mmtk-core unpin_object
+  GCLocker::unlock_critical(thread);
+}
+
 
 /*
  * files with prints currently:

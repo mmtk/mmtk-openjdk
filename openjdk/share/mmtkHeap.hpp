@@ -137,6 +137,9 @@ public:
   // Iterate over all objects, calling "cl.do_object" on each.
   void object_iterate(ObjectClosure* cl);
 
+  void pin_object(JavaThread* thread, oop obj);
+  void unpin_object(JavaThread* thread, oop obj);
+
   // Similar to object_iterate() except iterates only
   // over live objects.
   void safe_object_iterate(ObjectClosure* cl) ;
