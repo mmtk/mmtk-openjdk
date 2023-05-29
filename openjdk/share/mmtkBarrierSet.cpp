@@ -109,6 +109,7 @@ void MMTkBarrierSet::resize_covered_region(MemRegion new_region) {
 
 void MMTkBarrierSet::on_thread_destroy(Thread* thread) {
   thread->third_party_heap_mutator.flush();
+  thread->third_party_heap_mutator.destroy();
 }
 
 void MMTkBarrierSet::on_thread_attach(Thread* thread) {

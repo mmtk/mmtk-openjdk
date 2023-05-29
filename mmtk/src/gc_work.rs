@@ -1,10 +1,10 @@
 use std::sync::atomic::Ordering;
 
-use super::{OpenJDK, OpenJDKEdge, UPCALLS};
+use crate::scanning::to_edges_closure;
+use crate::{OpenJDK, OpenJDKEdge, UPCALLS};
 use mmtk::scheduler::*;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
-use scanning::to_edges_closure;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {

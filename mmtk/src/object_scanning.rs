@@ -1,5 +1,7 @@
-use super::abi::*;
-use super::{OpenJDKEdge, UPCALLS};
+use crate::SINGLETON;
+
+use crate::abi::*;
+use crate::{OpenJDKEdge, UPCALLS};
 use mmtk::util::constants::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
@@ -135,7 +137,6 @@ impl OopIterate for InstanceRefKlass {
 impl InstanceRefKlass {
     #[inline]
     fn should_scan_weak_refs() -> bool {
-        use SINGLETON;
         !*SINGLETON.get_options().no_reference_types
     }
     #[inline]

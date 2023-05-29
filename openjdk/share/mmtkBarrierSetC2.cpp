@@ -134,7 +134,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
 
   if (!MMTK_ENABLE_ALLOCATION_FASTPATH
       // Malloc allocator has no fastpath
-      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT)) {
+      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;

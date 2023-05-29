@@ -1,8 +1,5 @@
-extern crate libc;
-extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
-extern crate once_cell;
 
 use std::collections::HashMap;
 use std::ops::Range;
@@ -15,9 +12,7 @@ use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::VMBinding;
-use mmtk::MMTKBuilder;
-use mmtk::Mutator;
-use mmtk::MMTK;
+use mmtk::{MMTKBuilder, Mutator, MMTK};
 
 mod abi;
 pub mod active_plan;
@@ -40,15 +35,19 @@ pub struct NewBuffer {
 /// A closure for reporting mutators.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct MutatorClosure {
-    pub func: *const extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
+    pub func: extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
     pub data: *mut libc::c_void,
 }
 
 /// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct EdgesClosure {
-    pub func:
-        *const extern "C" fn(buf: *mut Address, size: usize, cap: usize, data: *const libc::c_void),
+    pub func: extern "C" fn(
+        buf: *mut Address,
+        size: usize,
+        cap: usize,
+        data: *mut libc::c_void,
+    ) -> NewBuffer,
     pub data: *const libc::c_void,
 }
 
@@ -95,15 +94,19 @@ pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
 #[no_mangle]
 pub static GLOBAL_SIDE_METADATA_BASE_ADDRESS: uintptr_t =
-    crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize();
+    mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize();
 
 #[no_mangle]
 pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
-    crate::mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
+    mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
 
 #[no_mangle]
 pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
-    crate::mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
+    mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
+
+#[no_mangle]
+pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
+    std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK>>();
 
 #[derive(Default)]
 pub struct OpenJDK;
@@ -124,6 +127,10 @@ impl VMBinding for OpenJDK {
 
     type VMEdge = OpenJDKEdge;
     type VMMemorySlice = Range<Address>;
+
+    const MIN_ALIGNMENT: usize = 8;
+    const MAX_ALIGNMENT: usize = 8;
+    const USE_ALLOCATION_OFFSET: bool = false;
 }
 
 use std::sync::atomic::AtomicBool;
