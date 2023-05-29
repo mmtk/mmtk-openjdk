@@ -121,9 +121,7 @@ pub struct InstanceKlass {
     pub nest_host_index: u16,
     pub this_class_index: u16,
     pub static_oop_field_count: u16,
-    pub java_fields_count: u16,
     pub idnum_allocated_count: u16,
-    pub is_marked_dependent: bool, // bool
     pub init_state: u8,
     pub reference_type: ReferenceType,
     pub misc_flags: u16,
@@ -145,13 +143,16 @@ pub struct InstanceKlass {
     // #endif
     #[cfg(debug_assertions)]
     verify_count: i32,
+    #[cfg(debug_assertions)]
+    _shared_class_load_count: i32,
     pub methods: OpaquePointer,                // Array<Method*>*
     pub default_methods: OpaquePointer,        // Array<Method*>*
     pub local_interfaces: OpaquePointer,       // Array<Klass*>*
     pub transitive_interfaces: OpaquePointer,  // Array<Klass*>*
     pub method_ordering: OpaquePointer,        // Array<int>*
     pub default_vtable_indices: OpaquePointer, // Array<int>*
-    pub fields: OpaquePointer,                 // Array<u2>*
+    pub fieldinfo_stream: OpaquePointer,       // Array<u1>*
+    pub fields_status: OpaquePointer,          // Array<FieldStatus>*
 }
 
 #[repr(u8)]
