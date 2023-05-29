@@ -33,6 +33,7 @@
 #include "gc/shared/oopStorageParState.hpp"
 #include "gc/shared/space.hpp"
 #include "gc/shared/strongRootsScope.hpp"
+#include "gc/shared/softRefPolicy.hpp"
 #include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
 #include "mmtkFinalizerThread.hpp"
@@ -45,7 +46,6 @@ class MemoryPool;
 //class mmtkGCTaskManager;
 class MMTkVMCompanionThread;
 class MMTkHeap : public CollectedHeap {
-  SoftRefPolicy* _soft_ref_policy;
   MMTkMemoryPool* _mmtk_pool;
   GCMemoryManager* _mmtk_manager;
   HeapWord* _start;
@@ -56,6 +56,7 @@ class MMTkHeap : public CollectedHeap {
   ContiguousSpace* _space;
   int _num_root_scan_tasks;
   MMTkVMCompanionThread* _companion_thread;
+  SoftRefPolicy _soft_ref_policy;
 public:
 
   MMTkHeap();

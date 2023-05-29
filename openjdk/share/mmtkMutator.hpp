@@ -69,7 +69,7 @@ struct FLBlockList {
   char lock;
 };
 
-struct FreeListAllocator {
+struct MMTkFreeListAllocator {
   void* tls;
   void* space;
   RustDynPtr plan;
@@ -94,7 +94,7 @@ struct Allocators {
   LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
   MallocAllocator malloc[MAX_MALLOC_ALLOCATORS];
   ImmixAllocator immix[MAX_IMMIX_ALLOCATORS];
-  FreeListAllocator free_list[MAX_FREE_LIST_ALLOCATORS];
+  MMTkFreeListAllocator free_list[MAX_FREE_LIST_ALLOCATORS];
   MarkCompactAllocator markcompact[MAX_MARK_COMPACT_ALLOCATORS];
 };
 

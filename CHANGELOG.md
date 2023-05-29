@@ -1,3 +1,12 @@
+0.17.0 (2023-02-17)
+===
+
+* MMTk OpenJDK binding now uses Rust 1.66.1 and MSRV is 1.61.0.
+* Support dynamic heap resizing (enabled when `Xmx` and `Xms` values are different).
+* Remove all inline directives. We rely on Rust compiler and PGO for inline decisions. Add provide a PGO guide.
+* Fix a crash caused by null pointer access if the VM calls `CollectedHeap::soft_ref_policy()`.
+* Update to mmtk-core 0.17.0.
+
 0.16.0 (2022-12-06)
 ===
 

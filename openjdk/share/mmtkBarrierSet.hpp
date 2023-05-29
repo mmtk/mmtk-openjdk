@@ -31,6 +31,7 @@
 #include "memory/memRegion.hpp"
 #include "mmtk.h"
 #include "oops/access.hpp"
+#include "oops/arrayOop.hpp"
 #include "oops/accessBackend.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"

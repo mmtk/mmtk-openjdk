@@ -73,7 +73,13 @@ object iterator??!!
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
-MMTkHeap::MMTkHeap() : CollectedHeap(), _n_workers(0), _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true)), _num_root_scan_tasks(0), _last_gc_time(0)
+MMTkHeap::MMTkHeap() :
+  CollectedHeap(),
+  _n_workers(0),
+  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true)),
+  _num_root_scan_tasks(0),
+  _soft_ref_policy(),
+  _last_gc_time(0)
 // , _par_state_string(StringTable::weak_storage())
 {
   _heap = this;
@@ -83,7 +89,8 @@ jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
   assert(!UseCompressedOops , "should disable CompressedOops");
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
-  const size_t heap_size = MaxHeapSize;
+  const size_t min_heap_size = MinHeapSize;
+  const size_t max_heap_size = MaxHeapSize;
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
   // Set options
@@ -92,8 +99,8 @@ jint MMTkHeap::initialize() {
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
   // Set heap size
-  bool set_heap_size = mmtk_set_heap_size(heap_size);
-  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: %ld\n", heap_size);
+  bool set_heap_size = mmtk_set_heap_size(min_heap_size, max_heap_size);
+  guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: min = %ld, max = %ld\n", min_heap_size, max_heap_size);
 
   openjdk_gc_init(&mmtk_upcalls);
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
@@ -113,7 +120,7 @@ jint MMTkHeap::initialize() {
   //_start = (HeapWord*)heap_rs.base();
   //_end = (HeapWord*)(heap_rs.base() + heap_rs.size());
 
-  ReservedHeapSpace heap_rs = Universe::reserve_heap(heap_size, HeapAlignment);
+  ReservedHeapSpace heap_rs = Universe::reserve_heap(MaxHeapSize, HeapAlignment);
   //  printf("start: %p, end: %p\n", _start, _end);
 
   initialize_reserved_region(heap_rs);
@@ -271,7 +278,7 @@ void MMTkHeap::do_full_collection(bool clear_all_soft_refs) {//later when gc is 
 }
 
 
-SoftRefPolicy* MMTkHeap::soft_ref_policy() {return _soft_ref_policy;}//OK
+SoftRefPolicy* MMTkHeap::soft_ref_policy() {return &_soft_ref_policy;}//OK
 
 GrowableArray<GCMemoryManager*> MMTkHeap::memory_managers() {//may cause error
 
