@@ -129,7 +129,7 @@ pub extern "C" fn alloc(
     mutator: *mut Mutator<OpenJDK>,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
