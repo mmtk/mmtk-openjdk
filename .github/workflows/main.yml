@@ -1,0 +1,167 @@
+name: "Continuous Integration"
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux-x64:
+    name: linux-x64
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: true
+      matrix:
+        debug-level: ["fastdebug", "release"]
+    steps:
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v3
+        with:
+          path: ./git/mmtk-openjdk
+      - name: Extract OpenJDK revision
+        id: extract-openjdk-revision
+        run: |
+          OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < git/mmtk-openjdk/mmtk/Cargo.toml`
+          echo "openjdk-revision=$OPENJDK_VERSION" >> $GITHUB_OUTPUT
+      - name: Checkout OpenJDK
+        uses: actions/checkout@v3
+        with:
+          repository: mmtk/openjdk
+          path: ./git/openjdk
+          ref: ${{ steps.extract-openjdk-revision.outputs.openjdk-revision }}
+      - name: Setup environment
+        run: ./.github/scripts/setup.sh
+        working-directory: ./git/mmtk-openjdk
+      - name: Style checks
+        run: ./.github/scripts/style-check.sh
+        working-directory: ./git/mmtk-openjdk
+      - name: Build MMTk OpenJDK ${{ matrix.debug-level }}
+        run: DEBUG_LEVEL=${{ matrix.debug-level }} ./.github/scripts/build-normal.sh
+        working-directory: ./git/mmtk-openjdk
+      - name: Upload bundles
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles
+          path: ./git/openjdk/build/linux-x86_64-normal-server-${{ matrix.debug-level }}/bundles/*_bin.tar.gz
+          retention-days: 2
+
+  cache-dacapo:
+    name: Cache DaCapo Chopin git-04132797
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check DaCapo Chopin git-04132797 cache
+        id: dacapo-04132797
+        uses: actions/cache@v3
+        with:
+          path: dacapo/dacapo-evaluation-git-04132797.zip
+          key: dacapo-chopin-git-04132797
+          lookup-only: true
+      - name: Install DaCapo Chopin git-04132797
+        if: steps.dacapo-04132797.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "https://download.dacapobench.org/dacapo-evaluation-git-04132797.zip" -O dacapo-evaluation-git-04132797.zip
+          popd
+
+  test-linux-x64:
+    name: linux-x64
+    needs:
+      - build-linux-x64
+      - cache-dacapo
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        debug-level: ["fastdebug", "release"]
+        benchmark:
+          - avrora
+          - batik
+          - biojava
+          - cassandra
+          - eclipse
+          - fop
+          - graphchi
+          - h2
+          - h2o
+          - jme
+          - jython
+          - kafka
+          - luindex
+          - lusearch
+          - pmd
+          # spring
+          - sunflow
+          - tomcat
+          # tradebeans
+          # tradesoap
+          - xalan
+          - zxing
+    steps:
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v3
+      - name: Setup environment
+        run: |
+          pip3 install running-ng
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
+      - name: Fetch DaCapo Chopin git-04132797 cache
+        id: dacapo-04132797
+        uses: actions/cache@v3
+        with:
+          path: dacapo/dacapo-evaluation-git-04132797.zip
+          key: dacapo-chopin-git-04132797
+          # fail-on-cache-miss: true    # We should never have a cache miss here as we cache DaCapo in an earlier job
+          # Temporarily change this to false in case the cache download gets
+          # stuck -- if the cache download is stuck then we go straight to
+          # upstream and fetch the zip file
+          fail-on-cache-miss: false
+      - name: Install DaCapo Chopin git-04132797
+        if: steps.dacapo-04132797.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "https://download.dacapobench.org/dacapo-evaluation-git-04132797.zip" -O dacapo-evaluation-git-04132797.zip
+          popd
+      - name: Unzip DaCapo Chopin git-04132797
+        run: |
+          pushd dacapo
+          unzip dacapo-evaluation-git-04132797.zip
+          popd
+      - name: Download bundles
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles
+          path: bundles
+      - name: Extract OpenJDK
+        run: |
+          pushd bundles
+          tar xvf *.tar.gz
+          BIN_DIR=`find . -name bin`
+          mv `dirname $BIN_DIR` jdk
+          popd
+      - name: Run DaCapo Chopin git-04132797 ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with 2.5x MarkCompact minheap
+        run: |
+          DACAPO_PATH=`realpath ./dacapo`
+          sed -i "s;DACAPO_PATH;$DACAPO_PATH;g" .github/configs/base.yml
+          echo "    - ${{ matrix.benchmark }}" >> .github/configs/base.yml
+          running runbms /tmp .github/configs/base.yml -s 2.5 -p linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }} | tee /tmp/running.stdout
+      - name: Extract running run id
+        id: extract-running-run-id
+        run: |
+          RUN_ID=`sed -n 's/^Run id:.\(.*\)$/\1/p' < /tmp/running.stdout`
+          echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
+      - name: Upload running artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }}
+          path: /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
+      - name: Check for test failures
+        run: |
+          RUNNING_OUTPUT=`sed -n "s/^\(${{ matrix.benchmark }} .*\)$/\1/p" < /tmp/running.stdout`
+          echo $RUNNING_OUTPUT
+          echo $RUNNING_OUTPUT | grep -vq "\."
