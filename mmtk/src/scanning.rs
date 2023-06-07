@@ -58,7 +58,10 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_roots_in_all_mutator_threads(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory<OpenJDKEdge>) {
+    fn scan_roots_in_all_mutator_threads(
+        _tls: VMWorkerThread,
+        mut factory: impl RootsWorkFactory<OpenJDKEdge>,
+    ) {
         unsafe {
             ((*UPCALLS).scan_roots_in_all_mutator_threads)(to_edges_closure(&mut factory));
         }
