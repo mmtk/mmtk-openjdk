@@ -58,20 +58,20 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory<OpenJDKEdge>) {
+    fn scan_roots_in_all_mutator_threads(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory<OpenJDKEdge>) {
         unsafe {
-            ((*UPCALLS).scan_all_thread_roots)(to_edges_closure(&mut factory));
+            ((*UPCALLS).scan_roots_in_all_mutator_threads)(to_edges_closure(&mut factory));
         }
     }
 
-    fn scan_thread_root(
+    fn scan_roots_in_mutator_thread(
         _tls: VMWorkerThread,
         mutator: &'static mut Mutator<OpenJDK>,
         mut factory: impl RootsWorkFactory<OpenJDKEdge>,
     ) {
         let tls = mutator.get_tls();
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory), tls);
+            ((*UPCALLS).scan_roots_in_mutator_thread)(to_edges_closure(&mut factory), tls);
         }
     }
 
