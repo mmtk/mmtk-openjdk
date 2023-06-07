@@ -195,7 +195,7 @@ public:
 
   void scan_roots(OopClosure& cl);
 
-  void scan_thread_roots(OopClosure& cl);
+  void scan_roots_in_all_mutator_threads(OopClosure& cl);
 
   void scan_universe_roots(OopClosure& cl);
   void scan_jni_handle_roots(OopClosure& cl);

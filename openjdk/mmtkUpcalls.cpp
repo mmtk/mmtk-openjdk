@@ -184,12 +184,12 @@ static void mmtk_get_mutators(MutatorClosure closure) {
   }
 }
 
-static void mmtk_scan_all_thread_roots(EdgesClosure closure) {
+static void mmtk_scan_roots_in_all_mutator_threads(EdgesClosure closure) {
   MMTkRootsClosure2 cl(closure);
-  MMTkHeap::heap()->scan_thread_roots(cl);
+  MMTkHeap::heap()->scan_roots_in_all_mutator_threads(cl);
 }
 
-static void mmtk_scan_thread_roots(EdgesClosure closure, void* tls) {
+static void mmtk_scan_roots_in_mutator_thread(EdgesClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure2 cl(closure);
@@ -334,8 +334,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   referent_offset,
   discovered_offset,
   dump_object_string,
-  mmtk_scan_all_thread_roots,
-  mmtk_scan_thread_roots,
+  mmtk_scan_roots_in_all_mutator_threads,
+  mmtk_scan_roots_in_mutator_thread,
   mmtk_scan_universe_roots,
   mmtk_scan_jni_handle_roots,
   mmtk_scan_object_synchronizer_roots,

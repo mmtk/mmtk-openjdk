@@ -163,8 +163,8 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_all_thread_roots)(EdgesClosure closure);
-    void (*scan_thread_roots)(EdgesClosure closure, void* tls);
+    void (*scan_roots_in_all_mutator_threads)(EdgesClosure closure);
+    void (*scan_roots_in_mutator_thread)(EdgesClosure closure, void* tls);
     void (*scan_universe_roots) (EdgesClosure closure);
     void (*scan_jni_handle_roots) (EdgesClosure closure);
     void (*scan_object_synchronizer_roots) (EdgesClosure closure);
