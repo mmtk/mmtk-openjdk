@@ -135,9 +135,9 @@ public:
     return ((MMTkBarrierSet*) BarrierSet::barrier_set())->_runtime;
   }
 
-  virtual void on_thread_destroy(Thread* thread);
-  virtual void on_thread_attach(Thread* thread);
-  virtual void on_thread_detach(Thread* thread);
+  virtual void on_thread_destroy(Thread* thread) override;
+  virtual void on_thread_attach(Thread* thread) override;
+  virtual void on_thread_detach(Thread* thread) override;
 
   virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) override {
     runtime()->object_probable_write(new_obj);
@@ -153,7 +153,7 @@ public:
   virtual bool is_aligned(HeapWord* addr);
 
   // Print a description of the memory for the barrier set
-  virtual void print_on(outputStream* st) const;
+  virtual void print_on(outputStream* st) const override;
 
 
   // The AccessBarrier of a BarrierSet subclass is called by the Access API

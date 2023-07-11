@@ -59,7 +59,7 @@ ifeq ($(MMTK_MALLOC_MARK_SWEEP), 1)
   endif
 endif
 
-LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.so
+LIB_MMTK := $(JVM_LIB_OUTPUTDIR)/libmmtk_openjdk.dylib
 
 ifeq ($(DEBUG_LEVEL), release)
   CARGO_PROFILE = release
@@ -92,7 +92,7 @@ $(LIB_MMTK): FORCE
 	fi
 	echo "cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
 	cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
-	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_TARGET)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_TARGET)/$(CARGO_PROFILE)/libmmtk_openjdk.dylib $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
@@ -101,7 +101,7 @@ FORCE:
 
 TARGETS += $(LIB_MMTK)
 JVM_SRC_DIRS += $(MMTK_CPP_ROOT)/share $(MMTK_CPP_ROOT)/share/barriers $(MMTK_CPP_ROOT)/cpu/$(HOTSPOT_TARGET_CPU_ARCH)
-JVM_CFLAGS += -std=c++14 -fpermissive -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/cpu/$(HOTSPOT_TARGET_CPU_ARCH)
+JVM_CFLAGS += -std=c++14 -fpermissive -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/cpu/zero
 ifeq ($(GLOBAL_ALLOC_BIT), 1)
   JVM_CFLAGS += -DMMTK_ENABLE_GLOBAL_ALLOC_BIT
 endif

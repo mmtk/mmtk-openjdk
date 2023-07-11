@@ -81,7 +81,7 @@ struct MMTkC1BarrierStub: CodeStub {
     if (new_val != NULL) visitor->do_input(new_val);
   }
 
-  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1BarrierStub"); });
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const  override{ out->print("MMTkC1BarrierStub"); });
 };
 #endif
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
