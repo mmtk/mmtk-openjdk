@@ -71,7 +71,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
       // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
       //  printf("max_non_los_bytes %lu\n",max_non_los_bytes);
       __ movi(rscratch1, max_non_los_bytes - extra_header);
-      __ tbr(Condition::GT, var_size_in_bytes, rscratch1, slow_case, is_far);
+      __ cmp(rscratch1, var_size_in_bytes);
+      __ br(Assembler::LT, slow_case);
     }
 
     if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
@@ -105,12 +106,14 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     }
     // slowpath if end < obj
     __ cmp(end, obj);
-    __ bltu(slow_case, is_far);
+    __ br(Assembler::LT, slow_case);
     // slowpath if end > lab.limit
     __ ldr(tmp1, limit);
     // XXX debug use, force slow path
     // __ bgtu(end, zr, slow_case, is_far);
-    __ bgtu(end, tmp1, slow_case, is_far);
+    __ cmp(end, tmp1);
+    __ br(Assembler::GT, slow_case);
+    
     // lab.cursor = end
     __ str(end, cursor);
 
@@ -192,7 +195,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler*
   ce->store_parameter(stub->slot->as_pointer_register(), 1);
   ce->store_parameter(stub->new_val->as_pointer_register(), 2);
   __ far_call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
-  __ j(*stub->continuation());
+  __ b(*stub->continuation());
 }
 
 #undef __
