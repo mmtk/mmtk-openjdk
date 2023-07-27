@@ -40,6 +40,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
+
   assert_different_registers(obj, tmp1, tmp2);
   assert_different_registers(val, tmp1, tmp2);
   assert(tmp1->is_valid(), "need temp reg");
@@ -47,7 +48,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   // tmp1 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
   __ mov(tmp1, obj);
   __ lsr(tmp1, tmp1, 6); // tmp1 = obj >> 6;
-  __ movi(tmp2, SIDE_METADATA_BASE_ADDRESS);
+  __ mov(tmp2, SIDE_METADATA_BASE_ADDRESS);
   __ add(tmp1, tmp1, tmp2); // tmp1 = SIDE_METADATA_BASE_ADDRESS + (obj >> 6);
   __ ldrb(tmp1, Address(tmp1, 0));
   // tmp2 = (obj >> 3) & 7
