@@ -82,7 +82,7 @@ impl Scanning<OpenJDK> for VMScanning {
                 Box::new(ScanStringTableRoots::new(factory.clone())) as _,
                 Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
                 Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
-                Box::new(ScanVMThreadRoots::new(factory.clone())) as _,
+                Box::new(ScanVMThreadRoots::new(factory)) as _,
             ],
         );
     }
