@@ -1,7 +1,7 @@
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
-use mmtk::vm::{Collection, GCThreadContext, Scanning, VMBinding};
-use mmtk::{Mutator, MutatorContext};
+use mmtk::vm::{Collection, GCThreadContext};
+use mmtk::Mutator;
 
 use crate::UPCALLS;
 use crate::{MutatorClosure, OpenJDK};
@@ -16,13 +16,9 @@ impl Collection<OpenJDK> for VMCollection {
     where
         F: FnMut(&'static mut Mutator<OpenJDK>),
     {
-        let scan_mutators_in_safepoint =
-            <OpenJDK as VMBinding>::VMScanning::SCAN_MUTATORS_IN_SAFEPOINT;
-
         unsafe {
             ((*UPCALLS).stop_all_mutators)(
                 tls,
-                scan_mutators_in_safepoint,
                 MutatorClosure::from_rust_closure(&mut mutator_visitor),
             );
         }
@@ -53,14 +49,6 @@ impl Collection<OpenJDK> for VMCollection {
         unsafe {
             ((*UPCALLS).spawn_gc_thread)(tls, kind, ctx_ptr);
         }
-    }
-
-    fn prepare_mutator<T: MutatorContext<OpenJDK>>(
-        _tls_w: VMWorkerThread,
-        _tls_m: VMMutatorThread,
-        _m: &T,
-    ) {
-        // unimplemented!()
     }
 
     fn out_of_memory(tls: VMThread, err_kind: AllocationError) {
