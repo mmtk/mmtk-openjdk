@@ -46,6 +46,11 @@ nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
 # See README.
 vo_bit = ["mmtk/vo_bit"]
 
+# Use the env var EXTRA_HEADER=1 when building OpenJDK so the fastpath for allocating extra header will be compiled in.
+# See README.
+extra_header = ["mmtk/extra_header"]
+
+
 # This compile time constant places the mark bit in the header of the object instead of on the side.
 mark_bit_in_header = []
 

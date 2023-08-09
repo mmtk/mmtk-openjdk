@@ -188,3 +188,7 @@ lazy_static! {
 
 /// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
 static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(feature = "extra_header")]
+#[no_mangle]
+pub static MMTK_EXTRA_HEADER_BYTES: usize = <OpenJDK as VMBinding>::EXTRA_HEADER_BYTES;

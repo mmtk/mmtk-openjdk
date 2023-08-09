@@ -82,6 +82,9 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
   size_t max_non_los_bytes = MMTkMutatorContext::max_non_los_default_alloc_bytes;
   size_t extra_header = 0;
+#ifdef MMTK_ENABLE_EXTRA_HEADER
+  extra_header = MMTK_EXTRA_HEADER_BYTES;
+#endif
   // We always use the default allocator.
   // But we need to figure out which allocator we are using by querying MMTk.
   AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
