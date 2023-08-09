@@ -84,7 +84,7 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
   // if (is_oop && !dest_uninitialized) {
   if (is_oop){
     __ push(saved_regs, sp);
-    __ mov(c_rarg0, src);
+    //__ mov(c_rarg0, src);
     __ mov(c_rarg1, dst);
     __ mov(c_rarg2, count);
     __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);

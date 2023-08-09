@@ -151,9 +151,9 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
   // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
   // ld(reg, Address(fp, offset_in_words * BytesPerWord));
   // ra is free to use here, because call prologue/epilogue handles it
-  const Register src = rscratch1;
-  const Register slot = c_rarg0;
-  const Register new_val = c_rarg1;
+  const Register src = rscratch2;
+  const Register slot = rscratch1;
+  const Register new_val = lr;
   __ load_parameter(0, src);
   __ load_parameter(1, slot);
   __ load_parameter(2, new_val);
@@ -167,7 +167,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 #if MMTK_ENABLE_BARRIER_FASTPATH
   __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), src, slot, new_val);
 #else
-  __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference _write_post_call), src, slot, new_val);
+  __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), src, slot, new_val);
 #endif
 
   __ pop_call_clobbered_registers();
