@@ -23,6 +23,9 @@ extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
+#ifdef MMTK_ENABLE_EXTRA_HEADER
+extern const size_t MMTK_EXTRA_HEADER_BYTES;
+#endif
 
 extern const char* get_mmtk_version();
 

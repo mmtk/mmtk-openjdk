@@ -206,6 +206,15 @@ for mmtk-core, as well as compiling the fastpath for the VO bit.
 ```console
 $ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
+### Extra header
+
+To support the `extra_header` (allocate an extra word) feature in mmtk-core, you can set the
+environment variable `EXTRA_HEADER=1` when building OpenJDK. This will set the feature
+for mmtk-core, as well as compiling the fastpath for the extra header.
+
+```console
+$ EXTRA_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+```
 
 ## Test
 

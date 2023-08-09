@@ -21,7 +21,11 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
   // All allocations with size larger than max non-los bytes will get to this slowpath here.
   // We will use LOS for those.
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
-  if (bytes >= MMTkMutatorContext::max_non_los_default_alloc_bytes) {
+  size_t extra_header = 0;
+#ifdef MMTK_ENABLE_EXTRA_HEADER
+  extra_header = MMTK_EXTRA_HEADER_BYTES;
+#endif
+  if (bytes >= MMTkMutatorContext::max_non_los_default_alloc_bytes - extra_header) {
     allocator = AllocatorLos;
   }
 
