@@ -16,7 +16,7 @@ use mmtk::util::VM_LAYOUT_CONSTANTS;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::edge_shape::{Edge, MemorySlice};
 use mmtk::vm::VMBinding;
-use mmtk::{MMTKBuilder, MMTK};
+use mmtk::{MMTKBuilder, Mutator, MMTK};
 
 macro_rules! with_singleton {
     (|$x: ident| $($expr:tt)*) => {
@@ -55,6 +55,29 @@ pub struct MutatorClosure {
     pub data: *mut libc::c_void,
 }
 
+impl MutatorClosure {
+    fn from_rust_closure<F, const COMPRESSED: bool>(callback: &mut F) -> Self
+    where
+        F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
+    {
+        Self {
+            func: Self::call_rust_closure::<F, COMPRESSED>,
+            data: callback as *mut F as *mut libc::c_void,
+        }
+    }
+
+    extern "C" fn call_rust_closure<F, const COMPRESSED: bool>(
+        mutator: *mut libc::c_void,
+        callback_ptr: *mut libc::c_void,
+    ) where
+        F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
+    {
+        let mutator = mutator as *mut Mutator<OpenJDK<COMPRESSED>>;
+        let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
+        callback(unsafe { &mut *mutator });
+    }
+}
+
 /// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct EdgesClosure {
@@ -78,8 +101,7 @@ pub struct OpenJDK_Upcalls {
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
-    pub get_next_mutator: extern "C" fn() -> *mut libc::c_void,
-    pub reset_mutator_iterator: extern "C" fn(),
+    pub get_mutators: extern "C" fn(closure: MutatorClosure),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
@@ -93,8 +115,8 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_all_thread_roots: extern "C" fn(closure: EdgesClosure),
-    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
+    pub scan_roots_in_all_mutator_threads: extern "C" fn(closure: EdgesClosure),
+    pub scan_roots_in_mutator_thread: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
     pub scan_universe_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_jni_handle_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_object_synchronizer_roots: extern "C" fn(closure: EdgesClosure),
@@ -126,8 +148,8 @@ pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
     mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
 
 #[no_mangle]
-pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
-    mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
+pub static VO_BIT_ADDRESS: uintptr_t =
+    mmtk::util::metadata::side_metadata::VO_BIT_SIDE_METADATA_ADDR.as_usize();
 
 #[no_mangle]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =

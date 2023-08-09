@@ -177,46 +177,19 @@ static bool mmtk_is_mutator(void* tls) {
   return ((Thread*) tls)->third_party_heap_collector == NULL;
 }
 
-template <class T>
-struct MaybeUninit {
-  MaybeUninit() {}
-  T* operator->() {
-    return (T*) &_data;
+static void mmtk_get_mutators(MutatorClosure closure) {
+  JavaThread *thr;
+  for (JavaThreadIteratorWithHandle jtiwh; thr = jtiwh.next();) {
+    closure.invoke(&thr->third_party_heap_mutator);
   }
-  T& operator*() {
-    return *((T*) &_data);
-  }
-private:
-  char _data[sizeof(T)];
-};
-
-static MaybeUninit<JavaThreadIteratorWithHandle> jtiwh;
-static bool mutator_iteration_start = true;
-
-static void* mmtk_get_next_mutator() {
-  if (mutator_iteration_start) {
-    *jtiwh = JavaThreadIteratorWithHandle();
-    mutator_iteration_start = false;
-  }
-  JavaThread *thr = jtiwh->next();
-  if (thr == NULL) {
-    mutator_iteration_start = true;
-    return NULL;
-  }
-  return (void*) &thr->third_party_heap_mutator;
 }
 
-static void mmtk_reset_mutator_iterator() {
-  mutator_iteration_start = true;
-}
-
-
-static void mmtk_scan_all_thread_roots(EdgesClosure closure) {
+static void mmtk_scan_roots_in_all_mutator_threads(EdgesClosure closure) {
   MMTkRootsClosure2 cl(closure);
-  MMTkHeap::heap()->scan_thread_roots(cl);
+  MMTkHeap::heap()->scan_roots_in_all_mutator_threads(cl);
 }
 
-static void mmtk_scan_thread_roots(EdgesClosure closure, void* tls) {
+static void mmtk_scan_roots_in_mutator_thread(EdgesClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure2 cl(closure);
@@ -355,8 +328,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_spawn_gc_thread,
   mmtk_block_for_gc,
   mmtk_out_of_memory,
-  mmtk_get_next_mutator,
-  mmtk_reset_mutator_iterator,
+  mmtk_get_mutators,
   mmtk_scan_object,
   mmtk_dump_object,
   mmtk_get_object_size,
@@ -370,8 +342,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   referent_offset,
   discovered_offset,
   dump_object_string,
-  mmtk_scan_all_thread_roots,
-  mmtk_scan_thread_roots,
+  mmtk_scan_roots_in_all_mutator_threads,
+  mmtk_scan_roots_in_mutator_thread,
   mmtk_scan_universe_roots,
   mmtk_scan_jni_handle_roots,
   mmtk_scan_object_synchronizer_roots,

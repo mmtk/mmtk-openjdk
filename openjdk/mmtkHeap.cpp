@@ -417,7 +417,7 @@ void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   VMThread::vm_thread()->oops_do(&cl, NULL);
 }
 
-void MMTkHeap::scan_thread_roots(OopClosure& cl) {
+void MMTkHeap::scan_roots_in_all_mutator_threads(OopClosure& cl) {
   ResourceMark rm;
   Threads::possibly_parallel_oops_do(false, &cl, NULL);
 }

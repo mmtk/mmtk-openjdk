@@ -8,35 +8,10 @@ use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
 
-extern "C" fn report_mutator_stop<F, const COMPRESSED: bool>(
-    mutator: *mut libc::c_void,
-    callback_ptr: *mut libc::c_void,
-) where
-    F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
-{
-    let mutator = mutator as *mut Mutator<OpenJDK<COMPRESSED>>;
-    let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
-    callback(unsafe { &mut *mutator });
-}
-
-fn to_mutator_closure<F, const COMPRESSED: bool>(callback: &mut F) -> MutatorClosure
-where
-    F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
-{
-    MutatorClosure {
-        func: report_mutator_stop::<F, COMPRESSED>,
-        data: callback as *mut F as *mut libc::c_void,
-    }
-}
-
 const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
 impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
-    /// With the presence of the "VM companion thread",
-    /// the OpenJDK binding allows any MMTk GC thread to stop/start the world.
-    const COORDINATOR_ONLY_STW: bool = false;
-
     fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
     where
         F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
@@ -48,7 +23,7 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
             ((*UPCALLS).stop_all_mutators)(
                 tls,
                 scan_mutators_in_safepoint,
-                to_mutator_closure::<_, COMPRESSED>(&mut mutator_visitor),
+                MutatorClosure::from_rust_closure::<_, COMPRESSED>(&mut mutator_visitor),
             );
         }
     }

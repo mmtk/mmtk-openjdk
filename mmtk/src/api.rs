@@ -149,7 +149,7 @@ pub extern "C" fn alloc(
     mutator: *mut libc::c_void,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
     with_mutator!(|mutator| memory_manager::alloc(mutator, size, align, offset, allocator))
