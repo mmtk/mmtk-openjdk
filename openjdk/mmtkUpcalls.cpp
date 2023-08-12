@@ -45,7 +45,7 @@
 // Note: This counter must be accessed using the Atomic class.
 static volatile size_t mmtk_start_the_world_count = 0;
 
-static void mmtk_stop_all_mutators(void *tls, bool scan_mutators_in_safepoint, MutatorClosure closure) {
+static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure) {
   ClassLoaderDataGraph::clear_claimed_marks();
   CodeCache::gc_prologue();
 #if COMPILER2_OR_JVMCI
@@ -56,12 +56,11 @@ static void mmtk_stop_all_mutators(void *tls, bool scan_mutators_in_safepoint, M
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
 
-  if (!scan_mutators_in_safepoint) {
-    JavaThreadIteratorWithHandle jtiwh;
-    while (JavaThread *cur = jtiwh.next()) {
-      closure.invoke((void*)&cur->third_party_heap_mutator);
-    }
+  JavaThreadIteratorWithHandle jtiwh;
+  while (JavaThread *cur = jtiwh.next()) {
+    closure.invoke((void*)&cur->third_party_heap_mutator);
   }
+
   log_debug(gc)("Finished enumerating threads.");
   nmethod::oops_do_marking_prologue();
 }

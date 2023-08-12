@@ -12,7 +12,6 @@ use mmtk::util::constants::{
     BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_INT,
 };
 use mmtk::util::opaque_pointer::*;
-use mmtk::util::VM_LAYOUT_CONSTANTS;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::edge_shape::{Edge, MemorySlice};
 use mmtk::vm::VMBinding;
@@ -92,11 +91,7 @@ pub struct EdgesClosure {
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
-    pub stop_all_mutators: extern "C" fn(
-        tls: VMWorkerThread,
-        scan_mutators_in_safepoint: bool,
-        closure: MutatorClosure,
-    ),
+    pub stop_all_mutators: extern "C" fn(tls: VMWorkerThread, closure: MutatorClosure),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
@@ -216,7 +211,7 @@ fn decompress(v: u32) -> ObjectReference {
 }
 
 fn initialize_compressed_oops() {
-    let heap_end = VM_LAYOUT_CONSTANTS.heap_end.as_usize();
+    let heap_end = mmtk::memory_manager::last_heap_address().as_usize();
     if heap_end <= (4usize << 30) {
         unsafe {
             BASE = Address::ZERO;
@@ -229,7 +224,7 @@ fn initialize_compressed_oops() {
         }
     } else {
         unsafe {
-            BASE = VM_LAYOUT_CONSTANTS.heap_start - 4096;
+            BASE = mmtk::memory_manager::starting_heap_address() - 4096;
             SHIFT = 3;
         }
     }
@@ -395,6 +390,10 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
             }
         }
     }
+
+    fn object(&self) -> Option<ObjectReference> {
+        None
+    }
 }
 
 impl<const COMPRESSED: bool> VMBinding for OpenJDK<COMPRESSED> {
@@ -429,8 +428,8 @@ lazy_static! {
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         initialize_compressed_oops();
         unsafe {
-            HEAP_START = VM_LAYOUT_CONSTANTS.heap_start;
-            HEAP_END = VM_LAYOUT_CONSTANTS.heap_end;
+            HEAP_START = mmtk::memory_manager::starting_heap_address();
+            HEAP_END = mmtk::memory_manager::last_heap_address();
         }
         *ret
     };
@@ -440,8 +439,8 @@ lazy_static! {
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         unsafe {
-            HEAP_START = VM_LAYOUT_CONSTANTS.heap_start;
-            HEAP_END = VM_LAYOUT_CONSTANTS.heap_end;
+            HEAP_START = mmtk::memory_manager::starting_heap_address();
+            HEAP_END = mmtk::memory_manager::last_heap_address();
         }
         *ret
     };
