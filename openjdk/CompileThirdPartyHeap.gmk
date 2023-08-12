@@ -66,9 +66,8 @@ $(LIB_MMTK): FORCE
 		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
 		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
 	fi
-	cargo --version
-	echo "cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)
+	echo "cd $(MMTK_RUST_ROOT) && cargo --version && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)"
+	cd $(MMTK_RUST_ROOT) && cargo --version && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)
 	cp $(MMTK_RUST_ROOT)/target/$(HOST_TRIPLE)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
