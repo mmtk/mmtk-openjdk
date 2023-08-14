@@ -25,12 +25,14 @@ public:
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
     object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
+  virtual void object_probable_write(oop new_obj) const override;
 };
 
 class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
 protected:
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
 public:
+  virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
 };
 

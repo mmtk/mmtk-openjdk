@@ -129,7 +129,7 @@ pub extern "C" fn alloc(
     mutator: *mut Mutator<OpenJDK>,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
@@ -380,6 +380,15 @@ pub extern "C" fn mmtk_array_copy_post(
     mutator
         .barrier()
         .memory_region_copy_post(src..src + bytes, dst..dst + bytes);
+}
+
+/// C2 Slowpath allocation barrier
+#[no_mangle]
+pub extern "C" fn mmtk_object_probable_write(
+    mutator: &'static mut Mutator<OpenJDK>,
+    obj: ObjectReference,
+) {
+    mutator.barrier().object_probable_write(obj);
 }
 
 // finalization

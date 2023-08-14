@@ -20,7 +20,7 @@ typedef enum {
 
 extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
-extern const uintptr_t GLOBAL_ALLOC_BIT_ADDRESS;
+extern const uintptr_t VO_BIT_ADDRESS;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 
@@ -44,7 +44,7 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset);
 
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
-    int bytes, int allocator);
+    size_t bytes, int allocator);
 
 /// Full pre-barrier
 extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, void* slot, void* target);
@@ -60,6 +60,9 @@ extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size
 
 /// Full array-copy post-barrier
 extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
+
+/// C2 slowpath allocation barrier
+extern void mmtk_object_probable_write(MMTk_Mutator mutator, void* obj);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
 
@@ -141,13 +144,12 @@ struct EdgesClosure {
  * OpenJDK-specific
  */
 typedef struct {
-    void (*stop_all_mutators) (void *tls, bool scan_mutators_in_safepoint, MutatorClosure closure);
+    void (*stop_all_mutators) (void *tls, MutatorClosure closure);
     void (*resume_mutators) (void *tls);
     void (*spawn_gc_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
-    void* (*get_next_mutator) ();
-    void (*reset_mutator_iterator) ();
+    void (*get_mutators) (MutatorClosure closure);
     void (*scan_object) (void* trace, void* object, void* tls);
     void (*dump_object) (void* object);
     size_t (*get_object_size) (void* object);
@@ -161,8 +163,8 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_all_thread_roots)(EdgesClosure closure);
-    void (*scan_thread_roots)(EdgesClosure closure, void* tls);
+    void (*scan_roots_in_all_mutator_threads)(EdgesClosure closure);
+    void (*scan_roots_in_mutator_thread)(EdgesClosure closure, void* tls);
     void (*scan_universe_roots) (EdgesClosure closure);
     void (*scan_jni_handle_roots) (EdgesClosure closure);
     void (*scan_object_synchronizer_roots) (EdgesClosure closure);

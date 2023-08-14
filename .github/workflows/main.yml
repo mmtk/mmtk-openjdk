@@ -59,6 +59,7 @@ jobs:
         with:
           path: dacapo/dacapo-evaluation-git-04132797.zip
           key: dacapo-chopin-git-04132797
+          lookup-only: true
       - name: Install DaCapo Chopin git-04132797
         if: steps.dacapo-04132797.outputs.cache-hit != 'true'
         run: |
@@ -108,13 +109,24 @@ jobs:
           pip3 install running-ng
           sudo apt-get update -y
           sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
-      - name: Cache DaCapo Chopin git-04132797
+      - name: Fetch DaCapo Chopin git-04132797 cache
         id: dacapo-04132797
         uses: actions/cache@v3
         with:
           path: dacapo/dacapo-evaluation-git-04132797.zip
           key: dacapo-chopin-git-04132797
-          fail-on-cache-miss: true    # We should never have a cache miss here as we cache DaCapo in an earlier job
+          # fail-on-cache-miss: true    # We should never have a cache miss here as we cache DaCapo in an earlier job
+          # Temporarily change this to false in case the cache download gets
+          # stuck -- if the cache download is stuck then we go straight to
+          # upstream and fetch the zip file
+          fail-on-cache-miss: false
+      - name: Install DaCapo Chopin git-04132797
+        if: steps.dacapo-04132797.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "https://download.dacapobench.org/dacapo-evaluation-git-04132797.zip" -O dacapo-evaluation-git-04132797.zip
+          popd
       - name: Unzip DaCapo Chopin git-04132797
         run: |
           pushd dacapo

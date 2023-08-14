@@ -55,7 +55,7 @@ suites:
         xalan: 9
         zxing: 66
     timing_iteration: 1
-    timeout: 300
+    timeout: 7200
 
 overrides:
   invocations: 1

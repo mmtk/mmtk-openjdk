@@ -1,3 +1,12 @@
+0.18.0 (2023-04-03)
+===
+
+* Support the `StickyImmix` plan.
+* Fix a bug in the C2 compiler where we may update an object without any write barrier if C2 performs deoptimization and
+  triggers a GC in deoptimization. We use `object_probable_write` to properly log the object.
+* Update to OpenJDK 11.0.19+1 (`jdk-11.0.19+1-mmtk`).
+* Update to mmtk-core 0.18.0.
+
 0.17.0 (2023-02-17)
 ===
 
