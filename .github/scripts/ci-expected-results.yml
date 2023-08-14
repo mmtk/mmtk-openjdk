@@ -2,576 +2,308 @@ results:
   linux-x64:
     fastdebug:
       avrora:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       batik:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       biojava:
-        SemiSpace:
-          pass: false
-        GenCopy:
-          pass: true
-        Immix:
-          pass: false
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: fail
+        GenCopy: pass
+        Immix: fail
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       cassandra:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: false
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-          note: non-deterministic
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: fail
+        GenImmix: pass
+        StickyImmix: ignore
+        MarkSweep: fail
+        MarkCompact: fail
       eclipse:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: false
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: fail
+        MarkSweep: fail
+        MarkCompact: fail
       fop:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-          note: non-deterministic
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: ignore
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: pass
       graphchi:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       h2:
-        SemiSpace:
-          pass: false
-        GenCopy:
-          pass: true
-        Immix:
-          pass: false
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: false
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: fail
+        GenCopy: pass
+        Immix: fail
+        GenImmix: pass
+        StickyImmix: fail
+        MarkSweep: fail
+        MarkCompact: fail
       h2o:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       jme:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       jython:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: false
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: fail
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       kafka:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: fail
       luindex:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: fail
       lusearch:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: false
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: fail
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       pmd:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: false
-        Immix:
-          pass: true
-        GenImmix:
-          pass: false
-        StickyImmix:
-          pass: false
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: fail
+        Immix: pass
+        GenImmix: fail
+        StickyImmix: fail
+        MarkSweep: fail
+        MarkCompact: fail
       sunflow:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       tomcat:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: false
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: fail
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: fail
       xalan:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: false
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: fail
       zxing:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
 
     release:
       avrora:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       batik:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       biojava:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       cassandra:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: pass
       eclipse:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: pass
       fop:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: pass
       graphchi:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       h2:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       h2o:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       jme:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       jython:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: false
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: false
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: fail
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: fail
+        MarkCompact: pass
       kafka:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       luindex:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       lusearch:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       pmd:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: false
-        Immix:
-          pass: true
-        GenImmix:
-          pass: false
-        StickyImmix:
-          pass: false
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: fail
+        Immix: pass
+        GenImmix: fail
+        StickyImmix: fail
+        MarkSweep: pass
+        MarkCompact: pass
       sunflow:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       tomcat:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       xalan:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: false
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: fail
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
       zxing:
-        SemiSpace:
-          pass: true
-        GenCopy:
-          pass: true
-        Immix:
-          pass: true
-        GenImmix:
-          pass: true
-        StickyImmix:
-          pass: true
-        MarkSweep:
-          pass: true
-        MarkCompact:
-          pass: true
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass

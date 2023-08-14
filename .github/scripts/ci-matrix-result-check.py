@@ -64,19 +64,19 @@ def read_in_actual_results(line, plan_dict):
         raw_results.append(result)
 
     # Format the raw results into a dict
-    # dict['SemiSpace'] = { pass: True }, etc
+    # dict['SemiSpace'] = true/false
     result_dict = {}
     for s in raw_results:
+        # Start with a
         key = 97
         for c in s:
             plan = plan_dict[chr(key)]
             key += 1
             success = (c != '.')
             if plan in result_dict:
-                result_dict[plan]['pass'] = result_dict[plan]['pass'] and success
+                result_dict[plan] = result_dict[plan] and success
             else:
-                result_dict[plan] = {}
-                result_dict[plan]['pass'] = success
+                result_dict[plan] = success
     return result_dict
 
 def read_in_expected_results(build, benchmark):
@@ -101,14 +101,19 @@ print("=====")
 
 error_no = 0
 for plan in expected:
-    if plan in actual and actual[plan]['pass'] != expected[plan]['pass']:
-        error_no = 1
-        if expected[plan]['pass'] == True:
-            print(f"Expect {plan} to pass, but it failed.")
-            if "note" in expected[plan]:
-                print(f"- Note for the result: {expected[plan]['note']}")
-        else:
-            print(f"Expect {plan} to fail, but it passed.")
-            print(f"- If we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
+    if plan in actual:
+        if expected[plan] == "ignore":
+            print(f"Result for {plan} is ignored")
+            continue
+        
+        expected_success = expected[plan] == "pass"
+
+        if actual[plan] != expected_success:
+            error_no = 1
+            if expected[plan] == True:
+                print(f"Expect {plan} to pass, but it failed.")
+            else:
+                print(f"Expect {plan} to fail, but it passed.")
+                print(f"- If we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
 
 exit(error_no)
