@@ -72,7 +72,7 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
             Some(PlanSelector::PageProtect)
         } else if cfg!(feature = "immix") {
             Some(PlanSelector::Immix)
-        } else if cfg!(feature = "genimmix") { 
+        } else if cfg!(feature = "genimmix") {
             Some(PlanSelector::GenImmix)
         } else if cfg!(feature = "stickyimmix") {
             Some(PlanSelector::StickyImmix)
