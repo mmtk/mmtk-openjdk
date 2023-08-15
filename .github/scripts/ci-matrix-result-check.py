@@ -110,7 +110,7 @@ for plan in expected:
 
         if actual[plan] != expected_success:
             error_no = 1
-            if expected[plan] == True:
+            if expected[plan] == "pass":
                 print(f"Expect {plan} to pass, but it failed.")
             else:
                 print(f"Expect {plan} to fail, but it passed.")
