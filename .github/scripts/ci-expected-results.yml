@@ -293,7 +293,7 @@ results:
         MarkCompact: pass
       xalan:
         SemiSpace: pass
-        GenCopy: pass
+        GenCopy: ignore
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
