@@ -419,7 +419,6 @@ lazy_static! {
         let mut builder = BUILDER.lock().unwrap();
         assert!(use_compressed_oops());
         builder.set_option("use_35bit_address_space", "true");
-        builder.set_option("use_35bit_address_space", "true");
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         set_custom_vm_layout_constants(builder.options.gc_trigger.max_heap_size());
         let ret = mmtk::memory_manager::mmtk_init(&builder);
