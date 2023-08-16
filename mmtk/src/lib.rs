@@ -9,9 +9,10 @@ use std::sync::Mutex;
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::{
-    BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_INT,
+    BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_GBYTE, LOG_BYTES_IN_INT,
 };
-use mmtk::util::opaque_pointer::*;
+use mmtk::util::heap::vm_layout_constants::{VMLayoutConstants, LOG_BYTES_IN_CHUNK};
+use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::edge_shape::{Edge, MemorySlice};
 use mmtk::vm::VMBinding;
@@ -424,6 +425,7 @@ lazy_static! {
         builder.set_option("use_35bit_address_space", "true");
         builder.set_option("use_35bit_address_space", "true");
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        set_custom_vm_layout_constants(builder.options.gc_trigger.max_heap_size());
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         initialize_compressed_oops();
@@ -471,3 +473,30 @@ lazy_static! {
 
 /// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
 static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);
+
+fn set_custom_vm_layout_constants(max_heap_size: usize) {
+    assert!(
+        max_heap_size <= (32usize << LOG_BYTES_IN_GBYTE),
+        "Heap size is larger than 32 GB"
+    );
+    let start = 0x4000_0000;
+    let end = match start + max_heap_size {
+        end if end <= (4usize << 30) => 4usize << 30,
+        end if end <= (32usize << 30) => 32usize << 30,
+        _ => 0x4000_0000 + (32usize << 30),
+    };
+    let constants = VMLayoutConstants {
+        log_address_space: 35,
+        heap_start: conversions::chunk_align_down(unsafe { Address::from_usize(start) }),
+        heap_end: conversions::chunk_align_up(unsafe { Address::from_usize(end) }),
+        vm_space_size: conversions::chunk_align_up(unsafe { Address::from_usize(0x800_0000) })
+            .as_usize(),
+        log_max_chunks: VMLayoutConstants::LOG_ARCH_ADDRESS_SPACE - LOG_BYTES_IN_CHUNK,
+        log_space_extent: 31,
+        space_shift_64: 0,
+        space_mask_64: 0,
+        space_size_64: 0,
+        force_use_contiguous_spaces: false,
+    };
+    VMLayoutConstants::set_custom_vm_layout_constants(constants);
+}
