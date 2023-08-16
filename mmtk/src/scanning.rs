@@ -49,7 +49,7 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         object: ObjectReference,
         edge_visitor: &mut EV,
     ) {
-        crate::object_scanning::scan_object::<_, _, COMPRESSED>(object, edge_visitor, tls);
+        crate::object_scanning::scan_object::<COMPRESSED>(object, edge_visitor, tls);
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {

@@ -249,6 +249,14 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
     const fn untagged_address(&self) -> Address {
         unsafe { Address::from_usize(self.0.as_usize() << 1 >> 1) }
     }
+
+    pub fn to_address(&self) -> Address {
+        self.untagged_address()
+    }
+
+    pub fn from_address(a: Address) -> Self {
+        Self(a)
+    }
 }
 
 impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
@@ -278,18 +286,6 @@ impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
         } else {
             unsafe { self.0.store(object) }
         }
-    }
-
-    fn to_address(&self) -> Address {
-        self.untagged_address()
-    }
-
-    // fn raw_address(&self) -> Address {
-    //     self.0
-    // }
-
-    fn from_address(a: Address) -> Self {
-        Self(a)
     }
 }
 

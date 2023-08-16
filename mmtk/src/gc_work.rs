@@ -1,13 +1,13 @@
 use std::sync::atomic::Ordering;
 
 use crate::scanning::to_edges_closure;
-use crate::Edge;
+use crate::OpenJDK;
+use crate::OpenJDKEdge;
 use crate::UPCALLS;
 use mmtk::scheduler::*;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
 use mmtk::MMTK;
-use std::marker::PhantomData;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {
@@ -50,29 +50,32 @@ scan_roots_work!(
 scan_roots_work!(ScanWeakProcessorRoots, scan_weak_processor_roots);
 scan_roots_work!(ScanVMThreadRoots, scan_vm_thread_roots);
 
-pub struct ScanCodeCacheRoots<E: Edge, F: RootsWorkFactory<E>> {
+pub struct ScanCodeCacheRoots<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKEdge<COMPRESSED>>>
+{
     factory: F,
-    _p: PhantomData<E>,
 }
 
-impl<E: Edge, F: RootsWorkFactory<E>> ScanCodeCacheRoots<E, F> {
+impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKEdge<COMPRESSED>>>
+    ScanCodeCacheRoots<COMPRESSED, F>
+{
     pub fn new(factory: F) -> Self {
-        Self {
-            factory,
-            _p: PhantomData,
-        }
+        Self { factory }
     }
 }
 
-impl<VM: VMBinding, F: RootsWorkFactory<VM::VMEdge>> GCWork<VM>
-    for ScanCodeCacheRoots<VM::VMEdge, F>
+impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKEdge<COMPRESSED>>>
+    GCWork<OpenJDK<COMPRESSED>> for ScanCodeCacheRoots<COMPRESSED, F>
 {
-    fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
+    fn do_work(
+        &mut self,
+        _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
+        _mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
+    ) {
         // Collect all the cached roots
         let mut edges = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
         for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
             for r in roots {
-                edges.push(VM::VMEdge::from_address(*r))
+                edges.push(OpenJDKEdge::<COMPRESSED>::from_address(*r))
             }
         }
         // Create work packet
