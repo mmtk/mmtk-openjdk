@@ -11,7 +11,7 @@ use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::{
     BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_GBYTE, LOG_BYTES_IN_INT,
 };
-use mmtk::util::heap::vm_layout_constants::{VMLayoutConstants, LOG_BYTES_IN_CHUNK};
+use mmtk::util::heap::vm_layout_constants::VMLayoutConstants;
 use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::edge_shape::{Edge, MemorySlice};
@@ -484,8 +484,6 @@ fn set_custom_vm_layout_constants(max_heap_size: usize) {
         log_address_space: 35,
         heap_start: conversions::chunk_align_down(unsafe { Address::from_usize(start) }),
         heap_end: conversions::chunk_align_up(unsafe { Address::from_usize(end) }),
-        vm_space_size: conversions::chunk_align_up(unsafe { Address::from_usize(0x800_0000) })
-            .as_usize(),
         log_space_extent: 31,
         force_use_contiguous_spaces: false,
     };
