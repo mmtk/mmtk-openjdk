@@ -486,11 +486,7 @@ fn set_custom_vm_layout_constants(max_heap_size: usize) {
         heap_end: conversions::chunk_align_up(unsafe { Address::from_usize(end) }),
         vm_space_size: conversions::chunk_align_up(unsafe { Address::from_usize(0x800_0000) })
             .as_usize(),
-        log_max_chunks: VMLayoutConstants::LOG_ARCH_ADDRESS_SPACE - LOG_BYTES_IN_CHUNK,
         log_space_extent: 31,
-        space_shift_64: 0,
-        space_mask_64: 0,
-        space_size_64: 0,
         force_use_contiguous_spaces: false,
     };
     VMLayoutConstants::set_custom_vm_layout_constants(constants);
