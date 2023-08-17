@@ -45,6 +45,12 @@ void ThirdPartyHeapArguments::initialize() {
   FLAG_SET_DEFAULT(UseTLAB, false);
   FLAG_SET_DEFAULT(UseCompressedOops, false);
   FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
+  FLAG_SET_DEFAULT(ParallelGCThreads, Abstract_VM_Version::parallel_worker_threads());
+  if (ParallelGCThreads == 0) {
+    assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
+    vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
+  }
+  
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {

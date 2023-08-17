@@ -211,6 +211,9 @@ extern void add_phantom_candidate(void* ref, void* referent);
 extern void mmtk_harness_begin_impl();
 extern void mmtk_harness_end_impl();
 
+extern void mmtk_set_hotspot_flag_uint(const char* name, unsigned int value);
+extern void mmtk_set_hotspot_flag_bool(const char* name, bool value);
+
 #ifdef __cplusplus
 }
 #endif

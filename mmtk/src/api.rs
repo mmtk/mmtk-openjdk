@@ -18,6 +18,7 @@ use mmtk::MutatorContext;
 use once_cell::sync;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
+use std::fmt::Display;
 use std::sync::atomic::Ordering;
 
 // Supported barriers:
@@ -288,6 +289,38 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     )
+}
+
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+fn set_hotspot_flag_impl<T: Display>(name: *const c_char, value: T) {
+    let name_cstr: &CStr = unsafe { CStr::from_ptr(name) };
+    let name = name_cstr.to_str().unwrap();
+    println!("set {}={}", name, value);
+    let mut builder = BUILDER.lock().unwrap();
+    let value_str = format!("{}", value);
+    let result = match name {
+        "ParallelGCThreads" => builder.set_option("threads", &value_str),
+        "UseTransparentHugePages" => builder.set_option("transparent_hugepages", &value_str),
+        _ => unimplemented!("Unsupported flag: {}", name),
+    };
+    assert!(
+        result,
+        "Failed to pass hotspot flag {}={} to mmtk-core",
+        name, value
+    );
+}
+
+/// Pass a hotspot integer command line flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_set_hotspot_flag_uint(name: *const c_char, value: u32) {
+    set_hotspot_flag_impl(name, value)
+}
+
+/// Pass a hotspot boolean command line flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_set_hotspot_flag_bool(name: *const c_char, value: bool) {
+    set_hotspot_flag_impl(name, value)
 }
 
 #[no_mangle]

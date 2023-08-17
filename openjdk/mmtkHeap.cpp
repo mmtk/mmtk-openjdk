@@ -88,6 +88,8 @@ jint MMTkHeap::initialize() {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
+  mmtk_set_hotspot_flag_uint("ParallelGCThreads", ParallelGCThreads);
+  mmtk_set_hotspot_flag_bool("UseTransparentHugePages", UseTransparentHugePages);
   // Set heap size
   bool set_heap_size = mmtk_set_heap_size(min_heap_size, max_heap_size);
   guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: min = %ld, max = %ld\n", min_heap_size, max_heap_size);
