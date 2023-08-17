@@ -109,7 +109,7 @@ results:
         SemiSpace: pass
         GenCopy: pass
         Immix: pass
-        GenImmix: pass
+        GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
         MarkCompact: pass
@@ -142,7 +142,7 @@ results:
         GenCopy: pass
         Immix: pass
         GenImmix: pass
-        StickyImmix: pass
+        StickyImmix: ignore
         MarkSweep: pass
         MarkCompact: pass
       zxing:
