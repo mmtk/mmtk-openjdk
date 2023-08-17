@@ -296,7 +296,6 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 fn set_hotspot_flag_impl<T: Display>(name: *const c_char, value: T) {
     let name_cstr: &CStr = unsafe { CStr::from_ptr(name) };
     let name = name_cstr.to_str().unwrap();
-    println!("set {}={}", name, value);
     let mut builder = BUILDER.lock().unwrap();
     let value_str = format!("{}", value);
     let result = match name {
