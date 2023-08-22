@@ -72,6 +72,10 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
             Some(PlanSelector::PageProtect)
         } else if cfg!(feature = "immix") {
             Some(PlanSelector::Immix)
+        } else if cfg!(feature = "genimmix") {
+            Some(PlanSelector::GenImmix)
+        } else if cfg!(feature = "stickyimmix") {
+            Some(PlanSelector::StickyImmix)
         } else {
             None
         };
@@ -129,7 +133,7 @@ pub extern "C" fn alloc(
     mutator: *mut Mutator<OpenJDK>,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
     memory_manager::alloc::<OpenJDK>(unsafe { &mut *mutator }, size, align, offset, allocator)
@@ -286,6 +290,20 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     )
 }
 
+/// Pass hotspot `ParallelGCThreads` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_threads(value: usize) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.threads.set(value);
+}
+
+/// Pass hotspot `UseTransparentHugePages` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_transparent_hugepages(value: bool) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.transparent_hugepages.set(value);
+}
+
 #[no_mangle]
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -325,7 +343,7 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 ) {
     mutator
         .barrier()
-        .object_reference_write_pre(src, slot, target);
+        .object_reference_write_pre(src, slot.into(), target);
 }
 
 /// Full post barrier
@@ -338,7 +356,7 @@ pub extern "C" fn mmtk_object_reference_write_post(
 ) {
     mutator
         .barrier()
-        .object_reference_write_post(src, slot, target);
+        .object_reference_write_post(src, slot.into(), target);
 }
 
 /// Barrier slow-path call
@@ -351,7 +369,7 @@ pub extern "C" fn mmtk_object_reference_write_slow(
 ) {
     mutator
         .barrier()
-        .object_reference_write_slow(src, slot, target);
+        .object_reference_write_slow(src, slot.into(), target);
 }
 
 /// Array-copy pre-barrier
@@ -365,7 +383,7 @@ pub extern "C" fn mmtk_array_copy_pre(
     let bytes = count << LOG_BYTES_IN_ADDRESS;
     mutator
         .barrier()
-        .memory_region_copy_pre(src..src + bytes, dst..dst + bytes);
+        .memory_region_copy_pre((src..src + bytes).into(), (dst..dst + bytes).into());
 }
 
 /// Array-copy post-barrier
@@ -379,7 +397,7 @@ pub extern "C" fn mmtk_array_copy_post(
     let bytes = count << LOG_BYTES_IN_ADDRESS;
     mutator
         .barrier()
-        .memory_region_copy_post(src..src + bytes, dst..dst + bytes);
+        .memory_region_copy_post((src..src + bytes).into(), (dst..dst + bytes).into());
 }
 
 /// C2 Slowpath allocation barrier

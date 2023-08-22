@@ -20,7 +20,9 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<OpenJDKEdge>>(
     factory_ptr: *mut libc::c_void,
 ) -> NewBuffer {
     if !ptr.is_null() {
-        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
+        // Note: Currently OpenJDKEdge has the same layout as Address.  If the layout changes, we
+        // should fix the Rust-to-C interface.
+        let buf = unsafe { Vec::<OpenJDKEdge>::from_raw_parts(ptr as _, length, capacity) };
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
         factory.create_process_edge_roots_work(buf);
     }
@@ -42,9 +44,6 @@ pub(crate) fn to_edges_closure<F: RootsWorkFactory<OpenJDKEdge>>(factory: &mut F
 }
 
 impl Scanning<OpenJDK> for VMScanning {
-    const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
-    const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-
     fn scan_object<EV: EdgeVisitor<OpenJDKEdge>>(
         tls: VMWorkerThread,
         object: ObjectReference,
@@ -58,20 +57,14 @@ impl Scanning<OpenJDK> for VMScanning {
         // TODO
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, mut factory: impl RootsWorkFactory<OpenJDKEdge>) {
-        unsafe {
-            ((*UPCALLS).scan_all_thread_roots)(to_edges_closure(&mut factory));
-        }
-    }
-
-    fn scan_thread_root(
+    fn scan_roots_in_mutator_thread(
         _tls: VMWorkerThread,
         mutator: &'static mut Mutator<OpenJDK>,
         mut factory: impl RootsWorkFactory<OpenJDKEdge>,
     ) {
         let tls = mutator.get_tls();
         unsafe {
-            ((*UPCALLS).scan_thread_roots)(to_edges_closure(&mut factory), tls);
+            ((*UPCALLS).scan_roots_in_mutator_thread)(to_edges_closure(&mut factory), tls);
         }
     }
 
@@ -84,15 +77,9 @@ impl Scanning<OpenJDK> for VMScanning {
                 Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
                 Box::new(ScanOopStorageSetRoots::new(factory.clone())) as _, // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.
                 Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
+                Box::new(ScanVMThreadRoots::new(factory)) as _,
             ],
         );
-        if !(Self::SCAN_MUTATORS_IN_SAFEPOINT && Self::SINGLE_THREAD_MUTATOR_SCANNING) {
-            memory_manager::add_work_packet(
-                &SINGLETON,
-                WorkBucketStage::Prepare,
-                ScanVMThreadRoots::new(factory),
-            );
-        }
     }
 
     fn supports_return_barrier() -> bool {

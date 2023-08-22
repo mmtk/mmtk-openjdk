@@ -24,8 +24,8 @@ jobs:
         run: |
           ./.github/scripts/ci-build.sh
           ./.github/scripts/ci-test-only-normal.sh
-      - name: DaCapo Tests with global allocation bit
-        run: ./.github/scripts/ci-test-global-alloc-bit.sh
+      - name: DaCapo Tests with valid object bit (VO bit)
+        run: ./.github/scripts/ci-test-vo-bit.sh
       - name: DaCapo Tests with malloc Mark-Sweep
         run: ./.github/scripts/ci-test-malloc-mark-sweep.sh
 
