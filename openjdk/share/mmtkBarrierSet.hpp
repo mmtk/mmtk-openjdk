@@ -41,7 +41,7 @@
 #define MMTK_ENABLE_ALLOCATION_FASTPATH true
 #define MMTK_ENABLE_BARRIER_FASTPATH true
 
-const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_ALLOC_BIT_ADDRESS;
+const intptr_t VO_BIT_BASE_ADDRESS = VO_BIT_ADDRESS;
 
 struct MMTkAllocatorOffsets {
   int tlab_top_offset;

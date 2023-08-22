@@ -2,11 +2,11 @@
 extern crate lazy_static;
 
 use std::collections::HashMap;
-use std::ops::Range;
 use std::ptr::null_mut;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
+use edges::{OpenJDKEdge, OpenJDKEdgeRange};
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
@@ -19,6 +19,7 @@ pub mod active_plan;
 pub mod api;
 mod build_info;
 pub mod collection;
+mod edges;
 mod gc_work;
 pub mod object_model;
 mod object_scanning;
@@ -39,6 +40,28 @@ pub struct MutatorClosure {
     pub data: *mut libc::c_void,
 }
 
+impl MutatorClosure {
+    fn from_rust_closure<F>(callback: &mut F) -> Self
+    where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        Self {
+            func: Self::call_rust_closure::<F>,
+            data: callback as *mut F as *mut libc::c_void,
+        }
+    }
+
+    extern "C" fn call_rust_closure<F>(
+        mutator: *mut Mutator<OpenJDK>,
+        callback_ptr: *mut libc::c_void,
+    ) where
+        F: FnMut(&'static mut Mutator<OpenJDK>),
+    {
+        let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
+        callback(unsafe { &mut *mutator });
+    }
+}
+
 /// A closure for reporting root edges.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct EdgesClosure {
@@ -53,17 +76,12 @@ pub struct EdgesClosure {
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
-    pub stop_all_mutators: extern "C" fn(
-        tls: VMWorkerThread,
-        scan_mutators_in_safepoint: bool,
-        closure: MutatorClosure,
-    ),
+    pub stop_all_mutators: extern "C" fn(tls: VMWorkerThread, closure: MutatorClosure),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
-    pub get_next_mutator: extern "C" fn() -> *mut Mutator<OpenJDK>,
-    pub reset_mutator_iterator: extern "C" fn(),
+    pub get_mutators: extern "C" fn(closure: MutatorClosure),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
@@ -77,8 +95,8 @@ pub struct OpenJDK_Upcalls {
     pub referent_offset: extern "C" fn() -> i32,
     pub discovered_offset: extern "C" fn() -> i32,
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
-    pub scan_all_thread_roots: extern "C" fn(closure: EdgesClosure),
-    pub scan_thread_roots: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
+    pub scan_roots_in_all_mutator_threads: extern "C" fn(closure: EdgesClosure),
+    pub scan_roots_in_mutator_thread: extern "C" fn(closure: EdgesClosure, tls: VMMutatorThread),
     pub scan_code_cache_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_class_loader_data_graph_roots: extern "C" fn(closure: EdgesClosure),
     pub scan_oop_storage_set_roots: extern "C" fn(closure: EdgesClosure),
@@ -101,8 +119,8 @@ pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
     mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
 
 #[no_mangle]
-pub static GLOBAL_ALLOC_BIT_ADDRESS: uintptr_t =
-    mmtk::util::metadata::side_metadata::ALLOC_SIDE_METADATA_ADDR.as_usize();
+pub static VO_BIT_ADDRESS: uintptr_t =
+    mmtk::util::metadata::side_metadata::VO_BIT_SIDE_METADATA_ADDR.as_usize();
 
 #[no_mangle]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
@@ -110,13 +128,6 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
 
 #[derive(Default)]
 pub struct OpenJDK;
-
-/// The type of edges in OpenJDK.
-///
-/// TODO: We currently make it an alias to Address to make the change minimal.
-/// If we support CompressedOOPs, we should define an enum type to support both
-/// compressed and uncompressed OOPs.
-pub type OpenJDKEdge = Address;
 
 impl VMBinding for OpenJDK {
     type VMObjectModel = object_model::VMObjectModel;
@@ -126,7 +137,7 @@ impl VMBinding for OpenJDK {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = OpenJDKEdge;
-    type VMMemorySlice = Range<Address>;
+    type VMMemorySlice = OpenJDKEdgeRange;
 
     const MIN_ALIGNMENT: usize = 8;
     const MAX_ALIGNMENT: usize = 8;

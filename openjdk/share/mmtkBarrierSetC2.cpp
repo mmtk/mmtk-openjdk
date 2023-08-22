@@ -274,14 +274,14 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
 
-    bool enable_global_alloc_bit = false;
-    #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-    enable_global_alloc_bit = true;
+    bool enable_vo_bit = false;
+    #ifdef MMTK_ENABLE_VO_BIT
+    enable_vo_bit = true;
     #endif
-  if (enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
+  if (enable_vo_bit || selector.tag == TAG_MARK_COMPACT) {
     // set the alloc bit:
     // intptr_t addr = (intptr_t) (void*) fast_oop;
-    // uint8_t* meta_addr = (uint8_t*) (ALLOC_BIT_BASE_ADDRESS + (addr >> 6));
+    // uint8_t* meta_addr = (uint8_t*) (VO_BIT_BASE_ADDRESS + (addr >> 6));
     // intptr_t shift = (addr >> 3) & 0b111;
     // uint8_t byte_val = *meta_addr;
     // uint8_t new_byte_val = byte_val | (1 << shift);
@@ -295,7 +295,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     Node *meta_offset = new URShiftLNode(obj_addr, addr_shift);
     x->transform_later(meta_offset);
 
-    Node *meta_base = ConLNode::make(ALLOC_BIT_BASE_ADDRESS);
+    Node *meta_base = ConLNode::make(VO_BIT_BASE_ADDRESS);
     x->transform_later(meta_base);
 
     Node *meta_addr = new AddLNode(meta_base, meta_offset);
@@ -331,10 +331,10 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     Node *new_meta_val = new OrINode(meta_val, set_bit);
     x->transform_later(new_meta_val);
 
-    Node *set_alloc_bit = new StoreBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypeRawPtr::BOTTOM, new_meta_val, MemNode::unordered);
-    x->transform_later(set_alloc_bit);
+    Node *set_vo_bit = new StoreBNode(fast_oop_ctrl, fast_oop_rawmem, meta_addr_p, TypeRawPtr::BOTTOM, new_meta_val, MemNode::unordered);
+    x->transform_later(set_vo_bit);
 
-    fast_oop_rawmem = set_alloc_bit;
+    fast_oop_rawmem = set_vo_bit;
   }
 
     InitializeNode* init = alloc->initialization();

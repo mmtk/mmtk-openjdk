@@ -98,11 +98,11 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     __ jcc(Assembler::above, slow_case);
     // lab.cursor = end
     __ movptr(cursor, end);
-  bool enable_global_alloc_bit = false;
-  #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-  enable_global_alloc_bit = true;
+  bool enable_vo_bit = false;
+  #ifdef MMTK_ENABLE_VO_BIT
+  enable_vo_bit = true;
   #endif
-  if (enable_global_alloc_bit || selector.tag == TAG_MARK_COMPACT) {
+  if (enable_vo_bit || selector.tag == TAG_MARK_COMPACT) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);
@@ -110,7 +110,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
     __ movptr(tmp3, obj);
     __ shrptr(tmp3, 6);
-    __ movptr(tmp2, ALLOC_BIT_BASE_ADDRESS);
+    __ movptr(tmp2, VO_BIT_BASE_ADDRESS);
     __ movb(tmp2, Address(tmp2, tmp3));
     // tmp3 = 1 << ((obj >> 3) & 7)
     //   1. rcx = (obj >> 3) & 7
@@ -126,7 +126,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // store-byte tmp2 (SIDE_METADATA_BASE_ADDRESS + (obj >> 6))
     __ movptr(tmp3, obj);
     __ shrptr(tmp3, 6);
-    __ movptr(rcx, ALLOC_BIT_BASE_ADDRESS);
+    __ movptr(rcx, VO_BIT_BASE_ADDRESS);
     __ movb(Address(rcx, tmp3), tmp2);
   }
 

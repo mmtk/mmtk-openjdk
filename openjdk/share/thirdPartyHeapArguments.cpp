@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "gc/shared/adaptiveSizePolicy.hpp"
 #include "gc/shared/gcArguments.hpp"
+#include "gc/shared/workerPolicy.hpp"
 #include "mmtkHeap.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/globals.hpp"
@@ -43,6 +44,12 @@ void ThirdPartyHeapArguments::initialize() {
   FLAG_SET_DEFAULT(UseTLAB, false);
   FLAG_SET_DEFAULT(UseCompressedOops, false);
   FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
+  FLAG_SET_DEFAULT(ParallelGCThreads, WorkerPolicy::parallel_worker_threads());
+  if (ParallelGCThreads == 0) {
+    assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
+    vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
+  }
+  
 }
 
 void ThirdPartyHeapArguments::initialize_alignments() {

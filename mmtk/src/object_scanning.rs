@@ -16,7 +16,7 @@ impl OopIterate for OopMapBlock {
     fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
-            let edge = start + (i << LOG_BYTES_IN_ADDRESS);
+            let edge = (start + (i << LOG_BYTES_IN_ADDRESS)).into();
             closure.visit_edge(edge);
         }
     }
@@ -66,7 +66,7 @@ impl OopIterate for InstanceMirrorKlass {
         let len = Self::static_oop_field_count(oop);
         let slice = unsafe { slice::from_raw_parts(start, len as _) };
         for oop in slice {
-            closure.visit_edge(Address::from_ref(oop as &Oop));
+            closure.visit_edge(Address::from_ref(oop as &Oop).into());
         }
     }
 }
@@ -88,7 +88,7 @@ impl OopIterate for ObjArrayKlass {
     fn oop_iterate(&self, oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
         let array = unsafe { oop.as_array_oop() };
         for oop in unsafe { array.data::<Oop>(BasicType::T_OBJECT) } {
-            closure.visit_edge(Address::from_ref(oop as &Oop));
+            closure.visit_edge(Address::from_ref(oop as &Oop).into());
         }
     }
 }
@@ -133,9 +133,9 @@ impl InstanceRefKlass {
     }
     fn process_ref_as_strong(oop: Oop, closure: &mut impl EdgeVisitor<OpenJDKEdge>) {
         let referent_addr = Self::referent_address(oop);
-        closure.visit_edge(referent_addr);
+        closure.visit_edge(referent_addr.into());
         let discovered_addr = Self::discovered_address(oop);
-        closure.visit_edge(discovered_addr);
+        closure.visit_edge(discovered_addr.into());
     }
 }
 

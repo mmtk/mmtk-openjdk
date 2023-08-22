@@ -198,7 +198,7 @@ public:
 
   void scan_roots(OopClosure& cl);
 
-  void scan_thread_roots(OopClosure& cl);
+  void scan_roots_in_all_mutator_threads(OopClosure& cl);
 
   void scan_code_cache_roots(OopClosure& cl);
   void scan_class_loader_data_graph_roots(OopClosure& cl);

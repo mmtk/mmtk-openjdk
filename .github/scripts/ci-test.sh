@@ -10,6 +10,6 @@ cd $cur
 cd $cur
 ./ci-test-assertions.sh
 cd $cur
-./ci-test-global-alloc-bit.sh
+./ci-test-vo-bit.sh
 cd $cur
 ./ci-test-malloc-mark-sweep.sh
