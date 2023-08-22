@@ -31,15 +31,15 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
-        MarkCompact: fail
+        MarkSweep: ignore
+        MarkCompact: ignore
       eclipse:
         SemiSpace: pass
         GenCopy: pass
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       fop:
         SemiSpace: pass
@@ -47,7 +47,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       graphchi:
         SemiSpace: pass
@@ -87,7 +87,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       kafka:
         SemiSpace: pass
@@ -193,7 +193,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       fop:
         SemiSpace: pass
@@ -201,7 +201,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       graphchi:
         SemiSpace: pass
@@ -241,7 +241,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: fail
+        MarkSweep: ignore
         MarkCompact: pass
       kafka:
         SemiSpace: pass
