@@ -418,9 +418,8 @@ lazy_static! {
     pub static ref SINGLETON_COMPRESSED: MMTK<OpenJDK<true>> = {
         let mut builder = BUILDER.lock().unwrap();
         assert!(use_compressed_oops());
-        builder.set_option("use_35bit_address_space", "true");
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
-        set_custom_vm_layout(builder.options.gc_trigger.max_heap_size());
+        set_compressed_pointer_vm_layout(&mut builder);
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         initialize_compressed_oops();
@@ -469,7 +468,8 @@ lazy_static! {
 /// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
 static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-fn set_custom_vm_layout(max_heap_size: usize) {
+fn set_compressed_pointer_vm_layout(builder: &mut MMTKBuilder) {
+    let max_heap_size = builder.options.gc_trigger.max_heap_size();
     assert!(
         max_heap_size <= (32usize << LOG_BYTES_IN_GBYTE),
         "Heap size is larger than 32 GB"
@@ -487,5 +487,5 @@ fn set_custom_vm_layout(max_heap_size: usize) {
         log_space_extent: 31,
         force_use_contiguous_spaces: false,
     };
-    VMLayout::set_custom_vm_layout(constants);
+    builder.set_vm_layout(constants);
 }
