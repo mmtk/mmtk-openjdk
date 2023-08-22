@@ -84,6 +84,8 @@ jint MMTkHeap::initialize() {
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
   // Set options
+  mmtk_builder_set_threads(ParallelGCThreads);
+  mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);

@@ -290,6 +290,20 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     )
 }
 
+/// Pass hotspot `ParallelGCThreads` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_threads(value: usize) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.threads.set(value);
+}
+
+/// Pass hotspot `UseTransparentHugePages` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_transparent_hugepages(value: bool) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.transparent_hugepages.set(value);
+}
+
 #[no_mangle]
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
