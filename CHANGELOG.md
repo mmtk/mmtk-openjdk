@@ -11,6 +11,11 @@
 * Update to MMTk core PR #875 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/225
 * Show the version after cd by @wks in https://github.com/mmtk/mmtk-openjdk/pull/227
 * Add features for genimmix and stickyimmix by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/228
+* Pass hotspot command line flags to mmtk-core by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/229
+* Fix unaligned edge access by @wks in https://github.com/mmtk/mmtk-openjdk/pull/232
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.18.0...v0.19.0
+
 
 0.18.0 (2023-04-03)
 ===
