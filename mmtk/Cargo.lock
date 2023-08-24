@@ -145,7 +145,7 @@ dependencies = [
  "autocfg",
  "cfg-if",
  "crossbeam-utils",
- "memoffset",
+ "memoffset 0.7.1",
  "scopeguard",
 ]
 
@@ -434,8 +434,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "memoffset"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "mmtk"
-version = "0.18.0"
+version = "0.19.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=039055ab9a94ac48919a8f3fac090248e406373d#039055ab9a94ac48919a8f3fac090248e406373d"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -452,6 +462,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
+ "memoffset 0.9.0",
  "mmtk-macros",
  "num-traits",
  "num_cpus",
@@ -466,7 +477,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.18.0"
+version = "0.19.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=039055ab9a94ac48919a8f3fac090248e406373d#039055ab9a94ac48919a8f3fac090248e406373d"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -544,9 +556,9 @@ checksum = "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
 
 [[package]]
 name = "probe"
-version = "0.3.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "216e81fcf486280f0b8b18ca43ceafd32739eb0eb703eb024a8d00814eeba556"
+checksum = "d8e2d2444b730c8f027344c60f9e1f1554d7a3342df9bdd425142ed119a6e5a3"
 
 [[package]]
 name = "proc-macro-error"
