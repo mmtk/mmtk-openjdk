@@ -179,16 +179,8 @@ fn oop_iterate_slow<const COMPRESSED: bool, V: EdgeVisitor<E<COMPRESSED>>>(
     }
 }
 
-fn oop_iterate<const COMPRESSED: bool>(
-    oop: Oop,
-    closure: &mut impl EdgeVisitor<E<COMPRESSED>>,
-    klass: Option<Address>,
-) {
-    let klass = if let Some(klass) = klass {
-        unsafe { &*(klass.as_usize() as *const Klass) }
-    } else {
-        oop.klass::<COMPRESSED>()
-    };
+fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl EdgeVisitor<E<COMPRESSED>>) {
+    let klass = oop.klass::<COMPRESSED>();
     let klass_id = klass.id;
     assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < 6,
@@ -221,8 +213,6 @@ fn oop_iterate<const COMPRESSED: bool>(
             let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        #[allow(unreachable_patterns)]
-        _ => unreachable!(), // _ => oop_iterate_slow(oop, closure, OpaquePointer::UNINITIALIZED),
     }
 }
 
@@ -246,5 +236,5 @@ pub fn scan_object<const COMPRESSED: bool>(
     closure: &mut impl EdgeVisitor<E<COMPRESSED>>,
     _tls: VMWorkerThread,
 ) {
-    unsafe { oop_iterate::<COMPRESSED>(mem::transmute(object), closure, None) }
+    unsafe { oop_iterate::<COMPRESSED>(mem::transmute(object), closure) }
 }

@@ -26,11 +26,7 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel 
         copy: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<OpenJDK<COMPRESSED>>,
     ) -> ObjectReference {
-        let bytes = if crate::use_compressed_oops() {
-            unsafe { Oop::from(from).size::<true>() }
-        } else {
-            unsafe { Oop::from(from).size::<false>() }
-        };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
         // Copy
         let src = from.to_raw_address();
@@ -114,11 +110,7 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel 
         let oop = Oop::from(object);
         // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
         // If oop.klass is not a valid pointer, we may segfault here.
-        let klass_id = if crate::use_compressed_oops() {
-            oop.klass::<true>().id
-        } else {
-            oop.klass::<false>().id
-        } as i32;
+        let klass_id = oop.klass::<COMPRESSED>().id as i32;
         klass_id >= 0 && klass_id < 6
     }
 }

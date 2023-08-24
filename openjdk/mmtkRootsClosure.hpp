@@ -7,7 +7,7 @@
 #include "oops/oop.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-class MMTkRootsClosure2 : public OopClosure {
+class MMTkRootsClosure : public OopClosure {
   EdgesClosure _edges_closure;
   void** _buffer;
   size_t _cap;
@@ -38,13 +38,13 @@ class MMTkRootsClosure2 : public OopClosure {
   }
 
 public:
-  MMTkRootsClosure2(EdgesClosure edges_closure): _edges_closure(edges_closure), _cursor(0) {
+  MMTkRootsClosure(EdgesClosure edges_closure): _edges_closure(edges_closure), _cursor(0) {
     NewBuffer buf = edges_closure.invoke(NULL, 0, 0);
     _buffer = buf.buf;
     _cap = buf.cap;
   }
 
-  ~MMTkRootsClosure2() {
+  ~MMTkRootsClosure() {
     if (_cursor > 0) flush();
     if (_buffer != NULL) {
       release_buffer(_buffer, _cursor, _cap);
@@ -65,7 +65,6 @@ class MMTkScanObjectClosure : public BasicOopIterateClosure {
       guarantee((uintptr_t(p) & (1ull << 63)) == 0, "test");
       p = (T*) (uintptr_t(p) | (1ull << 63));
     }
-    // _trace((void*) p);
   }
 
 public:

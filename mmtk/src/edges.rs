@@ -17,6 +17,15 @@ pub static BASE: Atomic<Address> = Atomic::new(Address::ZERO);
 pub static SHIFT: AtomicUsize = AtomicUsize::new(0);
 
 pub fn enable_compressed_oops() {
+    static COMPRESSED_OOPS_INITIALIZED: AtomicBool = AtomicBool::new(false);
+    assert!(
+        !COMPRESSED_OOPS_INITIALIZED.fetch_or(true, Ordering::Relaxed),
+        "cannot enable compressed pointers twice."
+    );
+    if cfg!(not(target_arch = "x86_64")) {
+        panic!("Compressed pointer is only enable on x86_64 platforms.\
+            For other RISC architectures, we need to find a way to process compressed embeded pointers in code objects first.");
+    }
     USE_COMPRESSED_OOPS.store(true, Ordering::Relaxed)
 }
 
@@ -102,6 +111,7 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
         }
     }
 
+    /// encode an object pointer to its u32 compressed form
     fn compress(o: ObjectReference) -> u32 {
         if o.is_null() {
             0u32
@@ -111,6 +121,7 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
         }
     }
 
+    /// decode an object pointer from its u32 compressed form
     fn decompress(v: u32) -> ObjectReference {
         if v == 0 {
             ObjectReference::NULL

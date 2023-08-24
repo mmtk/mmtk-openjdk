@@ -18,18 +18,6 @@ use mmtk::vm::edge_shape::Edge;
 use mmtk::vm::VMBinding;
 use mmtk::{MMTKBuilder, Mutator, MMTK};
 
-macro_rules! with_singleton {
-    (|$x: ident| $($expr:tt)*) => {
-        if crate::use_compressed_oops() {
-            let $x: &'static mmtk::MMTK<crate::OpenJDK<true>> = &*crate::SINGLETON_COMPRESSED;
-            $($expr)*
-        } else {
-            let $x: &'static mmtk::MMTK<crate::OpenJDK<false>> = &*crate::SINGLETON_UNCOMPRESSED;
-            $($expr)*
-        }
-    };
-}
-
 mod abi;
 pub mod active_plan;
 pub mod api;

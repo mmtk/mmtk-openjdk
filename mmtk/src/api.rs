@@ -19,6 +19,18 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::sync::atomic::Ordering;
 
+macro_rules! with_singleton {
+    (|$x: ident| $($expr:tt)*) => {
+        if crate::use_compressed_oops() {
+            let $x: &'static mmtk::MMTK<crate::OpenJDK<true>> = &*crate::SINGLETON_COMPRESSED;
+            $($expr)*
+        } else {
+            let $x: &'static mmtk::MMTK<crate::OpenJDK<false>> = &*crate::SINGLETON_UNCOMPRESSED;
+            $($expr)*
+        }
+    };
+}
+
 macro_rules! with_mutator {
     (|$x: ident| $($expr:tt)*) => {
         if crate::use_compressed_oops() {
