@@ -23,8 +23,6 @@ extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
-extern uintptr_t HEAP_START;
-extern uintptr_t HEAP_END;
 
 extern const char* get_mmtk_version();
 
@@ -183,8 +181,6 @@ typedef struct {
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
     void (*enqueue_references)(void** objects, size_t len);
-    void* (*compressed_klass_base)();
-    size_t (*compressed_klass_shift)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls);
@@ -195,6 +191,7 @@ extern bool mmtk_set_heap_size(size_t min, size_t max);
 extern bool mmtk_use_compressed_ptrs();
 extern void* mmtk_narrow_oop_base();
 extern size_t mmtk_narrow_oop_shift();
+extern size_t mmtk_set_compressed_klass_base_and_shift(void* base, size_t shift);
 
 extern size_t used_bytes();
 extern void* starting_heap_address();

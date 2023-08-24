@@ -118,8 +118,6 @@ pub struct OpenJDK_Upcalls {
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
-    pub compressed_klass_base: extern "C" fn() -> Address,
-    pub compressed_klass_shift: extern "C" fn() -> usize,
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
@@ -139,23 +137,6 @@ pub static VO_BIT_ADDRESS: uintptr_t =
 #[no_mangle]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK<false>>>();
-
-#[no_mangle]
-pub static DISABLE_ALLOCATION_FAST_PATH: i32 =
-    (cfg!(feature = "no_fast_alloc") || cfg!(feature = "object_size_distribution")) as _;
-
-#[no_mangle]
-pub static IMMIX_ALLOCATOR_SIZE: uintptr_t =
-    std::mem::size_of::<mmtk::util::alloc::ImmixAllocator<OpenJDK<false>>>();
-
-#[no_mangle]
-pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;
-
-#[no_mangle]
-pub static mut HEAP_START: Address = Address::ZERO;
-
-#[no_mangle]
-pub static mut HEAP_END: Address = Address::ZERO;
 
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;
@@ -190,10 +171,6 @@ lazy_static! {
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         edges::initialize_compressed_oops_base_and_shift();
-        unsafe {
-            HEAP_START = mmtk::memory_manager::starting_heap_address();
-            HEAP_END = mmtk::memory_manager::last_heap_address();
-        }
         *ret
     };
     pub static ref SINGLETON_UNCOMPRESSED: MMTK<OpenJDK<false>> = {
@@ -202,10 +179,6 @@ lazy_static! {
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
-        unsafe {
-            HEAP_START = mmtk::memory_manager::starting_heap_address();
-            HEAP_END = mmtk::memory_manager::last_heap_address();
-        }
         *ret
     };
 }

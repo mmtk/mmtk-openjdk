@@ -281,6 +281,11 @@ pub extern "C" fn mmtk_use_compressed_ptrs() {
 }
 
 #[no_mangle]
+pub extern "C" fn mmtk_set_compressed_klass_base_and_shift(base: Address, shift: usize) {
+    crate::abi::set_compressed_klass_base_and_shift(base, shift)
+}
+
+#[no_mangle]
 pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
     if crate::use_compressed_oops() {
         memory_manager::is_in_mmtk_spaces::<OpenJDK<true>>(object)
@@ -382,11 +387,13 @@ pub extern "C" fn process_bulk(options: *const c_char) -> bool {
 
 #[no_mangle]
 pub extern "C" fn mmtk_narrow_oop_base() -> Address {
+    debug_assert!(crate::use_compressed_oops());
     crate::edges::BASE.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
 pub extern "C" fn mmtk_narrow_oop_shift() -> usize {
+    debug_assert!(crate::use_compressed_oops());
     crate::edges::SHIFT.load(Ordering::Relaxed)
 }
 

@@ -148,6 +148,9 @@ void MMTkHeap::schedule_finalizer() {
 
 void MMTkHeap::post_initialize() {
   CollectedHeap::post_initialize();
+  if (UseCompressedOops) {
+    mmtk_set_compressed_klass_base_and_shift((void*) Universe::narrow_klass_base(), (size_t) Universe::narrow_klass_shift());
+  }
 }
 
 void MMTkHeap::enable_collection() {
