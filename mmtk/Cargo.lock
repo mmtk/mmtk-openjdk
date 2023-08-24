@@ -488,6 +488,7 @@ dependencies = [
 name = "mmtk_openjdk"
 version = "0.18.0"
 dependencies = [
+ "atomic",
  "built 0.5.2",
  "lazy_static",
  "libc",

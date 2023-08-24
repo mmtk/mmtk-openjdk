@@ -27,7 +27,7 @@ impl OopIterate for OopMapBlock {
         let log_bytes_in_oop = if COMPRESSED { 2 } else { 3 };
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
-            let edge = OpenJDKEdge::<COMPRESSED>::from_address(start + (i << log_bytes_in_oop));
+            let edge: OpenJDKEdge<COMPRESSED> = (start + (i << log_bytes_in_oop)).into();
             closure.visit_edge(edge);
         }
     }
@@ -61,15 +61,13 @@ impl OopIterate for InstanceMirrorKlass {
             let start: *const NarrowOop = start.to_ptr::<NarrowOop>();
             let slice = unsafe { slice::from_raw_parts(start, len as _) };
             for narrow_oop in slice {
-                closure.visit_edge(OpenJDKEdge::<COMPRESSED>::from_address(narrow_oop.slot()));
+                closure.visit_edge(narrow_oop.slot().into());
             }
         } else {
             let start: *const Oop = start.to_ptr::<Oop>();
             let slice = unsafe { slice::from_raw_parts(start, len as _) };
             for oop in slice {
-                closure.visit_edge(OpenJDKEdge::<COMPRESSED>::from_address(Address::from_ref(
-                    oop as &Oop,
-                )));
+                closure.visit_edge(Address::from_ref(oop as &Oop).into());
             }
         }
     }
@@ -94,13 +92,11 @@ impl OopIterate for ObjArrayKlass {
         let array = unsafe { oop.as_array_oop() };
         if COMPRESSED {
             for narrow_oop in unsafe { array.data::<NarrowOop, COMPRESSED>(BasicType::T_OBJECT) } {
-                closure.visit_edge(OpenJDKEdge::<COMPRESSED>::from_address(narrow_oop.slot()));
+                closure.visit_edge(narrow_oop.slot().into());
             }
         } else {
             for oop in unsafe { array.data::<Oop, COMPRESSED>(BasicType::T_OBJECT) } {
-                closure.visit_edge(OpenJDKEdge::<COMPRESSED>::from_address(Address::from_ref(
-                    oop as &Oop,
-                )));
+                closure.visit_edge(Address::from_ref(oop as &Oop).into());
             }
         }
     }
@@ -242,7 +238,7 @@ pub unsafe extern "C" fn scan_object_fn<
 ) {
     let ptr: *mut u8 = CLOSURE.with(|x| *x.get());
     let closure = &mut *(ptr as *mut V);
-    closure.visit_edge(OpenJDKEdge::<COMPRESSED>::from_address(edge));
+    closure.visit_edge(edge.into());
 }
 
 pub fn scan_object<const COMPRESSED: bool>(

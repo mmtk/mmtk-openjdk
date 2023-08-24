@@ -265,10 +265,10 @@ impl InstanceRefKlass {
         *DISCOVERED_OFFSET
     }
     pub fn referent_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
-        OpenJDKEdge::<COMPRESSED>::from_address(oop.get_field_address(Self::referent_offset()))
+        oop.get_field_address(Self::referent_offset()).into()
     }
     pub fn discovered_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
-        OpenJDKEdge::<COMPRESSED>::from_address(oop.get_field_address(Self::discovered_offset()))
+        oop.get_field_address(Self::discovered_offset()).into()
     }
 }
 
@@ -437,11 +437,11 @@ impl ArrayOopDesc {
         ty: BasicType,
     ) -> crate::OpenJDKEdgeRange<COMPRESSED> {
         let base = self.base::<COMPRESSED>(ty);
-        let start = crate::OpenJDKEdge(base);
-        let end = crate::OpenJDKEdge(
-            base + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 }),
-        );
-        crate::OpenJDKEdgeRange { start, end }
+        let start = base.into();
+        let end = (base
+            + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 }))
+        .into();
+        crate::OpenJDKEdgeRange { range: start..end }
     }
 }
 

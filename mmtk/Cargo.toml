@@ -24,6 +24,7 @@ openjdk_version = "28e56ee32525c32c5a88391d0b01f24e5cd16c0f"
 libc = "0.2"
 lazy_static = "1.1"
 once_cell = "1.10.0"
+atomic = "0.5.1"
 # Be very careful to commit any changes to the following mmtk dependency, as our CI scripts (including mmtk-core CI)
 # rely on matching these lines to modify them: e.g. comment out the git dependency and use the local path.
 # These changes are safe:
@@ -62,3 +63,5 @@ gencopy = []
 marksweep = []
 pageprotect = []
 immix = []
+genimmix = []
+stickyimmix = []

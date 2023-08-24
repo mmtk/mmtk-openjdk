@@ -1,6 +1,5 @@
+use crate::edges::OpenJDKEdge;
 use crate::OpenJDK;
-use crate::OpenJDKEdge;
-use crate::OpenJDKEdgeRange;
 use crate::OpenJDK_Upcalls;
 use crate::BUILDER;
 use crate::UPCALLS;
@@ -86,6 +85,10 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
             Some(PlanSelector::PageProtect)
         } else if cfg!(feature = "immix") {
             Some(PlanSelector::Immix)
+        } else if cfg!(feature = "genimmix") {
+            Some(PlanSelector::GenImmix)
+        } else if cfg!(feature = "stickyimmix") {
+            Some(PlanSelector::StickyImmix)
         } else {
             None
         };
@@ -262,7 +265,7 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 
 #[no_mangle]
 pub extern "C" fn mmtk_use_compressed_ptrs() {
-    crate::init_compressed_oop_constants()
+    crate::edges::enable_compressed_oops()
 }
 
 #[no_mangle]
@@ -342,6 +345,20 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     )
 }
 
+/// Pass hotspot `ParallelGCThreads` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_threads(value: usize) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.threads.set(value);
+}
+
+/// Pass hotspot `UseTransparentHugePages` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_transparent_hugepages(value: bool) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.transparent_hugepages.set(value);
+}
+
 #[no_mangle]
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -353,12 +370,12 @@ pub extern "C" fn process_bulk(options: *const c_char) -> bool {
 
 #[no_mangle]
 pub extern "C" fn mmtk_narrow_oop_base() -> Address {
-    unsafe { crate::BASE }
+    crate::edges::BASE.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
 pub extern "C" fn mmtk_narrow_oop_shift() -> usize {
-    unsafe { crate::SHIFT }
+    crate::edges::SHIFT.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
@@ -392,7 +409,7 @@ pub extern "C" fn mmtk_object_reference_write_pre(
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_pre(src, OpenJDKEdge(slot), target);
+            .object_reference_write_pre(src, slot.into(), target);
     })
 }
 
@@ -407,7 +424,7 @@ pub extern "C" fn mmtk_object_reference_write_post(
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_post(src, OpenJDKEdge(slot), target);
+            .object_reference_write_post(src, slot.into(), target);
     })
 }
 
@@ -422,8 +439,16 @@ pub extern "C" fn mmtk_object_reference_write_slow(
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_slow(src, OpenJDKEdge(slot), target);
+            .object_reference_write_slow(src, slot.into(), target);
     })
+}
+
+fn log_bytes_in_edge() -> usize {
+    if crate::use_compressed_oops() {
+        OpenJDKEdge::<true>::LOG_BYTES_IN_EDGE
+    } else {
+        OpenJDKEdge::<false>::LOG_BYTES_IN_EDGE
+    }
 }
 
 /// Array-copy pre-barrier
@@ -434,18 +459,11 @@ pub extern "C" fn mmtk_array_copy_pre(
     dst: Address,
     count: usize,
 ) {
-    let bytes = count << crate::log_bytes_in_field();
+    let bytes = count << log_bytes_in_edge();
     with_mutator!(|mutator| {
-        mutator.barrier().memory_region_copy_pre(
-            OpenJDKEdgeRange {
-                start: OpenJDKEdge(src),
-                end: OpenJDKEdge(src + bytes),
-            },
-            OpenJDKEdgeRange {
-                start: OpenJDKEdge(dst),
-                end: OpenJDKEdge(dst + bytes),
-            },
-        );
+        mutator
+            .barrier()
+            .memory_region_copy_pre((src..src + bytes).into(), (dst..dst + bytes).into());
     })
 }
 
@@ -458,17 +476,10 @@ pub extern "C" fn mmtk_array_copy_post(
     count: usize,
 ) {
     with_mutator!(|mutator| {
-        let bytes = count << crate::log_bytes_in_field();
-        mutator.barrier().memory_region_copy_post(
-            OpenJDKEdgeRange {
-                start: OpenJDKEdge(src),
-                end: OpenJDKEdge(src + bytes),
-            },
-            OpenJDKEdgeRange {
-                start: OpenJDKEdge(dst),
-                end: OpenJDKEdge(dst + bytes),
-            },
-        );
+        let bytes = count << log_bytes_in_edge();
+        mutator
+            .barrier()
+            .memory_region_copy_post((src..src + bytes).into(), (dst..dst + bytes).into());
     })
 }
 

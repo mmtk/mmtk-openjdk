@@ -6,15 +6,15 @@ use std::ptr::null_mut;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
+pub use edges::use_compressed_oops;
+use edges::{OpenJDKEdge, OpenJDKEdgeRange};
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
-use mmtk::util::constants::{
-    BYTES_IN_ADDRESS, BYTES_IN_INT, LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_GBYTE, LOG_BYTES_IN_INT,
-};
+use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
 use mmtk::util::heap::vm_layout::VMLayout;
 use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::edge_shape::{Edge, MemorySlice};
+use mmtk::vm::edge_shape::Edge;
 use mmtk::vm::VMBinding;
 use mmtk::{MMTKBuilder, Mutator, MMTK};
 
@@ -35,6 +35,7 @@ pub mod active_plan;
 pub mod api;
 mod build_info;
 pub mod collection;
+mod edges;
 mod gc_work;
 pub mod object_model;
 mod object_scanning;
@@ -168,230 +169,8 @@ pub static mut HEAP_START: Address = Address::ZERO;
 #[no_mangle]
 pub static mut HEAP_END: Address = Address::ZERO;
 
-static mut USE_COMPRESSED_OOPS: bool = false;
-static mut LOG_BYTES_IN_FIELD: usize = LOG_BYTES_IN_ADDRESS as _;
-static mut BYTES_IN_FIELD: usize = BYTES_IN_ADDRESS as _;
-
-fn init_compressed_oop_constants() {
-    unsafe {
-        USE_COMPRESSED_OOPS = true;
-        LOG_BYTES_IN_FIELD = LOG_BYTES_IN_INT as _;
-        BYTES_IN_FIELD = BYTES_IN_INT as _;
-    }
-}
-
-fn use_compressed_oops() -> bool {
-    unsafe { USE_COMPRESSED_OOPS }
-}
-
-fn log_bytes_in_field() -> usize {
-    unsafe { LOG_BYTES_IN_FIELD }
-}
-
-fn bytes_in_field() -> usize {
-    unsafe { BYTES_IN_FIELD }
-}
-
-static mut BASE: Address = Address::ZERO;
-static mut SHIFT: usize = 0;
-
-fn compress(o: ObjectReference) -> u32 {
-    if o.is_null() {
-        0u32
-    } else {
-        unsafe { ((o.to_raw_address() - BASE) >> SHIFT) as u32 }
-    }
-}
-
-fn decompress(v: u32) -> ObjectReference {
-    if v == 0 {
-        ObjectReference::NULL
-    } else {
-        unsafe { ObjectReference::from_raw_address(BASE + ((v as usize) << SHIFT)) }
-    }
-}
-
-fn initialize_compressed_oops() {
-    let heap_end = mmtk::memory_manager::last_heap_address().as_usize();
-    if heap_end <= (4usize << 30) {
-        unsafe {
-            BASE = Address::ZERO;
-            SHIFT = 0;
-        }
-    } else if heap_end <= (32usize << 30) {
-        unsafe {
-            BASE = Address::ZERO;
-            SHIFT = 3;
-        }
-    } else {
-        unsafe {
-            BASE = mmtk::memory_manager::starting_heap_address() - 4096;
-            SHIFT = 3;
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;
-
-/// The type of edges in OpenJDK.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct OpenJDKEdge<const COMPRESSED: bool>(pub Address);
-
-impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
-    const MASK: usize = 1usize << 63;
-
-    const fn is_compressed(&self) -> bool {
-        self.0.as_usize() & Self::MASK == 0
-    }
-
-    const fn untagged_address(&self) -> Address {
-        unsafe { Address::from_usize(self.0.as_usize() << 1 >> 1) }
-    }
-
-    pub fn to_address(&self) -> Address {
-        self.untagged_address()
-    }
-
-    pub fn from_address(a: Address) -> Self {
-        Self(a)
-    }
-}
-
-impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
-    /// Load object reference from the edge.
-    fn load(&self) -> ObjectReference {
-        if COMPRESSED {
-            let slot = self.untagged_address();
-            if self.is_compressed() {
-                decompress(unsafe { slot.load::<u32>() })
-            } else {
-                unsafe { slot.load::<ObjectReference>() }
-            }
-        } else {
-            unsafe { self.0.load::<ObjectReference>() }
-        }
-    }
-
-    /// Store the object reference `object` into the edge.
-    fn store(&self, object: ObjectReference) {
-        if COMPRESSED {
-            let slot = self.untagged_address();
-            if self.is_compressed() {
-                unsafe { slot.store(compress(object)) }
-            } else {
-                unsafe { slot.store(object) }
-            }
-        } else {
-            unsafe { self.0.store(object) }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct OpenJDKEdgeRange<const COMPRESSED: bool> {
-    pub start: OpenJDKEdge<COMPRESSED>,
-    pub end: OpenJDKEdge<COMPRESSED>,
-}
-
-/// Iterate edges within `Range<Address>`.
-pub struct AddressRangeIterator<const COMPRESSED: bool> {
-    cursor: Address,
-    limit: Address,
-    width: usize,
-}
-
-impl<const COMPRESSED: bool> Iterator for AddressRangeIterator<COMPRESSED> {
-    type Item = OpenJDKEdge<COMPRESSED>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.cursor >= self.limit {
-            None
-        } else {
-            let edge = self.cursor;
-            self.cursor += self.width;
-            Some(OpenJDKEdge(edge))
-        }
-    }
-}
-
-pub struct ChunkIterator<const COMPRESSED: bool> {
-    cursor: Address,
-    limit: Address,
-    step: usize,
-}
-
-impl<const COMPRESSED: bool> Iterator for ChunkIterator<COMPRESSED> {
-    type Item = OpenJDKEdgeRange<COMPRESSED>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.cursor >= self.limit {
-            None
-        } else {
-            let start = self.cursor;
-            let mut end = start + self.step;
-            if end > self.limit {
-                end = self.limit;
-            }
-            self.cursor = end;
-            Some(OpenJDKEdgeRange {
-                start: OpenJDKEdge(start),
-                end: OpenJDKEdge(end),
-            })
-        }
-    }
-}
-
-impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
-    type Edge = OpenJDKEdge<COMPRESSED>;
-    type EdgeIterator = AddressRangeIterator<COMPRESSED>;
-
-    fn iter_edges(&self) -> Self::EdgeIterator {
-        AddressRangeIterator {
-            cursor: self.start.0,
-            limit: self.end.0,
-            width: crate::bytes_in_field(),
-        }
-    }
-
-    fn start(&self) -> Address {
-        self.start.0
-    }
-
-    fn bytes(&self) -> usize {
-        self.end.0 - self.start.0
-    }
-
-    fn copy(src: &Self, tgt: &Self) {
-        debug_assert_eq!(src.bytes(), tgt.bytes());
-        debug_assert_eq!(
-            src.bytes() & ((1 << LOG_BYTES_IN_ADDRESS) - 1),
-            0,
-            "bytes are not a multiple of words"
-        );
-        // Raw memory copy
-        if crate::use_compressed_oops() {
-            unsafe {
-                let words = tgt.bytes() >> LOG_BYTES_IN_INT;
-                let src = src.start().to_ptr::<u32>();
-                let tgt = tgt.start().to_mut_ptr::<u32>();
-                std::ptr::copy(src, tgt, words)
-            }
-        } else {
-            unsafe {
-                let words = tgt.bytes() >> LOG_BYTES_IN_ADDRESS;
-                let src = src.start().to_ptr::<usize>();
-                let tgt = tgt.start().to_mut_ptr::<usize>();
-                std::ptr::copy(src, tgt, words)
-            }
-        }
-    }
-
-    fn object(&self) -> Option<ObjectReference> {
-        None
-    }
-}
 
 impl<const COMPRESSED: bool> VMBinding for OpenJDK<COMPRESSED> {
     type VMObjectModel = object_model::VMObjectModel;
@@ -416,13 +195,13 @@ pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 lazy_static! {
     pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
     pub static ref SINGLETON_COMPRESSED: MMTK<OpenJDK<true>> = {
-        let mut builder = BUILDER.lock().unwrap();
         assert!(use_compressed_oops());
+        let mut builder = BUILDER.lock().unwrap();
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         set_compressed_pointer_vm_layout(&mut builder);
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
-        initialize_compressed_oops();
+        edges::initialize_compressed_oops_base_and_shift();
         unsafe {
             HEAP_START = mmtk::memory_manager::starting_heap_address();
             HEAP_END = mmtk::memory_manager::last_heap_address();
@@ -430,6 +209,7 @@ lazy_static! {
         *ret
     };
     pub static ref SINGLETON_UNCOMPRESSED: MMTK<OpenJDK<false>> = {
+        assert!(!use_compressed_oops());
         let builder = BUILDER.lock().unwrap();
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         let ret = mmtk::memory_manager::mmtk_init(&builder);
