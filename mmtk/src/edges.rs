@@ -5,10 +5,7 @@ use std::{
 
 use atomic::Atomic;
 use mmtk::{
-    util::{
-        constants::{LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_INT},
-        Address, ObjectReference,
-    },
+    util::{constants::LOG_BYTES_IN_INT, Address, ObjectReference},
     vm::edge_shape::{Edge, MemorySlice},
 };
 
@@ -16,6 +13,9 @@ static USE_COMPRESSED_OOPS: AtomicBool = AtomicBool::new(false);
 pub static BASE: Atomic<Address> = Atomic::new(Address::ZERO);
 pub static SHIFT: AtomicUsize = AtomicUsize::new(0);
 
+/// Enables compressed oops
+///
+/// This function can only be called once during MMTkHeap::initialize.
 pub fn enable_compressed_oops() {
     static COMPRESSED_OOPS_INITIALIZED: AtomicBool = AtomicBool::new(false);
     assert!(
@@ -29,10 +29,12 @@ pub fn enable_compressed_oops() {
     USE_COMPRESSED_OOPS.store(true, Ordering::Relaxed)
 }
 
+/// Check if the compressed pointer is enabled
 pub fn use_compressed_oops() -> bool {
     USE_COMPRESSED_OOPS.load(Ordering::Relaxed)
 }
 
+/// Set compressed pointer base and shift based on heap range
 pub fn initialize_compressed_oops_base_and_shift() {
     let heap_end = mmtk::memory_manager::last_heap_address().as_usize();
     if heap_end <= (4usize << 30) {
@@ -65,16 +67,25 @@ impl<const COMPRESSED: bool> From<Address> for OpenJDKEdge<COMPRESSED> {
     }
 }
 
+/// For OpenJDK<COMPRESSED = false>, every edge is uncompressed.
+///
+/// For COMPRESSED = true,
+///     * if this is a field of an object, the edge is compressed
+///     * if this is a root pointer: The c++ part of the binding shoud pass all the root pointers to rust as tagged pointers.
+///       If the 63-th bit of the pointer is set to 1, the value referenced by the pointer is a 32-bit compressed integer.
+///       Otherwise, it is a uncompressed root pointer.
 impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
     pub const LOG_BYTES_IN_EDGE: usize = if COMPRESSED { 2 } else { 3 };
     pub const BYTES_IN_EDGE: usize = 1 << Self::LOG_BYTES_IN_EDGE;
 
     const MASK: usize = 1usize << 63;
 
+    /// Check if the pointer is tagged as "compressed"
     const fn is_compressed(&self) -> bool {
         self.addr.as_usize() & Self::MASK == 0
     }
 
+    /// Get the edge address with tags stripped
     const fn untagged_address(&self) -> Address {
         unsafe { Address::from_usize(self.addr.as_usize() << 1 >> 1) }
     }
@@ -239,9 +250,9 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
     fn copy(src: &Self, tgt: &Self) {
         debug_assert_eq!(src.bytes(), tgt.bytes());
         debug_assert_eq!(
-            src.bytes() & ((1 << LOG_BYTES_IN_ADDRESS) - 1),
+            src.bytes() & ((1 << LOG_BYTES_IN_INT) - 1),
             0,
-            "bytes are not a multiple of words"
+            "bytes are not a multiple of 32-bit integers"
         );
         // Raw memory copy
         if COMPRESSED {
