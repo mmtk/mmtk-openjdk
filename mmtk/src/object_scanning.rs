@@ -27,7 +27,7 @@ impl OopIterate for OopMapBlock {
         let log_bytes_in_oop = if COMPRESSED { 2 } else { 3 };
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
-            let edge: OpenJDKEdge<COMPRESSED> = (start + (i << log_bytes_in_oop)).into();
+            let edge = (start + (i << log_bytes_in_oop)).into();
             closure.visit_edge(edge);
         }
     }
