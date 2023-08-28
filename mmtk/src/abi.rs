@@ -432,10 +432,10 @@ impl ArrayOopDesc {
         let base_offset_in_bytes = Self::header_size::<COMPRESSED>(ty) * BYTES_IN_WORD;
         Address::from_ptr(unsafe { (self as *const Self as *const u8).add(base_offset_in_bytes) })
     }
-    // This provides an easy way to access the array data in Rust. However, the array data
-    // is Java types, so we have to map Java types to Rust types. The caller needs to guarantee:
-    // 1. <T> matches the actual Java type
-    // 2. <T> matches the argument, BasicType `ty`
+    /// This provides an easy way to access the array data in Rust. However, the array data
+    /// is Java types, so we have to map Java types to Rust types. The caller needs to guarantee:
+    /// 1. <T> matches the actual Java type
+    /// 2. <T> matches the argument, BasicType `ty`
     pub unsafe fn data<T, const COMPRESSED: bool>(&self, ty: BasicType) -> &[T] {
         slice::from_raw_parts(
             self.base::<COMPRESSED>(ty).to_ptr(),
@@ -452,7 +452,7 @@ impl ArrayOopDesc {
         let end = (base
             + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 }))
         .into();
-        crate::OpenJDKEdgeRange { range: start..end }
+        (start..end).into()
     }
 }
 
