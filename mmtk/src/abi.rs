@@ -448,10 +448,8 @@ impl ArrayOopDesc {
         ty: BasicType,
     ) -> crate::OpenJDKEdgeRange<COMPRESSED> {
         let base = self.base::<COMPRESSED>(ty);
-        let start = base.into();
-        let end = (base
-            + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 }))
-        .into();
+        let start = base;
+        let end = base + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 });
         (start..end).into()
     }
 }

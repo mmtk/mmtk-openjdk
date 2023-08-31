@@ -74,7 +74,7 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         factory: impl RootsWorkFactory<OpenJDKEdge<COMPRESSED>>,
     ) {
         memory_manager::add_work_packets(
-            &crate::singleton::<COMPRESSED>(),
+            crate::singleton::<COMPRESSED>(),
             WorkBucketStage::Prepare,
             vec![
                 Box::new(ScanUniverseRoots::new(factory.clone())) as _,

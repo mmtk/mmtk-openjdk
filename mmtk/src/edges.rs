@@ -216,9 +216,9 @@ impl<const COMPRESSED: bool> Iterator for OpenJDKEdgeRangeIterator<COMPRESSED> {
     }
 }
 
-impl<const COMPRESSED: bool> Into<Range<Address>> for OpenJDKEdgeRange<COMPRESSED> {
-    fn into(self) -> Range<Address> {
-        self.range.start.addr..self.range.end.addr
+impl<const COMPRESSED: bool> From<OpenJDKEdgeRange<COMPRESSED>> for Range<Address> {
+    fn from(value: OpenJDKEdgeRange<COMPRESSED>) -> Self {
+        value.range.start.addr..value.range.end.addr
     }
 }
 
