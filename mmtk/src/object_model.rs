@@ -38,7 +38,7 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel 
 
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         let need_copy = from != to;
-        let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         if need_copy {
             // copy obj to target
             let dst = to.to_raw_address();
