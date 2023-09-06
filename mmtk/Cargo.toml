@@ -2,7 +2,7 @@
 name = "mmtk_openjdk"
 version = "0.19.0"
 authors = [" <>"]
-rust-version = "1.66.0"
+rust-version = "1.70.0"
 build = "build.rs"
 edition = "2021"
 
