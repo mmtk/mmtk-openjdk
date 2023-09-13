@@ -150,6 +150,7 @@ jobs:
         run: |
           pushd dacapo
           unzip ${{ env.DACAPO_FILE }}
+          rm ${{ env.DACAPO_FILE }}
           popd
       - name: Check free space
         run: df -h
