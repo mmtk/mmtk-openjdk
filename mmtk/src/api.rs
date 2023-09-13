@@ -230,11 +230,6 @@ pub extern "C" fn is_mapped_address(addr: Address) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn modify_check(object: ObjectReference) {
-    memory_manager::modify_check(&SINGLETON, object)
-}
-
-#[no_mangle]
 pub extern "C" fn add_weak_candidate(reff: ObjectReference) {
     memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
