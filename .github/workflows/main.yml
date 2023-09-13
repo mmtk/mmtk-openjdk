@@ -129,8 +129,10 @@ jobs:
           pip3 install running-ng
           sudo apt-get update -y
           sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
-      - name: Check free space
-        run: df -h      
+      - name: Check free space and runner log path
+        run: |
+          df -h
+          df /home/runner/runners
       - name: Fetch ${{ env.DACAPO_VERSION }} cache
         id: fetch-cache
         uses: actions/cache@v3
