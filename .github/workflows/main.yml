@@ -107,6 +107,18 @@ jobs:
           - xalan
           - zxing
     steps:
+      - name: Check free space
+        run: df -h
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+      - name: Check free space
+        run: df -h
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v3
       - name: Setup environment
@@ -114,6 +126,8 @@ jobs:
           pip3 install running-ng
           sudo apt-get update -y
           sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
+      - name: Check free space
+        run: df -h      
       - name: Fetch ${{ env.DACAPO_VERSION }} cache
         id: fetch-cache
         uses: actions/cache@v3
@@ -137,6 +151,8 @@ jobs:
           pushd dacapo
           unzip ${{ env.DACAPO_FILE }}
           popd
+      - name: Check free space
+        run: df -h
       - name: Download bundles
         uses: actions/download-artifact@v3
         with:
@@ -149,6 +165,8 @@ jobs:
           BIN_DIR=`find . -name bin`
           mv `dirname $BIN_DIR` jdk
           popd
+      - name: Check free space
+        run: df -h
       - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with 2.5x MarkCompact minheap
         run: |
           DACAPO_PATH=`realpath ./dacapo`
