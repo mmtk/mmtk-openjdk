@@ -117,9 +117,9 @@ jobs:
           remove-haskell: true
           remove-codeql: true
           remove-docker-images: true
-          # Leave some room for the runner for logging.
-          root-reserve-mb: 4096
-          temp-reserve-mb: 4096
+          # Leave some room for the runner for logging in /dev/root
+          root-reserve-mb: 6000
+          temp-reserve-mb: 1024
       - name: Check free space
         run: df -h
       - name: Checkout MMTk OpenJDK binding
