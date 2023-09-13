@@ -178,6 +178,7 @@ jobs:
           DACAPO_PATH=`realpath ./dacapo`
           sed -i "s;DACAPO_PATH;$DACAPO_PATH;g" .github/configs/base.yml
           echo "    - ${{ matrix.benchmark }}" >> .github/configs/base.yml
+          set -o pipefail
           running runbms /tmp .github/configs/base.yml -s 2.5 -p linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }} | tee /tmp/running.stdout
       - name: Extract running run id
         id: extract-running-run-id
