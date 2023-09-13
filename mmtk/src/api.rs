@@ -293,15 +293,19 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
 /// Pass hotspot `ParallelGCThreads` flag to mmtk
 #[no_mangle]
 pub extern "C" fn mmtk_builder_set_threads(value: usize) {
-    let mut builder = BUILDER.lock().unwrap();
-    builder.options.threads.set(value);
+    let mut builder = BUILDER.lock().unwrap();å
+    if builder.options.threads.is_default {
+        builder.options.threads.set(value);
+    }
 }
 
 /// Pass hotspot `UseTransparentHugePages` flag to mmtk
 #[no_mangle]
 pub extern "C" fn mmtk_builder_set_transparent_hugepages(value: bool) {
     let mut builder = BUILDER.lock().unwrap();
-    builder.options.transparent_hugepages.set(value);
+    if builder.options.transparent_hugepages.is_default {
+        builder.options.transparent_hugepages.set(value);
+    }
 }
 
 #[no_mangle]
