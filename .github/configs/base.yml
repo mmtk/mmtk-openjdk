@@ -2,11 +2,13 @@ includes:
   - "$RUNNING_NG_PACKAGE_DATA/base/runbms.yml"
 
 suites:
-  dacapochopin-04132797-ci:
+  dacapo-23.9-RC3-chopin-ci:
     type: DaCapo
+    # Need running-ng to support 23.9
     release: evaluation
-    path: "DACAPO_PATH/dacapo-evaluation-git-04132797.jar"
+    path: "DACAPO_PATH/dacapo-23.9-RC3-chopin.jar"
     minheap: mmtk-openjdk-11-MarkCompact
+    # Min heap values are from dacapo-evaluation-git-04132797
     minheap_values:
       mmtk-openjdk-11-MarkCompact:
         avrora: 8
@@ -83,4 +85,4 @@ configs:
   - "jdk11-master|ms|s|mmtk_gc-MarkCompact|tph"
 
 benchmarks:
-  dacapochopin-04132797-ci:
+  dacapo-23.9-RC3-chopin-ci:
