@@ -50,7 +50,11 @@ void ThirdPartyHeapArguments::initialize() {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
     vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
   }
-  
+
+  // Set options in MMTKBuilder to OpenJDK's default options.
+  // i.e. OpenJDK's default options (priority 2) override MMTk's default options (priority 1).
+  mmtk_builder_set_threads(ParallelGCThreads);
+  mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {

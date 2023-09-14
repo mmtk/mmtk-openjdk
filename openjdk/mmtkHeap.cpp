@@ -83,16 +83,24 @@ jint MMTkHeap::initialize() {
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
-  // Set options
-  mmtk_builder_set_threads(ParallelGCThreads);
-  mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  // Read MMTk options from environment variables (such as `MMTK_THREADS`).
+  // i.e. Environment variable options (priority 3) override OpenJDK's default options (priority 2).
+  mmtk_builder_read_env_var_settings();
+
+  // Pass non-default OpenJDK options (may be set from command line) to MMTk options.
+  // i.e. Command line options (priority 4) override environment variable options (priority 3).
+  if (!FLAG_IS_DEFAULT(ParallelGCThreads)) {
+    mmtk_builder_set_threads(ParallelGCThreads);
+  }
+
+  if (!FLAG_IS_DEFAULT(UseTransparentHugePages)) {
+    mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  }
+
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
-
-  // Read MMTk options from environment variables (such as `MMTK_THREADS`), overriding cmdline options.
-  mmtk_builder_read_env_var_settings();
 
   // Set heap size
   bool set_heap_size = mmtk_set_heap_size(min_heap_size, max_heap_size);
