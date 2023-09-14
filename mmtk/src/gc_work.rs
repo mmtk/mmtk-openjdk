@@ -59,7 +59,7 @@ impl<F: RootsWorkFactory<OpenJDKEdge>> GCWork<OpenJDK> for ScanCodeCacheRoots<F>
         let mut edges = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
         for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
             for r in roots {
-                edges.push(*r)
+                edges.push((*r).into())
             }
         }
         // Create work packet

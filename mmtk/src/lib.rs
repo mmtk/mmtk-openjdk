@@ -2,11 +2,11 @@
 extern crate lazy_static;
 
 use std::collections::HashMap;
-use std::ops::Range;
 use std::ptr::null_mut;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
+use edges::{OpenJDKEdge, OpenJDKEdgeRange};
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
@@ -19,6 +19,7 @@ pub mod active_plan;
 pub mod api;
 mod build_info;
 pub mod collection;
+mod edges;
 mod gc_work;
 pub mod object_model;
 mod object_scanning;
@@ -135,13 +136,6 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
 #[derive(Default)]
 pub struct OpenJDK;
 
-/// The type of edges in OpenJDK.
-///
-/// TODO: We currently make it an alias to Address to make the change minimal.
-/// If we support CompressedOOPs, we should define an enum type to support both
-/// compressed and uncompressed OOPs.
-pub type OpenJDKEdge = Address;
-
 impl VMBinding for OpenJDK {
     type VMObjectModel = object_model::VMObjectModel;
     type VMScanning = scanning::VMScanning;
@@ -150,7 +144,7 @@ impl VMBinding for OpenJDK {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = OpenJDKEdge;
-    type VMMemorySlice = Range<Address>;
+    type VMMemorySlice = OpenJDKEdgeRange;
 
     const MIN_ALIGNMENT: usize = 8;
     const MAX_ALIGNMENT: usize = 8;
