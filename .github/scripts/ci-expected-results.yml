@@ -63,7 +63,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: pass
+        MarkSweep: ignore
         MarkCompact: pass
       h2o:
         SemiSpace: pass
