@@ -85,6 +85,7 @@ jint MMTkHeap::initialize() {
 
   // Read MMTk options from environment variables (such as `MMTK_THREADS`).
   // i.e. Environment variable options (priority 3) override OpenJDK's default options (priority 2).
+  // See thirdPartyHeapArguments.cpp for a list of priorities.
   mmtk_builder_read_env_var_settings();
 
   // Pass non-default OpenJDK options (may be set from command line) to MMTk options.
