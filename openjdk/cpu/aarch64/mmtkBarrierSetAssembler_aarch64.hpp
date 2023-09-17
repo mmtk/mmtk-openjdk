@@ -1,5 +1,5 @@
-#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_RISCV_HPP
-#define MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_RISCV_HPP
+#ifndef MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_AARCH64_HPP
+#define MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_AARCH64_HPP
 
 #include "asm/macroAssembler.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
@@ -48,4 +48,4 @@ public:
   /// Generate C1 write barrier slow-call stub
   static void generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
 };
-#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_RISCV_HPP
+#endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_AARCH64_HPP

@@ -4,32 +4,6 @@
 
 #define __ masm->
 
-// extern void object_reference_write_slow_call(void* obj, void* dst, uint64_t val);
-
-// void write_post(char* SIDE_METADATA_BASE_ADDRESS, void* obj, uint64_t val) {
-//     char tmp2 = *(SIDE_METADATA_BASE_ADDRESS + ((uint64_t)obj >> 6));
-//     char tmp3 = ((uint64_t)obj >> 3) & 7;
-//     tmp2 = tmp2 >> tmp3;
-//     if ((tmp2 & 1) == 1) {
-//         object_reference_write_slow_call(obj, 0, val);
-//     }
-// }
-
-// write_post(char*, void*, unsigned long):
-//         srli    a5,a1,6
-//         add     a0,a0,a5
-//         lbu     a5,0(a0)
-//         srli    a3,a1,3
-//         andi    a3,a3,7
-//         sraw    a5,a5,a3
-//         andi    a5,a5,1
-//         mv      a4,a1
-//         bne     a5,zero,.L4
-//         ret
-// .L4:
-//         li      a1,0
-//         mv      a0,a4
-//         tail    _Z32object_reference_write_slow_callPvS_m
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   // tmp1 and tmp2 is from MacroAssembler::access_store_at
   // For do_oop_store, we have three tmps, x28/t3, x29/t4, x13/a3
@@ -84,7 +58,6 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
   // if (is_oop && !dest_uninitialized) {
   if (is_oop){
     __ push(saved_regs, sp);
-    //__ mov(c_rarg0, src);
     __ mov(c_rarg1, dst);
     __ mov(c_rarg2, count);
     __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);

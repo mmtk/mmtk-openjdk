@@ -95,9 +95,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     // 0x7fffe85597f0:      bltu    t0,a1,0x7fffe8559878
     // 0x7fffe85597f4:      sd      a1,688(s7)
 
-    // obj = load lab.cursor
     __ ldr(obj, cursor);
-    // end = obj + size
     Register end = tmp2;
     if (var_size_in_bytes == noreg) {
       __ adr(end, Address(obj, con_size_in_bytes));
@@ -110,7 +108,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     // slowpath if end > lab.limit
     __ ldr(tmp1, limit);
     // XXX debug use, force slow path
-    // __ bgtu(end, zr, slow_case, is_far);
     __ cmp(end, tmp1);
     __ br(Assembler::GT, slow_case);
     
@@ -151,6 +148,7 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
   // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
   // ld(reg, Address(fp, offset_in_words * BytesPerWord));
   // ra is free to use here, because call prologue/epilogue handles it
+  // Zheyuan: Code works by swaping rscratch2 and rscratch1, and I dont know why
   const Register src = rscratch2;
   const Register slot = rscratch1;
   const Register new_val = lr;
@@ -189,8 +187,6 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler*
   assert(stub->src->is_register(), "Precondition");
   assert(stub->slot->is_register(), "Precondition");
   assert(stub->new_val->is_register(), "Precondition");
-  // LIR_Assembler::store_parameter(Register r, int offset_from_rsp_in_words)
-  // __ sd(r, Address(sp, offset_from_rsp_in_bytes));
   ce->store_parameter(stub->src->as_pointer_register(), 0);
   ce->store_parameter(stub->slot->as_pointer_register(), 1);
   ce->store_parameter(stub->new_val->as_pointer_register(), 2);
