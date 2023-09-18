@@ -25,7 +25,7 @@ def read_in_plans():
     # Define the dictionary to store the values
     results = {}
 
-    pattern = r"mmtk_gc-(.+?)\|"
+    pattern = r"mmtk_gc-(.+?)(\||$)"
 
     # Loop through each property in configs
     for i, prop in enumerate(configs):
