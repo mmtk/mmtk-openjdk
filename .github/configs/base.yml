@@ -68,7 +68,7 @@ modifiers:
     type: "EnvVar"
     var: "MMTK_PLAN"
     val: "{0}"
-  fail-on-oom:
+  fail_on_oom:
     type: JVMArg
     val: "-XX:+CrashOnOutOfMemoryError"
 
@@ -79,13 +79,13 @@ runtimes:
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
 configs:
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-SemiSpace"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-GenCopy"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-Immix"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-GenImmix"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-StickyImmix"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-MarkSweep"
-  - "jdk11-master|ms|s|fail-on-oom|tph|mmtk_gc-MarkCompact"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-SemiSpace"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-GenCopy"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-Immix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-GenImmix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-StickyImmix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-MarkSweep"
+  - "jdk11-master|ms|s|fail_on_oom|tph|mmtk_gc-MarkCompact"
 
 benchmarks:
   dacapo-23.9-RC3-chopin-ci:
