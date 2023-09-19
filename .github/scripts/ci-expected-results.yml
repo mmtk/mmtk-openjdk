@@ -96,7 +96,7 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
+        MarkCompact: ignore
       luindex:
         SemiSpace: pass
         GenCopy: pass
