@@ -3,7 +3,7 @@ import sys
 import os
 import re
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 5:
     raise ValueError("Invalid arguments")
 
 script_dir = os.path.dirname(os.path.abspath(__file__));
@@ -13,6 +13,7 @@ expected_results_path = os.path.join(script_dir, "ci-expected-results.yml")
 arch = sys.argv[1]
 build = sys.argv[2]
 benchmark = sys.argv[3]
+log_dir = sys.argv[4]
 
 def read_in_plans():
     # Load the YAML file
@@ -94,6 +95,29 @@ def read_in_expected_results(build, benchmark):
 
     return data["results"][arch][build][benchmark]
 
+def print_log(directory, search_string):
+    import gzip
+
+    # Check if the provided path is a directory
+    if not os.path.isdir(directory):
+        print(f"Error: {directory} is not a directory.")
+        sys.exit(1)
+
+    # Walk through the directory
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if search_string in file:
+                file_path = os.path.join(root, file)
+                # Check if the file has a .gz extension
+                if file_path.endswith('log.gz'):
+                    with gzip.open(file_path, 'rt') as f:
+                        content = f.read()
+                        print(f"----------------------------------------------")
+                        print(f"START: {file_path}")
+                        print(content)
+                        print(f"END: {file_path}")
+                        print(f"----------------------------------------------")
+
 # dict['a'] = 'SemiSpace', etc
 plan_dict = read_in_plans()
 
@@ -107,9 +131,16 @@ print(actual)
 
 print("=====")
 
+# Return code. If we ignore results, we may still return 0 (no error)
 error_no = 0
+# All the failed plans. As long as the run failed, we print the log for the plan, even if the result is ignored.
+failed_plans = []
+
 for plan in expected:
     if plan in actual:
+        if actual[plan] == 'fail':
+            failed_plans.append(plan)
+
         if expected[plan] == "ignore":
             print(f"Result for {plan} is ignored")
             continue
@@ -121,5 +152,10 @@ for plan in expected:
             else:
                 print(f"Expect {plan} to fail, but it passed.")
                 print(f"- If we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
+
+print(f"\nPrint logs for all failed runs: {failed_plans}\n")
+
+for failed_plan in failed_plans:
+    print_log(log_dir, failed_plan)
 
 exit(error_no)
