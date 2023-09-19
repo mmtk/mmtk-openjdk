@@ -77,6 +77,14 @@ def read_in_actual_results(line, plan_dict):
                 result_dict[plan] = result_dict[plan] and success
             else:
                 result_dict[plan] = success
+
+    # Rewrite True/False into pass/fail
+    for key in result_dict.keys():
+        if result_dict[key]:
+            result_dict[key] = 'pass'
+        else:
+            result_dict[key] = 'fail'
+
     return result_dict
 
 def read_in_expected_results(build, benchmark):
@@ -106,9 +114,7 @@ for plan in expected:
             print(f"Result for {plan} is ignored")
             continue
         
-        expected_success = expected[plan] == "pass"
-
-        if actual[plan] != expected_success:
+        if expected[plan] != actual[plan]:
             error_no = 1
             if expected[plan] == "pass":
                 print(f"Expect {plan} to pass, but it failed.")
