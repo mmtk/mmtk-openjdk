@@ -72,6 +72,13 @@ modifiers:
     type: JVMArg
     val: "-XX:+CrashOnOutOfMemoryError"
 
+plugins:
+  keep_stdout_stderr:
+    type: CopyFile
+    patterns:
+      - "scratch/stdout.log"
+      - "scratch/stderr.log"
+
 runtimes:
   jdk11-master:
     type: OpenJDK
