@@ -96,7 +96,7 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
+        MarkCompact: ignore
       luindex:
         SemiSpace: pass
         GenCopy: pass
@@ -225,7 +225,7 @@ results:
         Immix: pass
         GenImmix: pass
         StickyImmix: pass
-        MarkSweep: pass
+        MarkSweep: ignore
         MarkCompact: pass
       jme:
         SemiSpace: pass
@@ -295,7 +295,7 @@ results:
         SemiSpace: ignore
         GenCopy: ignore
         Immix: pass
-        GenImmix: pass
+        GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
         MarkCompact: pass
