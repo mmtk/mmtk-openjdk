@@ -83,20 +83,22 @@ jint MMTkHeap::initialize() {
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
-  // Read MMTk options from environment variables (such as `MMTK_THREADS`).
-  // i.e. Environment variable options (priority 3) override OpenJDK's default options (priority 2).
-  // See thirdPartyHeapArguments.cpp for a list of priorities.
+  // Note that MMTk options may be set from several different sources, with increasing priorities:
+  // 1. Default values defined in mmtk::util::options::Options
+  // 2. Default values defined in ThirdPartyHeapArguments::initialize
+  // 3. Environment variables starting with `MMTK_`
+  // 4. Command line arguments
+  // We need to be careful about the order in which we set the options in the MMTKBuilder so that
+  // the values from the highest priority source will take effect.
+
+  // Priority 2: Set options in MMTKBuilder to OpenJDK's default options.
+  set_mmtk_options(true);
+
+  // Priority 3: Read MMTk options from environment variables (such as `MMTK_THREADS`).
   mmtk_builder_read_env_var_settings();
 
-  // Pass non-default OpenJDK options (may be set from command line) to MMTk options.
-  // i.e. Command line options (priority 4) override environment variable options (priority 3).
-  if (!FLAG_IS_DEFAULT(ParallelGCThreads)) {
-    mmtk_builder_set_threads(ParallelGCThreads);
-  }
-
-  if (!FLAG_IS_DEFAULT(UseTransparentHugePages)) {
-    mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
-  }
+  // Priority 4: Pass non-default OpenJDK options (may be set from command line) to MMTk options.
+  set_mmtk_options(false);
 
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(strdup(ThirdPartyHeapOptions));
@@ -147,6 +149,19 @@ jint MMTkHeap::initialize() {
   return JNI_OK;
 
 }
+
+void MMTkHeap::set_mmtk_options(bool set_defaults) {
+  // If set_defaults is true, we only set default options here;
+  // if it is false, we only set options that has been overridden by command line.
+  if (FLAG_IS_DEFAULT(ParallelGCThreads) == set_defaults) {
+    mmtk_builder_set_threads(ParallelGCThreads);
+  }
+
+  if (FLAG_IS_DEFAULT(UseTransparentHugePages) == set_defaults) {
+    mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  }
+}
+
 
 const char* MMTkHeap::version() {
   return get_mmtk_version();

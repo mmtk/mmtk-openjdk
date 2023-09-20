@@ -50,19 +50,8 @@ void ThirdPartyHeapArguments::initialize() {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
     vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
   }
-
-  // Note that MMTk options may be set from several different sources, with increasing priorities:
-  // 1. Default values defined in mmtk::util::options::Options
-  // 2. Default values defined in this function
-  // 3. Environment variables starting with `MMTK_`
-  // 4. Command line arguments
-  // We need to be careful about the order in which we set the options in the MMTKBuilder so that
-  // the values from the highest priority source will take effect.
-
-  // Set options in MMTKBuilder to OpenJDK's default options.
-  // i.e. OpenJDK's default options (priority 2) override MMTk's default options (priority 1).
-  mmtk_builder_set_threads(ParallelGCThreads);
-  mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  // Note: If you add an option here that may be forwarded to an MMTk option,
+  // make sure to add appropriate code to MMTkHeap::set_mmtk_options.
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {
