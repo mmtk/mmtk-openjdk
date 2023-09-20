@@ -194,4 +194,5 @@ jobs:
         run: |
           RUNNING_OUTPUT=`sed -n "s/^\(${{ matrix.benchmark }} .*\)$/\1/p" < /tmp/running.stdout`
           echo $RUNNING_OUTPUT
-          echo $RUNNING_OUTPUT | grep -vq "\."
+          pip3 install pyyaml
+          echo $RUNNING_OUTPUT | python3 .github/scripts/ci-matrix-result-check.py linux-x64 ${{ matrix.debug-level }} ${{ matrix.benchmark }} /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
