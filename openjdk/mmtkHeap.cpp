@@ -83,7 +83,6 @@ jint MMTkHeap::initialize() {
 
   if (UseCompressedOops) mmtk_use_compressed_ptrs();
 
-  // Set options
   // Note that MMTk options may be set from several different sources, with increasing priorities:
   // 1. Default values defined in mmtk::util::options::Options
   // 2. Default values defined in ThirdPartyHeapArguments::initialize
