@@ -293,16 +293,19 @@ You can use environment variables started with `MMTK_` to set those options.  Fo
 `export MMTK_THREADS=1` will set the number of GC worker threads to one.  Follow the link above for
 more details.
 
-You can also set those options via command line arguments.
+You can also set those options via command line arguments: `-XX:ThirdPartyHeapOptions=options`,
+where `options` is `key=value` pairs separated by commas (`,`).  For example,
+`-XX:ThirdPartyHeapOptions=stress_factor=1000000,threads=1` will set `stress_factor` to 1000000,
+and `threads` to 1.
+
+Some OpenJDK options are also forwarded to MMTk options.
 
 -   `-XX:ParallelGCThreads=n` (where `n` is a number) sets the number of GC worker threads.
     -   MMTk option: `Options::threads`
+    -   Note that OpenJDK also has an option `-XX:ConcGCThreads`.  As we have not added any
+        concurrent GC plans into mmtk-core yet, that option is ignored when using MMTk.
 -   `-XX:+UseTransparentHugePages` enables transparent huge pages.
     -   MMTk option: `Options::transparent_hugepages`
-
-You can also set MMTk options using `-XX:ThirdPartyHeapOptions=options`, where `options` is
-`key=value` pairs separated by commas (`,`).  For example, `stress_factor=1000000,threads=1` will
-set `stress_factor` to 1000000, and `threads` to 1.
 
 Options set via command line arguments take prioritiy over environment variables starting with
 `MMTK_`.  If both the environment variable `MMTK_THREADS=1` and the command line argument
