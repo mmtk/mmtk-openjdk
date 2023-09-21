@@ -417,7 +417,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.19.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=269408b464d723b7f9f2d203e7b3ae220eb8edd9#269408b464d723b7f9f2d203e7b3ae220eb8edd9"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=61d20e2dcd5b4743ef04a8118eb807bcd6f6e2e2#61d20e2dcd5b4743ef04a8118eb807bcd6f6e2e2"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -438,6 +438,7 @@ dependencies = [
  "mmtk-macros",
  "num-traits",
  "num_cpus",
+ "portable-atomic",
  "probe",
  "regex",
  "spin",
@@ -450,12 +451,12 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.19.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=269408b464d723b7f9f2d203e7b3ae220eb8edd9#269408b464d723b7f9f2d203e7b3ae220eb8edd9"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=61d20e2dcd5b4743ef04a8118eb807bcd6f6e2e2#61d20e2dcd5b4743ef04a8118eb807bcd6f6e2e2"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.29",
 ]
 
 [[package]]
@@ -524,6 +525,12 @@ name = "pkg-config"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
+
+[[package]]
+name = "portable-atomic"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31114a898e107c51bb1609ffaf55a0e011cf6a4d7f1170d0015a165082c0338b"
 
 [[package]]
 name = "probe"
