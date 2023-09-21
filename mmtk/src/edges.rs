@@ -183,7 +183,7 @@ impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
 /// A range of OpenJDKEdge, usually used for arrays.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct OpenJDKEdgeRange<const COMPRESSED: bool> {
-    pub range: Range<OpenJDKEdge<COMPRESSED>>,
+    range: Range<OpenJDKEdge<COMPRESSED>>,
 }
 
 impl<const COMPRESSED: bool> From<Range<Address>> for OpenJDKEdgeRange<COMPRESSED> {
