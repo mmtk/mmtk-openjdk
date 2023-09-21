@@ -11,7 +11,7 @@ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal
 rm -rf /tmp/$USER/pgo-data/*
 
 # Profile using fop
-MMTK_PLAN=Immix MMTK_STRESS_FACTOR=16777216 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar ../benchmarks/dacapo-evaluation-git-5930d4ed.jar -n 5 fop
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=16777216 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-23.9-RC3-chopin.jar -n 5 fop
 
 # Merge profiling data
 /opt/rust/toolchains/1.71.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
