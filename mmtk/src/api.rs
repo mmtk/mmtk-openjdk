@@ -290,6 +290,12 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
     )
 }
 
+#[no_mangle]
+pub extern "C" fn mmtk_builder_read_env_var_settings() {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.read_env_var_settings();
+}
+
 /// Pass hotspot `ParallelGCThreads` flag to mmtk
 #[no_mangle]
 pub extern "C" fn mmtk_builder_set_threads(value: usize) {
