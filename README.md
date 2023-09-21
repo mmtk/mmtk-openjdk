@@ -223,6 +223,36 @@ $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
 Hello World!
 ```
 
+### Run HelloWorld (with MMTk)
+
+Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+
+```
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap HelloWorld
+```
+
+If `DEBUG_LEVEL` is `release`, you should just see
+
+```
+Hello World!
+```
+
+If `DEBUG_LEVEL` has other values (such as `slowdebug`), you should see logs, too.
+
+```
+[2023-09-14T06:18:46Z INFO  mmtk::memory_manager] Initialized MMTk with GenImmix (DynamicHeapSize(6815744, 8377073664))
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1670/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (304/1664 pages, took 19 ms)
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1680/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (460/1664 pages, took 11 ms)
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1674/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (614/1664 pages, took 11 ms)
+Hello World!
+```
+
 ### Run DaCapo Benchmarks with MMTk
 
 First, fetch DaCapo:
@@ -255,4 +285,28 @@ Using scaled threading model. 24 processors detected, 24 threads used to drive t
 ===== DaCapo 9.12-MR1 lusearch PASSED in 822 msec =====
 ```
 
-**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+### MMTk options
+
+MMTk has many options defined in https://github.com/mmtk/mmtk-core/blob/master/src/util/options.rs
+
+You can use environment variables started with `MMTK_` to set those options.  For example,
+`export MMTK_THREADS=1` will set the number of GC worker threads to one.  Follow the link above for
+more details.
+
+You can also set those options via command line arguments: `-XX:ThirdPartyHeapOptions=options`,
+where `options` is `key=value` pairs separated by commas (`,`).  For example,
+`-XX:ThirdPartyHeapOptions=stress_factor=1000000,threads=1` will set `stress_factor` to 1000000,
+and `threads` to 1.
+
+Some OpenJDK options are also forwarded to MMTk options.
+
+-   `-XX:ParallelGCThreads=n` (where `n` is a number) sets the number of GC worker threads.
+    -   MMTk option: `Options::threads`
+    -   Note that OpenJDK also has an option `-XX:ConcGCThreads`.  As we have not added any
+        concurrent GC plans into mmtk-core yet, that option is ignored when using MMTk.
+-   `-XX:+UseTransparentHugePages` enables transparent huge pages.
+    -   MMTk option: `Options::transparent_hugepages`
+
+Options set via command line arguments take prioritiy over environment variables starting with
+`MMTK_`.  If both the environment variable `MMTK_THREADS=1` and the command line argument
+`-XX:ParallelGCThreads=2` are give, the numberof GC worker threads will be 2.

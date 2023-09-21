@@ -49,7 +49,8 @@ void ThirdPartyHeapArguments::initialize() {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
     vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
   }
-
+  // Note: If you add an option here that may be forwarded to an MMTk option,
+  // make sure to add appropriate code to MMTkHeap::set_mmtk_options.
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {

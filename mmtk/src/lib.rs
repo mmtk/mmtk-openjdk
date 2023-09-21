@@ -162,7 +162,7 @@ use std::sync::atomic::Ordering;
 pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 lazy_static! {
-    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
+    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new_no_env_vars());
     pub static ref SINGLETON_COMPRESSED: MMTK<OpenJDK<true>> = {
         assert!(use_compressed_oops());
         let mut builder = BUILDER.lock().unwrap();
