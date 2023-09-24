@@ -73,7 +73,7 @@ CARGO_TARGET = .
 CARGO_TARGET_FLAG =
 
 ifeq ($(COMPILE_TYPE), cross)
-	ifneq ($(build_cpu), true)
+	ifneq ($(CREATING_BUILDJDK), true)
 		# Set the CARGO_TARGET based on the architecture
 		ifeq ($(HOTSPOT_TARGET_CPU_ARCH), riscv64)
 			CARGO_TARGET = riscv64gc-unknown-linux-gnu
