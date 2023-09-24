@@ -38,8 +38,8 @@
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH false
-#define MMTK_ENABLE_BARRIER_FASTPATH false
+#define MMTK_ENABLE_ALLOCATION_FASTPATH true
+#define MMTK_ENABLE_BARRIER_FASTPATH true
 
 const intptr_t ALLOC_BIT_BASE_ADDRESS = GLOBAL_ALLOC_BIT_ADDRESS;
 
@@ -135,9 +135,9 @@ public:
     return ((MMTkBarrierSet*) BarrierSet::barrier_set())->_runtime;
   }
 
-  virtual void on_thread_destroy(Thread* thread) override;
-  virtual void on_thread_attach(Thread* thread) override;
-  virtual void on_thread_detach(Thread* thread) override;
+  virtual void on_thread_destroy(Thread* thread);
+  virtual void on_thread_attach(Thread* thread);
+  virtual void on_thread_detach(Thread* thread);
 
   virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) override {
     runtime()->object_probable_write(new_obj);
@@ -153,7 +153,7 @@ public:
   virtual bool is_aligned(HeapWord* addr);
 
   // Print a description of the memory for the barrier set
-  virtual void print_on(outputStream* st) const override;
+  virtual void print_on(outputStream* st) const;
 
 
   // The AccessBarrier of a BarrierSet subclass is called by the Access API
