@@ -390,9 +390,11 @@ class MMTkRegisterNMethodOopClosure: public OopClosure {
   template <class T> void do_oop_work(T* p, bool narrow) {
     if (UseCompressedOops && !narrow) {
       guarantee((uintptr_t(p) & (1ull << 63)) == 0, "test");
-      p = (T*) (uintptr_t(p) | (1ull << 63));
+      auto tagged_p = (T*) (uintptr_t(p) | (1ull << 63));
+      mmtk_add_nmethod_oop((void*) tagged_p);
+    } else {
+      mmtk_add_nmethod_oop((void*) p);
     }
-    mmtk_add_nmethod_oop((void*) p);
   }
 public:
   void do_oop(oop* p)       { do_oop_work(p, false); }
