@@ -325,8 +325,14 @@ impl fmt::Debug for OopDesc {
     }
 }
 
+/// 32-bit compressed klass pointers
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+pub struct NarrowKlass(u32);
+
 pub type Oop = &'static OopDesc;
 
+/// 32-bit compressed reference pointers
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 pub struct NarrowOop(u32);
@@ -400,10 +406,11 @@ pub type ArrayOop = &'static ArrayOopDesc;
 
 impl ArrayOopDesc {
     fn length_offset<const COMPRESSED: bool>() -> usize {
+        let klass_offset_in_bytes = memoffset::offset_of!(OopDesc, klass);
         if COMPRESSED {
-            mem::size_of::<usize>() + mem::size_of::<u32>()
+            klass_offset_in_bytes + mem::size_of::<NarrowKlass>()
         } else {
-            mem::size_of::<Self>()
+            klass_offset_in_bytes + mem::size_of::<KlassPointer>()
         }
     }
 

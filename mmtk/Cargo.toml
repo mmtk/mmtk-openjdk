@@ -25,6 +25,7 @@ libc = "0.2"
 lazy_static = "1.1"
 once_cell = "1.10.0"
 atomic = "0.5.1"
+memoffset = "0.9.0"
 # Be very careful to commit any changes to the following mmtk dependency, as our CI scripts (including mmtk-core CI)
 # rely on matching these lines to modify them: e.g. comment out the git dependency and use the local path.
 # These changes are safe:

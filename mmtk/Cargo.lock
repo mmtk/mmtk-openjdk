@@ -467,6 +467,7 @@ dependencies = [
  "built 0.5.2",
  "lazy_static",
  "libc",
+ "memoffset",
  "mmtk",
  "once_cell",
 ]
