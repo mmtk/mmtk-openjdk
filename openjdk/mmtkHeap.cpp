@@ -81,7 +81,7 @@ jint MMTkHeap::initialize() {
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
-  if (UseCompressedOops) mmtk_use_compressed_ptrs();
+  if (UseCompressedOops) mmtk_enable_compressed_oops();
 
   // Note that MMTk options may be set from several different sources, with increasing priorities:
   // 1. Default values defined in mmtk::util::options::Options

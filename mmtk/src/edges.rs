@@ -5,7 +5,10 @@ use std::{
 
 use atomic::Atomic;
 use mmtk::{
-    util::{constants::LOG_BYTES_IN_INT, Address, ObjectReference},
+    util::{
+        constants::{LOG_BYTES_IN_ADDRESS, LOG_BYTES_IN_INT, LOG_BYTES_IN_WORD},
+        Address, ObjectReference,
+    },
     vm::edge_shape::{Edge, MemorySlice},
 };
 
@@ -44,7 +47,7 @@ pub fn initialize_compressed_oops_base_and_shift() {
         BASE.store(Address::ZERO, Ordering::Relaxed);
         SHIFT.store(3, Ordering::Relaxed);
     } else {
-        // set heap base as HEAP_START - 4096, to make sure null pointer value is not conflict with HEAP_START
+        // set heap base as HEAP_START - 4096, to make sure null pointer value does not conflict with HEAP_START
         BASE.store(
             mmtk::memory_manager::starting_heap_address() - 4096,
             Ordering::Relaxed,
@@ -55,6 +58,16 @@ pub fn initialize_compressed_oops_base_and_shift() {
 
 /// The type of edges in OpenJDK.
 /// Currently it has the same layout as `Address`, but we override its load and store methods.
+///
+/// If `COMPRESSED = false`, every edge is uncompressed.
+///
+/// If `COMPRESSED = true`,
+/// * If this is a field of an object, the edge is compressed.
+/// * If this is a root pointer: The c++ part of the binding should pass all the root pointers to
+///   rust as tagged pointers.
+///   * If the 63rd bit of the pointer is set to 1, the value referenced by the pointer is a
+///     32-bit compressed integer.
+///   * Otherwise, it is a uncompressed root pointer.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[repr(transparent)]
 pub struct OpenJDKEdge<const COMPRESSED: bool> {
@@ -66,14 +79,6 @@ impl<const COMPRESSED: bool> From<Address> for OpenJDKEdge<COMPRESSED> {
         Self { addr: value }
     }
 }
-
-/// For OpenJDK<COMPRESSED = false>, every edge is uncompressed.
-///
-/// For COMPRESSED = true,
-///     * if this is a field of an object, the edge is compressed
-///     * if this is a root pointer: The c++ part of the binding shoud pass all the root pointers to rust as tagged pointers.
-///       If the 63-th bit of the pointer is set to 1, the value referenced by the pointer is a 32-bit compressed integer.
-///       Otherwise, it is a uncompressed root pointer.
 impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
     pub const LOG_BYTES_IN_EDGE: usize = if COMPRESSED { 2 } else { 3 };
     pub const BYTES_IN_EDGE: usize = 1 << Self::LOG_BYTES_IN_EDGE;
@@ -249,13 +254,13 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
 
     fn copy(src: &Self, tgt: &Self) {
         debug_assert_eq!(src.bytes(), tgt.bytes());
-        debug_assert_eq!(
-            src.bytes() & ((1 << LOG_BYTES_IN_INT) - 1),
-            0,
-            "bytes are not a multiple of 32-bit integers"
-        );
         // Raw memory copy
         if COMPRESSED {
+            debug_assert_eq!(
+                src.bytes() & ((1 << LOG_BYTES_IN_INT) - 1),
+                0,
+                "bytes are not a multiple of 32-bit integers"
+            );
             unsafe {
                 let words = tgt.bytes() >> LOG_BYTES_IN_INT;
                 let src = src.start().to_ptr::<u32>();
@@ -263,6 +268,11 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
                 std::ptr::copy(src, tgt, words)
             }
         } else {
+            debug_assert_eq!(
+                src.bytes() & ((1 << LOG_BYTES_IN_WORD) - 1),
+                0,
+                "bytes are not a multiple of words"
+            );
             Range::<Address>::copy(&src.clone().into(), &tgt.clone().into())
         }
     }

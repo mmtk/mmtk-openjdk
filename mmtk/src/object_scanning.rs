@@ -206,8 +206,7 @@ fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl EdgeVisitor<
             array_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
         KlassID::TypeArray => {
-            //     let array_klass = unsafe { oop.klass::<COMPRESSED>().cast::<TypeArrayKlass>() };
-            //     array_klass.oop_iterate::<C, COMPRESSED>(oop, closure);
+            // Skip scanning primitive arrays as they contain no reference fields.
         }
         KlassID::InstanceRef => {
             let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };

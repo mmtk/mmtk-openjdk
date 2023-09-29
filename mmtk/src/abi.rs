@@ -172,7 +172,7 @@ impl InstanceKlass {
     const VTABLE_START_OFFSET: usize = Self::HEADER_SIZE * BYTES_IN_WORD;
 
     fn start_of_vtable(&self) -> *const usize {
-        unsafe { (self as *const Self as *const u8).add(Self::VTABLE_START_OFFSET) as _ }
+        (Address::from_ref(self) + Self::VTABLE_START_OFFSET).to_ptr()
     }
 
     fn start_of_itable(&self) -> *const usize {
@@ -423,19 +423,16 @@ impl ArrayOopDesc {
         }
     }
     fn length<const COMPRESSED: bool>(&self) -> i32 {
-        unsafe {
-            *((self as *const Self as *const u8).add(Self::length_offset::<COMPRESSED>())
-                as *const i32)
-        }
+        unsafe { (Address::from_ref(self) + Self::length_offset::<COMPRESSED>()).load::<i32>() }
     }
     fn base<const COMPRESSED: bool>(&self, ty: BasicType) -> Address {
         let base_offset_in_bytes = Self::header_size::<COMPRESSED>(ty) * BYTES_IN_WORD;
-        Address::from_ptr(unsafe { (self as *const Self as *const u8).add(base_offset_in_bytes) })
+        Address::from_ref(self) + base_offset_in_bytes
     }
     /// This provides an easy way to access the array data in Rust. However, the array data
     /// is Java types, so we have to map Java types to Rust types. The caller needs to guarantee:
-    /// 1. <T> matches the actual Java type
-    /// 2. <T> matches the argument, BasicType `ty`
+    /// 1. `<T>` matches the actual Java type
+    /// 2. `<T>` matches the argument, BasicType `ty`
     pub unsafe fn data<T, const COMPRESSED: bool>(&self, ty: BasicType) -> &[T] {
         slice::from_raw_parts(
             self.base::<COMPRESSED>(ty).to_ptr(),
@@ -449,7 +446,8 @@ impl ArrayOopDesc {
     ) -> crate::OpenJDKEdgeRange<COMPRESSED> {
         let base = self.base::<COMPRESSED>(ty);
         let start = base;
-        let end = base + ((self.length::<COMPRESSED>() as usize) << if COMPRESSED { 2 } else { 3 });
+        let lshift = OpenJDKEdge::<COMPRESSED>::LOG_BYTES_IN_EDGE;
+        let end = base + ((self.length::<COMPRESSED>() as usize) << lshift);
         (start..end).into()
     }
 }

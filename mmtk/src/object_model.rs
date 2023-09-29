@@ -6,9 +6,9 @@ use mmtk::util::copy::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 
-pub struct VMObjectModel {}
+pub struct VMObjectModel<const COMPRESSED: bool> {}
 
-impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel {
+impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<COMPRESSED> {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
@@ -48,7 +48,7 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel 
                 unsafe { (dst + i).store((src + i).load::<u8>()) };
             }
         }
-        let start = <Self as ObjectModel<OpenJDK<COMPRESSED>>>::ref_to_object_start(to);
+        let start = Self::ref_to_object_start(to);
         if region != Address::ZERO {
             fill_alignment_gap::<OpenJDK<COMPRESSED>>(region, start);
         }
@@ -60,15 +60,11 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel 
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        if COMPRESSED {
-            unsafe { Oop::from(object).size::<true>() }
-        } else {
-            unsafe { Oop::from(object).size::<false>() }
-        }
+        unsafe { Oop::from(object).size::<COMPRESSED>() }
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
-        <Self as ObjectModel<OpenJDK<COMPRESSED>>>::get_current_size(object)
+        Self::get_current_size(object)
     }
 
     fn get_align_when_copied(_object: ObjectReference) -> usize {

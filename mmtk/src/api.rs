@@ -276,7 +276,7 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_use_compressed_ptrs() {
+pub extern "C" fn mmtk_enable_compressed_oops() {
     crate::edges::enable_compressed_oops()
 }
 
