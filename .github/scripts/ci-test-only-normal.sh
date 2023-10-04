@@ -151,14 +151,3 @@ build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHea
 # These benchmarks take 40s+ for slowdebug build, we may consider removing them from the CI
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -XX:TieredStopAtLevel=1 -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar hsqldb
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -XX:TieredStopAtLevel=1 -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar eclipse
-
-# --- PageProtect ---
-# Make sure this runs last in our tests unless we want to set it back to the default limit.
-sudo sysctl -w vm.max_map_count=655300
-
-export MMTK_PLAN=PageProtect
-
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar antlr
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
-# build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar pmd
