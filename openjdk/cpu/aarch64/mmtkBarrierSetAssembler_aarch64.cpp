@@ -35,7 +35,7 @@
 
 #define __ masm->
 
-void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register tmp1, Register tmp2, Label& slow_case, bool is_far) {
+void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register tmp1, Register tmp2, Label& slow_case) {
   // XXX tmp1 seems to be -1
   assert_different_registers(obj, tmp2);
   assert_different_registers(obj, var_size_in_bytes);
