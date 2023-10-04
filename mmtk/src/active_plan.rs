@@ -1,6 +1,5 @@
 use crate::MutatorClosure;
 use crate::OpenJDK;
-use crate::SINGLETON;
 use crate::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
@@ -9,12 +8,12 @@ use mmtk::Plan;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 
-struct OpenJDKMutatorIterator<'a> {
-    mutators: VecDeque<&'a mut Mutator<OpenJDK>>,
+struct OpenJDKMutatorIterator<'a, const COMPRESSED: bool> {
+    mutators: VecDeque<&'a mut Mutator<OpenJDK<COMPRESSED>>>,
     phantom_data: PhantomData<&'a ()>,
 }
 
-impl<'a> OpenJDKMutatorIterator<'a> {
+impl<'a, const COMPRESSED: bool> OpenJDKMutatorIterator<'a, COMPRESSED> {
     fn new() -> Self {
         let mut mutators = VecDeque::new();
         unsafe {
@@ -29,8 +28,8 @@ impl<'a> OpenJDKMutatorIterator<'a> {
     }
 }
 
-impl<'a> Iterator for OpenJDKMutatorIterator<'a> {
-    type Item = &'a mut Mutator<OpenJDK>;
+impl<'a, const COMPRESSED: bool> Iterator for OpenJDKMutatorIterator<'a, COMPRESSED> {
+    type Item = &'a mut Mutator<OpenJDK<COMPRESSED>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.mutators.pop_front()
@@ -39,24 +38,24 @@ impl<'a> Iterator for OpenJDKMutatorIterator<'a> {
 
 pub struct VMActivePlan {}
 
-impl ActivePlan<OpenJDK> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM = OpenJDK> {
-        SINGLETON.get_plan()
+impl<const COMPRESSED: bool> ActivePlan<OpenJDK<COMPRESSED>> for VMActivePlan {
+    fn global() -> &'static dyn Plan<VM = OpenJDK<COMPRESSED>> {
+        crate::singleton::<COMPRESSED>().get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
         unsafe { ((*UPCALLS).is_mutator)(tls) }
     }
 
-    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK> {
+    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK<COMPRESSED>> {
         unsafe {
             let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-            &mut *m
+            &mut *(m as *mut Mutator<OpenJDK<COMPRESSED>>)
         }
     }
 
-    fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<OpenJDK>> + 'a> {
-        Box::new(OpenJDKMutatorIterator::new())
+    fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<OpenJDK<COMPRESSED>>> + 'a> {
+        Box::new(OpenJDKMutatorIterator::<COMPRESSED>::new())
     }
 
     fn number_of_mutators() -> usize {

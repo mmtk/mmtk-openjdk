@@ -43,8 +43,7 @@ void ThirdPartyHeapArguments::initialize() {
   GCArguments::initialize();
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
-  FLAG_SET_DEFAULT(UseCompressedOops, false);
-  FLAG_SET_DEFAULT(UseCompressedClassPointers, false);
+  FLAG_SET_DEFAULT(UseCompressedClassPointers, UseCompressedOops);
   FLAG_SET_DEFAULT(ParallelGCThreads, Abstract_VM_Version::parallel_worker_threads());
   if (ParallelGCThreads == 0) {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");

@@ -11,15 +11,15 @@ pub struct VMCollection {}
 const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
-impl Collection<OpenJDK> for VMCollection {
+impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
     where
-        F: FnMut(&'static mut Mutator<OpenJDK>),
+        F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
     {
         unsafe {
             ((*UPCALLS).stop_all_mutators)(
                 tls,
-                MutatorClosure::from_rust_closure(&mut mutator_visitor),
+                MutatorClosure::from_rust_closure::<_, COMPRESSED>(&mut mutator_visitor),
             );
         }
     }
@@ -36,7 +36,7 @@ impl Collection<OpenJDK> for VMCollection {
         }
     }
 
-    fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<OpenJDK>) {
+    fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<OpenJDK<COMPRESSED>>) {
         let (ctx_ptr, kind) = match ctx {
             GCThreadContext::Controller(c) => (
                 Box::into_raw(c) as *mut libc::c_void,

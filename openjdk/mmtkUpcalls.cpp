@@ -184,14 +184,14 @@ static void mmtk_get_mutators(MutatorClosure closure) {
 }
 
 static void mmtk_scan_roots_in_all_mutator_threads(EdgesClosure closure) {
-  MMTkRootsClosure2 cl(closure);
+  MMTkRootsClosure cl(closure);
   MMTkHeap::heap()->scan_roots_in_all_mutator_threads(cl);
 }
 
 static void mmtk_scan_roots_in_mutator_thread(EdgesClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
-  MMTkRootsClosure2 cl(closure);
+  MMTkRootsClosure cl(closure);
   thread->oops_do(&cl, NULL);
 }
 
@@ -268,18 +268,18 @@ static void mmtk_schedule_finalizer() {
   MMTkHeap::heap()->schedule_finalizer();
 }
 
-static void mmtk_scan_universe_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_universe_roots(cl); }
-static void mmtk_scan_jni_handle_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
-static void mmtk_scan_object_synchronizer_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
-static void mmtk_scan_management_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_management_roots(cl); }
-static void mmtk_scan_jvmti_export_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
-static void mmtk_scan_aot_loader_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
-static void mmtk_scan_system_dictionary_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
-static void mmtk_scan_code_cache_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_string_table_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_string_table_roots(cl); }
-static void mmtk_scan_class_loader_data_graph_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
-static void mmtk_scan_weak_processor_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
-static void mmtk_scan_vm_thread_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
+static void mmtk_scan_universe_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_universe_roots(cl); }
+static void mmtk_scan_jni_handle_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_jni_handle_roots(cl); }
+static void mmtk_scan_object_synchronizer_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_object_synchronizer_roots(cl); }
+static void mmtk_scan_management_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_management_roots(cl); }
+static void mmtk_scan_jvmti_export_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_jvmti_export_roots(cl); }
+static void mmtk_scan_aot_loader_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_aot_loader_roots(cl); }
+static void mmtk_scan_system_dictionary_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_system_dictionary_roots(cl); }
+static void mmtk_scan_code_cache_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_string_table_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_string_table_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_weak_processor_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(EdgesClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();

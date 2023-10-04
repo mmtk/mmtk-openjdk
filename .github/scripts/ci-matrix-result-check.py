@@ -36,11 +36,11 @@ def read_in_plans():
             value = m.group(1)
         else:
             raise ValueError(f"Cannot find a plan string in {prop}")
-        
+
         # Store the value in the dictionary
         key = chr(97+i)
         results[key] = value
-    
+
     return results
 
 def read_in_actual_results(line, plan_dict):
@@ -144,7 +144,7 @@ for plan in expected:
         if expected[plan] == "ignore":
             print(f"Result for {plan} is ignored")
             continue
-        
+
         if expected[plan] != actual[plan]:
             error_no = 1
             if expected[plan] == "pass":

@@ -1,10 +1,14 @@
-use crate::UPCALLS;
+use super::UPCALLS;
+use crate::OpenJDKEdge;
+use atomic::Atomic;
+use atomic::Ordering;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
 use mmtk::util::ObjectReference;
 use mmtk::util::{Address, OpaquePointer};
 use std::ffi::CStr;
 use std::fmt;
+use std::sync::atomic::AtomicUsize;
 use std::{mem, slice};
 
 #[repr(i32)]
@@ -80,7 +84,7 @@ impl Klass {
     pub const LH_HEADER_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 2;
     pub const LH_HEADER_SIZE_MASK: i32 = (1 << BITS_IN_BYTE) - 1;
     pub unsafe fn cast<'a, T>(&self) -> &'a T {
-        &*(self as *const _ as usize as *const T)
+        &*(self as *const Self as *const T)
     }
     /// Force slow-path for instance size calculation?
     const fn layout_helper_needs_slow_path(lh: i32) -> bool {
@@ -168,7 +172,7 @@ impl InstanceKlass {
     const VTABLE_START_OFFSET: usize = Self::HEADER_SIZE * BYTES_IN_WORD;
 
     fn start_of_vtable(&self) -> *const usize {
-        unsafe { (self as *const _ as *const u8).add(Self::VTABLE_START_OFFSET) as _ }
+        (Address::from_ref(self) + Self::VTABLE_START_OFFSET).to_ptr()
     }
 
     fn start_of_itable(&self) -> *const usize {
@@ -263,23 +267,52 @@ impl InstanceRefKlass {
         }
         *DISCOVERED_OFFSET
     }
-    pub fn referent_address(oop: Oop) -> Address {
-        oop.get_field_address(Self::referent_offset())
+    pub fn referent_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
+        oop.get_field_address(Self::referent_offset()).into()
     }
-    pub fn discovered_address(oop: Oop) -> Address {
-        oop.get_field_address(Self::discovered_offset())
+    pub fn discovered_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
+        oop.get_field_address(Self::discovered_offset()).into()
     }
+}
+
+#[repr(C)]
+union KlassPointer {
+    /// uncompressed Klass pointer
+    klass: &'static Klass,
+    /// compressed Klass pointer
+    narrow_klass: u32,
 }
 
 #[repr(C)]
 pub struct OopDesc {
     pub mark: usize,
-    pub klass: &'static Klass,
+    klass: KlassPointer,
+}
+
+static COMPRESSED_KLASS_BASE: Atomic<Address> = Atomic::new(Address::ZERO);
+static COMPRESSED_KLASS_SHIFT: AtomicUsize = AtomicUsize::new(0);
+
+/// When enabling compressed pointers, the class pointers are also compressed.
+/// The c++ part of the binding should pass the compressed klass base and shift to rust binding, as object scanning will need it.
+pub fn set_compressed_klass_base_and_shift(base: Address, shift: usize) {
+    COMPRESSED_KLASS_BASE.store(base, Ordering::Relaxed);
+    COMPRESSED_KLASS_SHIFT.store(shift, Ordering::Relaxed);
 }
 
 impl OopDesc {
     pub fn start(&self) -> Address {
         unsafe { mem::transmute(self) }
+    }
+
+    pub fn klass<const COMPRESSED: bool>(&self) -> &'static Klass {
+        if COMPRESSED {
+            let compressed = unsafe { self.klass.narrow_klass };
+            let addr = COMPRESSED_KLASS_BASE.load(Ordering::Relaxed)
+                + ((compressed as usize) << COMPRESSED_KLASS_SHIFT.load(Ordering::Relaxed));
+            unsafe { &*addr.to_ptr::<Klass>() }
+        } else {
+            unsafe { self.klass.klass }
+        }
     }
 }
 
@@ -292,7 +325,23 @@ impl fmt::Debug for OopDesc {
     }
 }
 
+/// 32-bit compressed klass pointers
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+pub struct NarrowKlass(u32);
+
 pub type Oop = &'static OopDesc;
+
+/// 32-bit compressed reference pointers
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+pub struct NarrowOop(u32);
+
+impl NarrowOop {
+    pub fn slot(&self) -> Address {
+        Address::from_ref(self)
+    }
+}
 
 /// Convert ObjectReference to Oop
 impl From<ObjectReference> for &OopDesc {
@@ -323,8 +372,8 @@ impl OopDesc {
     }
 
     /// Calculate object instance size
-    pub unsafe fn size(&self) -> usize {
-        let klass = self.klass;
+    pub unsafe fn size<const COMPRESSED: bool>(&self) -> usize {
+        let klass = self.klass::<COMPRESSED>();
         let lh = klass.layout_helper;
         // The (scalar) instance size is pre-recorded in the TIB?
         if lh > Klass::LH_NEUTRAL_VALUE {
@@ -336,7 +385,7 @@ impl OopDesc {
         } else if lh <= Klass::LH_NEUTRAL_VALUE {
             if lh < Klass::LH_NEUTRAL_VALUE {
                 // Calculate array size
-                let array_length = self.as_array_oop().length();
+                let array_length = self.as_array_oop().length::<COMPRESSED>();
                 let mut size_in_bytes: usize =
                     (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
                 size_in_bytes += Klass::layout_helper_header_size(lh) as usize;
@@ -356,34 +405,57 @@ pub struct ArrayOopDesc(OopDesc);
 pub type ArrayOop = &'static ArrayOopDesc;
 
 impl ArrayOopDesc {
-    const LENGTH_OFFSET: usize = mem::size_of::<Self>();
+    fn length_offset<const COMPRESSED: bool>() -> usize {
+        let klass_offset_in_bytes = memoffset::offset_of!(OopDesc, klass);
+        if COMPRESSED {
+            klass_offset_in_bytes + mem::size_of::<NarrowKlass>()
+        } else {
+            klass_offset_in_bytes + mem::size_of::<KlassPointer>()
+        }
+    }
 
     fn element_type_should_be_aligned(ty: BasicType) -> bool {
         ty == BasicType::T_DOUBLE || ty == BasicType::T_LONG
     }
 
-    fn header_size(ty: BasicType) -> usize {
-        let typesize_in_bytes =
-            conversions::raw_align_up(Self::LENGTH_OFFSET + BYTES_IN_INT, BYTES_IN_LONG);
+    fn header_size<const COMPRESSED: bool>(ty: BasicType) -> usize {
+        let typesize_in_bytes = conversions::raw_align_up(
+            Self::length_offset::<COMPRESSED>() + BYTES_IN_INT,
+            BYTES_IN_LONG,
+        );
         if Self::element_type_should_be_aligned(ty) {
             conversions::raw_align_up(typesize_in_bytes / BYTES_IN_WORD, BYTES_IN_LONG)
         } else {
             typesize_in_bytes / BYTES_IN_WORD
         }
     }
-    fn length(&self) -> i32 {
-        unsafe { *((self as *const _ as *const u8).add(Self::LENGTH_OFFSET) as *const i32) }
+    fn length<const COMPRESSED: bool>(&self) -> i32 {
+        unsafe { (Address::from_ref(self) + Self::length_offset::<COMPRESSED>()).load::<i32>() }
     }
-    fn base(&self, ty: BasicType) -> Address {
-        let base_offset_in_bytes = Self::header_size(ty) * BYTES_IN_WORD;
-        Address::from_ptr(unsafe { (self as *const _ as *const u8).add(base_offset_in_bytes) })
+    fn base<const COMPRESSED: bool>(&self, ty: BasicType) -> Address {
+        let base_offset_in_bytes = Self::header_size::<COMPRESSED>(ty) * BYTES_IN_WORD;
+        Address::from_ref(self) + base_offset_in_bytes
     }
-    // This provides an easy way to access the array data in Rust. However, the array data
-    // is Java types, so we have to map Java types to Rust types. The caller needs to guarantee:
-    // 1. <T> matches the actual Java type
-    // 2. <T> matches the argument, BasicType `ty`
-    pub unsafe fn data<T>(&self, ty: BasicType) -> &[T] {
-        slice::from_raw_parts(self.base(ty).to_ptr(), self.length() as _)
+    /// This provides an easy way to access the array data in Rust. However, the array data
+    /// is Java types, so we have to map Java types to Rust types. The caller needs to guarantee:
+    /// 1. `<T>` matches the actual Java type
+    /// 2. `<T>` matches the argument, BasicType `ty`
+    pub unsafe fn data<T, const COMPRESSED: bool>(&self, ty: BasicType) -> &[T] {
+        slice::from_raw_parts(
+            self.base::<COMPRESSED>(ty).to_ptr(),
+            self.length::<COMPRESSED>() as _,
+        )
+    }
+
+    pub unsafe fn slice<const COMPRESSED: bool>(
+        &self,
+        ty: BasicType,
+    ) -> crate::OpenJDKEdgeRange<COMPRESSED> {
+        let base = self.base::<COMPRESSED>(ty);
+        let start = base;
+        let lshift = OpenJDKEdge::<COMPRESSED>::LOG_BYTES_IN_EDGE;
+        let end = base + ((self.length::<COMPRESSED>() as usize) << lshift);
+        (start..end).into()
     }
 }
 
