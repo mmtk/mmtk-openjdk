@@ -8,6 +8,7 @@
 * Check results for new CI, allow some benchmarks to fail by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/211
 * Fix ignored env var options by @wks in https://github.com/mmtk/mmtk-openjdk/pull/244
 * Update pgo-build script to use the pinned Rust toolchain by @caizixian in https://github.com/mmtk/mmtk-openjdk/pull/236
+* Compressed Oops Support by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/235
 
 ## New Contributors
 * @udesou made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/238
