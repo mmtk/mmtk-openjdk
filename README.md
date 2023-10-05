@@ -118,7 +118,7 @@ $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmt
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
 
-**Note:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make). This build is exclusively meant for developers who want quick and incremental builds to test changes. If you are planning on evaluating your build (be it performance, minimum heap, etc.), then it is *highly advised* to use the `images` target. The `default` target is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well. The `images` target can be built like so:
+**Note:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make). This build is exclusively meant for developers who want quick and incremental builds to test changes. If you are planning on evaluating your build (be it performance, minimum heap, etc.), then it is *highly advised* to use the `release` debug level with the `images` target. The `default` target is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well. The `images` target can be built like so:
 
 ```console
 $ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
@@ -148,7 +148,7 @@ stress factor of 4 MB in order to trigger more GC events.
 First we compile MMTk with profiling support:
 
 ```console
-$ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 $ rm -rf /tmp/$USER/pgo-data/*
 ```
 We clear the `/tmp/$USER/pgo-data` directory as during compilation, the JVM we
@@ -159,7 +159,7 @@ We then run `fop` in order to get some profiling data. Note that your location
 for the DaCapo benchmarks may be different:
 
 ```bash
-MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
 ```
 
 We have to merge the profiling data into something we can feed into the Rust
@@ -176,11 +176,11 @@ your Rust version.*
 Finally, we build a new image using the profiling data as an input:
 
 ```console
-$ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
 We now have an OpenJDK build under
-`./build/linux-x86_64-normal-server-release/images/jdk` with MMTk that has been
+`./build/linux-x86_64-normal-server-$DEBUG_LEVEL/images/jdk` with MMTk that has been
 optimized using PGO.
 
 For ease of use, we have provided an example script which does the above in
