@@ -113,18 +113,21 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
-```
-
-The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
-
-**Note:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make). This build is exclusively meant for developers who want quick and incremental builds to test changes. If you are planning on evaluating your build (be it performance, minimum heap, etc.), then it is *highly advised* to use the `images` target. The `default` target is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well. The `images` target can be built like so:
-
-```console
 $ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
 The output jdk is then found at `./build/linux-x86_64-normal-server-release/images/jdk`.
+
+> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
+> 
+> The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
+>
+> ```console
+> $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+> ```
+>
+> Again: **do not use the exploded image for performance analysis**.
+
 
 ### Profile-Guided Optimized Build
 
