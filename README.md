@@ -118,7 +118,12 @@ $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmt
 
 The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
 
-**Note:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make). This build is exclusively meant for developers who want quick and incremental builds to test changes. If you are planning on evaluating your build (be it performance, minimum heap, etc.), then it is *highly advised* to use the `images` target. The `default` target is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well. The `images` target can be built like so:
+**Warning:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make).
+This build is **exclusively** meant for developers who want quick and incremental builds to test changes.
+The `default` target is the (roughly) minimal set of outputs required to run the built JDK and
+is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
+If you are planning on evaluating your build (be it performance, minimum heap, etc.), you should avoid using
+the exploded image, and should use the proper `images` target. The `images` target can be built like so:
 
 ```console
 $ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
