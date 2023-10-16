@@ -209,9 +209,9 @@ $ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$P
 
 ## Test
 
-We support most MMTk GC plans in OpenJDK, such as `SemiSpace`, `Immix`, `GenImmix`, `StickyImmix`, `GenCopy`, `MarkCompact`, `MarkSweep`, `PageProtect`, and `NoGC`.
-When you run with the OpenJDK build from previous steps, you can choose one of the plans by setting an environment variable `MMTK_PLAN`. In the following examples, we use
-the generational immix plan, `GenImmix`.
+We support all the MMTk GC plans in OpenJDK. A full list of MMTk plans can be found [here](https://docs.mmtk.io/api/mmtk/util/options/enum.PlanSelector.html).
+When you run with the OpenJDK build from previous steps, you can choose one of the plans by setting an environment variable `MMTK_PLAN` to one of the plan names.
+In the following examples, we use the generational immix plan, `GenImmix`.
 
 ### Run HelloWorld (without MMTk)
 
