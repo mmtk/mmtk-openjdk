@@ -74,20 +74,25 @@ CARGO_TARGET_FLAG =
 
 ifeq ($(COMPILE_TYPE), cross)
 	ifneq ($(CREATING_BUILDJDK), true)
+		# Set the CARGO_TARGET based on the architecture
+		ifeq ($(HOTSPOT_TARGET_CPU_ARCH), riscv64)
+			CARGO_TARGET = riscv64gc-unknown-linux-gnu
+		endif
+		ifeq ($(HOTSPOT_TARGET_CPU_ARCH), aarch64)
+			CARGO_TARGET = aarch64-unknown-linux-gnu
+		endif
 		CARGO_EXECUTABLE = cross
-		CARGO_TARGET = riscv64gc-unknown-linux-gnu
 		CARGO_TARGET_FLAG = --target $(CARGO_TARGET)
 	endif
 endif
-
 $(LIB_MMTK): FORCE
 	if [[ "$(OPENJDK_VERSION)" != "$(OPENJDK_LOCAL_VERSION)" ]]; then \
 		echo -e $(YELLOW)WARNING: Local OpenJDK version does not match version specified in mmtk/Cargo.toml$(NC); \
 		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
 		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
 	fi
-	if [[ "$(OPENJDK_TARGET_CPU)" != "riscv64" ]] && [[ $(CARGO_EXECUTABLE) == "cross" ]]; then \
-		echo -e "Only cross compiling to riscv64 is supported"; \
+	if [[ "$(OPENJDK_TARGET_CPU)" != "riscv64" ]] && [[ "$(OPENJDK_TARGET_CPU)" != "aarch64" ]] && [[ $(CARGO_EXECUTABLE) == "cross" ]]; then \
+		echo -e "Only cross compiling to riscv64/aarch64 are supported"; \
 		exit 1; \
 	fi
 	echo "cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) --version && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
