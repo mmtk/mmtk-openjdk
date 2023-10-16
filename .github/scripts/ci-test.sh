@@ -6,6 +6,8 @@ cd $cur
 cd $cur
 ./ci-test-only-normal.sh
 cd $cur
+./ci-test-only-normal-no-compressed-oops.sh
+cd $cur
 ./ci-test-only-weak-ref.sh
 cd $cur
 ./ci-test-assertions.sh

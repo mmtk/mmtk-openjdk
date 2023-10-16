@@ -6,9 +6,9 @@ use mmtk::util::copy::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 
-pub struct VMObjectModel {}
+pub struct VMObjectModel<const COMPRESSED: bool> {}
 
-impl ObjectModel<OpenJDK> for VMObjectModel {
+impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<COMPRESSED> {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
@@ -24,9 +24,9 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     fn copy(
         from: ObjectReference,
         copy: CopySemantics,
-        copy_context: &mut GCWorkerCopyContext<OpenJDK>,
+        copy_context: &mut GCWorkerCopyContext<OpenJDK<COMPRESSED>>,
     ) -> ObjectReference {
-        let bytes = unsafe { Oop::from(from).size() };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
         // Copy
         let src = from.to_raw_address();
@@ -38,7 +38,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
 
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         let need_copy = from != to;
-        let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         if need_copy {
             // copy obj to target
             let dst = to.to_raw_address();
@@ -50,7 +50,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         }
         let start = Self::ref_to_object_start(to);
         if region != Address::ZERO {
-            fill_alignment_gap::<OpenJDK>(region, start);
+            fill_alignment_gap::<OpenJDK<COMPRESSED>>(region, start);
         }
         start + bytes
     }
@@ -60,7 +60,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        unsafe { Oop::from(object).size() }
+        unsafe { Oop::from(object).size::<COMPRESSED>() }
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
@@ -106,6 +106,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         let oop = Oop::from(object);
         // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
         // If oop.klass is not a valid pointer, we may segfault here.
-        oop.klass.id as i32 >= 0 && (oop.klass.id as i32) < 6
+        let klass_id = oop.klass::<COMPRESSED>().id as i32;
+        (0..6).contains(&klass_id)
     }
 }

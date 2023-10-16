@@ -188,6 +188,11 @@ extern bool openjdk_is_gc_initialized();
 
 extern bool mmtk_set_heap_size(size_t min, size_t max);
 
+extern bool mmtk_enable_compressed_oops();
+extern void* mmtk_narrow_oop_base();
+extern size_t mmtk_narrow_oop_shift();
+extern size_t mmtk_set_compressed_klass_base_and_shift(void* base, size_t shift);
+
 extern size_t used_bytes();
 extern void* starting_heap_address();
 extern void* last_heap_address();
@@ -211,6 +216,7 @@ extern void add_phantom_candidate(void* ref, void* referent);
 extern void mmtk_harness_begin_impl();
 extern void mmtk_harness_end_impl();
 
+extern void mmtk_builder_read_env_var_settings();
 extern void mmtk_builder_set_threads(size_t value);
 extern void mmtk_builder_set_transparent_hugepages(bool value);
 

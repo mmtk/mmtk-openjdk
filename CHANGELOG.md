@@ -1,3 +1,20 @@
+0.20.0 (2023-09-29)
+===
+
+## What's Changed
+* Updating code to reflect API change by @udesou in https://github.com/mmtk/mmtk-openjdk/pull/238
+* Fix Cargo.lock by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/239
+* Update tests to use dacapo-23.9-RC3-chopin by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/241
+* Check results for new CI, allow some benchmarks to fail by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/211
+* Fix ignored env var options by @wks in https://github.com/mmtk/mmtk-openjdk/pull/244
+* Update pgo-build script to use the pinned Rust toolchain by @caizixian in https://github.com/mmtk/mmtk-openjdk/pull/236
+* Compressed Oops Support by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/235
+
+## New Contributors
+* @udesou made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/238
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.19.0...v0.20.0
+
 0.19.0 (2023-08-18)
 ===
 

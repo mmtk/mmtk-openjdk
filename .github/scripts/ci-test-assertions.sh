@@ -56,4 +56,5 @@ sudo sysctl -w vm.max_map_count=655300
 export MMTK_PLAN=PageProtect
 
 build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+# Note: Disable compressed pointers for luindex as it does not work well with GC plans that uses virtual memory excessively.
+build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex

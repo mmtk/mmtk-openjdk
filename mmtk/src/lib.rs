@@ -6,11 +6,15 @@ use std::ptr::null_mut;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
+pub use edges::use_compressed_oops;
 use edges::{OpenJDKEdge, OpenJDKEdgeRange};
 use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
-use mmtk::util::opaque_pointer::*;
+use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
+use mmtk::util::heap::vm_layout::VMLayout;
+use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::edge_shape::Edge;
 use mmtk::vm::VMBinding;
 use mmtk::{MMTKBuilder, Mutator, MMTK};
 
@@ -36,27 +40,28 @@ pub struct NewBuffer {
 /// A closure for reporting mutators.  The C++ code should pass `data` back as the last argument.
 #[repr(C)]
 pub struct MutatorClosure {
-    pub func: extern "C" fn(mutator: *mut Mutator<OpenJDK>, data: *mut libc::c_void),
+    pub func: extern "C" fn(mutator: *mut libc::c_void, data: *mut libc::c_void),
     pub data: *mut libc::c_void,
 }
 
 impl MutatorClosure {
-    fn from_rust_closure<F>(callback: &mut F) -> Self
+    fn from_rust_closure<F, const COMPRESSED: bool>(callback: &mut F) -> Self
     where
-        F: FnMut(&'static mut Mutator<OpenJDK>),
+        F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
     {
         Self {
-            func: Self::call_rust_closure::<F>,
+            func: Self::call_rust_closure::<F, COMPRESSED>,
             data: callback as *mut F as *mut libc::c_void,
         }
     }
 
-    extern "C" fn call_rust_closure<F>(
-        mutator: *mut Mutator<OpenJDK>,
+    extern "C" fn call_rust_closure<F, const COMPRESSED: bool>(
+        mutator: *mut libc::c_void,
         callback_ptr: *mut libc::c_void,
     ) where
-        F: FnMut(&'static mut Mutator<OpenJDK>),
+        F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
     {
+        let mutator = mutator as *mut Mutator<OpenJDK<COMPRESSED>>;
         let callback: &mut F = unsafe { &mut *(callback_ptr as *mut F) };
         callback(unsafe { &mut *mutator });
     }
@@ -85,7 +90,7 @@ pub struct OpenJDK_Upcalls {
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
-    pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut Mutator<OpenJDK>,
+    pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut libc::c_void,
     pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
     pub harness_begin: extern "C" fn(),
     pub harness_end: extern "C" fn(),
@@ -131,20 +136,20 @@ pub static VO_BIT_ADDRESS: uintptr_t =
 
 #[no_mangle]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
-    std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK>>();
+    std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK<false>>>();
 
 #[derive(Default)]
-pub struct OpenJDK;
+pub struct OpenJDK<const COMPRESSED: bool>;
 
-impl VMBinding for OpenJDK {
-    type VMObjectModel = object_model::VMObjectModel;
+impl<const COMPRESSED: bool> VMBinding for OpenJDK<COMPRESSED> {
+    type VMObjectModel = object_model::VMObjectModel<COMPRESSED>;
     type VMScanning = scanning::VMScanning;
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
-    type VMEdge = OpenJDKEdge;
-    type VMMemorySlice = OpenJDKEdgeRange;
+    type VMEdge = OpenJDKEdge<COMPRESSED>;
+    type VMMemorySlice = OpenJDKEdgeRange<COMPRESSED>;
 
     const MIN_ALIGNMENT: usize = 8;
     const MAX_ALIGNMENT: usize = 8;
@@ -157,8 +162,19 @@ use std::sync::atomic::Ordering;
 pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 lazy_static! {
-    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
-    pub static ref SINGLETON: MMTK<OpenJDK> = {
+    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new_no_env_vars());
+    pub static ref SINGLETON_COMPRESSED: MMTK<OpenJDK<true>> = {
+        assert!(use_compressed_oops());
+        let mut builder = BUILDER.lock().unwrap();
+        assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        set_compressed_pointer_vm_layout(&mut builder);
+        let ret = mmtk::memory_manager::mmtk_init(&builder);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+        edges::initialize_compressed_oops_base_and_shift();
+        *ret
+    };
+    pub static ref SINGLETON_UNCOMPRESSED: MMTK<OpenJDK<false>> = {
+        assert!(!use_compressed_oops());
         let builder = BUILDER.lock().unwrap();
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         let ret = mmtk::memory_manager::mmtk_init(&builder);
@@ -167,9 +183,23 @@ lazy_static! {
     };
 }
 
+fn singleton<const COMPRESSED: bool>() -> &'static MMTK<OpenJDK<COMPRESSED>> {
+    if COMPRESSED {
+        unsafe {
+            &*(&*SINGLETON_COMPRESSED as *const MMTK<OpenJDK<true>>
+                as *const MMTK<OpenJDK<COMPRESSED>>)
+        }
+    } else {
+        unsafe {
+            &*(&*SINGLETON_UNCOMPRESSED as *const MMTK<OpenJDK<false>>
+                as *const MMTK<OpenJDK<COMPRESSED>>)
+        }
+    }
+}
+
 #[no_mangle]
 pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
-    mmtk::util::alloc::MarkCompactAllocator::<OpenJDK>::HEADER_RESERVED_IN_BYTES;
+    mmtk::util::alloc::MarkCompactAllocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
 lazy_static! {
     /// A global storage for all the cached CodeCache root pointers
@@ -178,3 +208,25 @@ lazy_static! {
 
 /// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
 static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);
+
+fn set_compressed_pointer_vm_layout(builder: &mut MMTKBuilder) {
+    let max_heap_size = builder.options.gc_trigger.max_heap_size();
+    assert!(
+        max_heap_size <= (32usize << LOG_BYTES_IN_GBYTE),
+        "Heap size is larger than 32 GB"
+    );
+    let start = 0x4000_0000;
+    let end = match start + max_heap_size {
+        end if end <= (4usize << 30) => 4usize << 30,
+        end if end <= (32usize << 30) => 32usize << 30,
+        _ => 0x4000_0000 + (32usize << 30),
+    };
+    let constants = VMLayout {
+        log_address_space: 35,
+        heap_start: conversions::chunk_align_down(unsafe { Address::from_usize(start) }),
+        heap_end: conversions::chunk_align_up(unsafe { Address::from_usize(end) }),
+        log_space_extent: 31,
+        force_use_contiguous_spaces: false,
+    };
+    builder.set_vm_layout(constants);
+}
