@@ -1,3 +1,39 @@
+0.20.0 (2023-09-29)
+===
+
+## What's Changed
+* Updating code to reflect API change by @udesou in https://github.com/mmtk/mmtk-openjdk/pull/238
+* Fix Cargo.lock by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/239
+* Update tests to use dacapo-23.9-RC3-chopin by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/241
+* Check results for new CI, allow some benchmarks to fail by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/211
+* Fix ignored env var options by @wks in https://github.com/mmtk/mmtk-openjdk/pull/244
+* Update pgo-build script to use the pinned Rust toolchain by @caizixian in https://github.com/mmtk/mmtk-openjdk/pull/236
+* Compressed Oops Support by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/235
+
+## New Contributors
+* @udesou made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/238
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.19.0...v0.20.0
+
+0.19.0 (2023-08-18)
+===
+
+## What's Changed
+* Rename alloc bit to valid object bit (VO bit) by @wks in https://github.com/mmtk/mmtk-openjdk/pull/214
+* Fix invalid register values in `arraycopy_epilogue` barrier by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/216
+* Remove deprecated const. by @wks in https://github.com/mmtk/mmtk-openjdk/pull/217
+* Update MMTk core PR #817 (alternative approach) by @wks in https://github.com/mmtk/mmtk-openjdk/pull/220
+* Update to mmtk-core PR #838 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/221
+* Rename ambiguous `scan_thread_root{,s}` functions by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/222
+* Update to MMTk core PR #875 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/225
+* Show the version after cd by @wks in https://github.com/mmtk/mmtk-openjdk/pull/227
+* Add features for genimmix and stickyimmix by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/228
+* Pass hotspot command line flags to mmtk-core by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/229
+* Fix unaligned edge access by @wks in https://github.com/mmtk/mmtk-openjdk/pull/232
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.18.0...v0.19.0
+
+
 0.18.0 (2023-04-03)
 ===
 

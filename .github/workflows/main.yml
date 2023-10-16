@@ -9,6 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  DACAPO_VERSION: dacapo-23.9-RC3-chopin
+  DACAPO_FILE: dacapo-23.9-RC3-chopin.zip
+  DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.9-RC3-chopin.zip
+
 jobs:
   build-linux-x64:
     name: linux-x64
@@ -50,22 +55,22 @@ jobs:
           retention-days: 2
 
   cache-dacapo:
-    name: Cache DaCapo Chopin git-04132797
+    name: Cache Dacapo
     runs-on: ubuntu-22.04
     steps:
-      - name: Check DaCapo Chopin git-04132797 cache
-        id: dacapo-04132797
+      - name: Check ${{ env.DACAPO_VERSION }} cache
+        id: check-cache
         uses: actions/cache@v3
         with:
-          path: dacapo/dacapo-evaluation-git-04132797.zip
-          key: dacapo-chopin-git-04132797
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
           lookup-only: true
-      - name: Install DaCapo Chopin git-04132797
-        if: steps.dacapo-04132797.outputs.cache-hit != 'true'
+      - name: Install ${{ env.DACAPO_VERSION }}
+        if: steps.check-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p dacapo
           pushd dacapo
-          wget -q "https://download.dacapobench.org/dacapo-evaluation-git-04132797.zip" -O dacapo-evaluation-git-04132797.zip
+          wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
           popd
 
   test-linux-x64:
@@ -102,6 +107,21 @@ jobs:
           - xalan
           - zxing
     steps:
+      - name: Check free space
+        run: df -h
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+          # Leave some room for the runner for logging in /dev/root
+          root-reserve-mb: 6000
+          temp-reserve-mb: 1024
+      - name: Check free space
+        run: df -h
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v3
       - name: Setup environment
@@ -109,29 +129,36 @@ jobs:
           pip3 install running-ng
           sudo apt-get update -y
           sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
-      - name: Fetch DaCapo Chopin git-04132797 cache
-        id: dacapo-04132797
+      - name: Check free space and runner log path
+        run: |
+          df -h
+          df /home/runner/runners
+      - name: Fetch ${{ env.DACAPO_VERSION }} cache
+        id: fetch-cache
         uses: actions/cache@v3
         with:
-          path: dacapo/dacapo-evaluation-git-04132797.zip
-          key: dacapo-chopin-git-04132797
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
           # fail-on-cache-miss: true    # We should never have a cache miss here as we cache DaCapo in an earlier job
           # Temporarily change this to false in case the cache download gets
           # stuck -- if the cache download is stuck then we go straight to
           # upstream and fetch the zip file
           fail-on-cache-miss: false
-      - name: Install DaCapo Chopin git-04132797
-        if: steps.dacapo-04132797.outputs.cache-hit != 'true'
+      - name: Install ${{ env.DACAPO_VERSION }}
+        if: steps.fetch-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p dacapo
           pushd dacapo
-          wget -q "https://download.dacapobench.org/dacapo-evaluation-git-04132797.zip" -O dacapo-evaluation-git-04132797.zip
+          wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
           popd
-      - name: Unzip DaCapo Chopin git-04132797
+      - name: Unzip ${{ env.DACAPO_VERSION }}
         run: |
           pushd dacapo
-          unzip dacapo-evaluation-git-04132797.zip
+          unzip ${{ env.DACAPO_FILE }}
+          rm ${{ env.DACAPO_FILE }}
           popd
+      - name: Check free space
+        run: df -h
       - name: Download bundles
         uses: actions/download-artifact@v3
         with:
@@ -144,11 +171,14 @@ jobs:
           BIN_DIR=`find . -name bin`
           mv `dirname $BIN_DIR` jdk
           popd
-      - name: Run DaCapo Chopin git-04132797 ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with 2.5x MarkCompact minheap
+      - name: Check free space
+        run: df -h
+      - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with 2.5x MarkCompact minheap
         run: |
           DACAPO_PATH=`realpath ./dacapo`
           sed -i "s;DACAPO_PATH;$DACAPO_PATH;g" .github/configs/base.yml
           echo "    - ${{ matrix.benchmark }}" >> .github/configs/base.yml
+          set -o pipefail
           running runbms /tmp .github/configs/base.yml -s 2.5 -p linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }} | tee /tmp/running.stdout
       - name: Extract running run id
         id: extract-running-run-id
@@ -164,4 +194,5 @@ jobs:
         run: |
           RUNNING_OUTPUT=`sed -n "s/^\(${{ matrix.benchmark }} .*\)$/\1/p" < /tmp/running.stdout`
           echo $RUNNING_OUTPUT
-          echo $RUNNING_OUTPUT | grep -vq "\."
+          pip3 install pyyaml
+          echo $RUNNING_OUTPUT | python3 .github/scripts/ci-matrix-result-check.py linux-x64 ${{ matrix.debug-level }} ${{ matrix.benchmark }} /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/

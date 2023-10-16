@@ -1,53 +1,64 @@
+use crate::MutatorClosure;
 use crate::OpenJDK;
-use crate::SINGLETON;
 use crate::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
 use mmtk::Plan;
-use std::sync::Mutex;
+use std::collections::VecDeque;
+use std::marker::PhantomData;
+
+struct OpenJDKMutatorIterator<'a, const COMPRESSED: bool> {
+    mutators: VecDeque<&'a mut Mutator<OpenJDK<COMPRESSED>>>,
+    phantom_data: PhantomData<&'a ()>,
+}
+
+impl<'a, const COMPRESSED: bool> OpenJDKMutatorIterator<'a, COMPRESSED> {
+    fn new() -> Self {
+        let mut mutators = VecDeque::new();
+        unsafe {
+            ((*UPCALLS).get_mutators)(MutatorClosure::from_rust_closure(&mut |mutator| {
+                mutators.push_back(mutator);
+            }));
+        }
+        Self {
+            mutators,
+            phantom_data: PhantomData,
+        }
+    }
+}
+
+impl<'a, const COMPRESSED: bool> Iterator for OpenJDKMutatorIterator<'a, COMPRESSED> {
+    type Item = &'a mut Mutator<OpenJDK<COMPRESSED>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.mutators.pop_front()
+    }
+}
 
 pub struct VMActivePlan {}
 
-impl ActivePlan<OpenJDK> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM = OpenJDK> {
-        SINGLETON.get_plan()
+impl<const COMPRESSED: bool> ActivePlan<OpenJDK<COMPRESSED>> for VMActivePlan {
+    fn global() -> &'static dyn Plan<VM = OpenJDK<COMPRESSED>> {
+        crate::singleton::<COMPRESSED>().get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
         unsafe { ((*UPCALLS).is_mutator)(tls) }
     }
 
-    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK> {
+    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<OpenJDK<COMPRESSED>> {
         unsafe {
             let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-            &mut *m
+            &mut *(m as *mut Mutator<OpenJDK<COMPRESSED>>)
         }
     }
 
-    fn reset_mutator_iterator() {
-        unsafe {
-            ((*UPCALLS).reset_mutator_iterator)();
-        }
-    }
-
-    fn get_next_mutator() -> Option<&'static mut Mutator<OpenJDK>> {
-        let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
-        unsafe {
-            let m = ((*UPCALLS).get_next_mutator)();
-            if m.is_null() {
-                None
-            } else {
-                Some(&mut *m)
-            }
-        }
+    fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<OpenJDK<COMPRESSED>>> + 'a> {
+        Box::new(OpenJDKMutatorIterator::<COMPRESSED>::new())
     }
 
     fn number_of_mutators() -> usize {
         unsafe { ((*UPCALLS).number_of_mutators)() }
     }
-}
-
-lazy_static! {
-    pub static ref MUTATOR_ITERATOR_LOCK: Mutex<()> = Mutex::new(());
 }

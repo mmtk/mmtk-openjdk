@@ -7,63 +7,24 @@
 #include "oops/oop.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-#define ROOTS_BUFFER_SIZE 4096
-
 class MMTkRootsClosure : public OopClosure {
-  void* _trace;
-  void* _buffer[ROOTS_BUFFER_SIZE];
-  size_t _cursor;
-
-  template <class T>
-  void do_oop_work(T* p) {
-    // T heap_oop = RawAccess<>::oop_load(p);
-    // if (!CompressedOops::is_null(heap_oop)) {
-    //   oop obj = CompressedOops::decode_not_null(heap_oop);
-    //   oop fwd = (oop) trace_root_object(_trace, obj);
-    //   RawAccess<>::oop_store(p, fwd);
-    // }
-    _buffer[_cursor++] = (void*) p;
-    if (_cursor >= ROOTS_BUFFER_SIZE) {
-      flush();
-    }
-  }
-
-  NOINLINE void flush() {
-    // bulk_report_delayed_root_edge(_trace, _buffer, _cursor);
-    _cursor = 0;
-  }
-
-public:
-  MMTkRootsClosure(void* trace): _trace(trace), _cursor(0) {}
-
-  ~MMTkRootsClosure() {
-    if (_cursor > 0) flush();
-  }
-
-  virtual void do_oop(oop* p)       { do_oop_work(p); }
-  virtual void do_oop(narrowOop* p) {
-    // printf("narrowoop root %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
-    do_oop_work(p);
-  }
-};
-
-class MMTkRootsClosure2 : public OopClosure {
   EdgesClosure _edges_closure;
   void** _buffer;
   size_t _cap;
   size_t _cursor;
 
   template <class T>
-  void do_oop_work(T* p) {
-    // T heap_oop = RawAccess<>::oop_load(p);
-    // if (!CompressedOops::is_null(heap_oop)) {
-    //   oop obj = CompressedOops::decode_not_null(heap_oop);
-    //   oop fwd = (oop) trace_root_object(_trace, obj);
-    //   RawAccess<>::oop_store(p, fwd);
-    // }
-    _buffer[_cursor++] = (void*) p;
-    if (_cursor >= _cap) {
-      flush();
+  void do_oop_work(T* p, bool narrow) {
+    T heap_oop = RawAccess<>::oop_load(p);
+    if (!CompressedOops::is_null(heap_oop)) {
+      if (UseCompressedOops && !narrow) {
+        guarantee((uintptr_t(p) & (1ull << 63)) == 0, "test");
+        p = (T*) (uintptr_t(p) | (1ull << 63));
+      }
+      _buffer[_cursor++] = (void*) p;
+      if (_cursor >= _cap) {
+        flush();
+      }
     }
   }
 
@@ -77,21 +38,21 @@ class MMTkRootsClosure2 : public OopClosure {
   }
 
 public:
-  MMTkRootsClosure2(EdgesClosure edges_closure): _edges_closure(edges_closure), _cursor(0) {
+  MMTkRootsClosure(EdgesClosure edges_closure): _edges_closure(edges_closure), _cursor(0) {
     NewBuffer buf = edges_closure.invoke(NULL, 0, 0);
     _buffer = buf.buf;
     _cap = buf.cap;
   }
 
-  ~MMTkRootsClosure2() {
+  ~MMTkRootsClosure() {
     if (_cursor > 0) flush();
     if (_buffer != NULL) {
       release_buffer(_buffer, _cursor, _cap);
     }
   }
 
-  virtual void do_oop(oop* p)       { do_oop_work(p); }
-  virtual void do_oop(narrowOop* p) { do_oop_work(p); }
+  virtual void do_oop(oop* p)       { do_oop_work(p, false); }
+  virtual void do_oop(narrowOop* p) { do_oop_work(p, true); }
 };
 
 class MMTkScanObjectClosure : public BasicOopIterateClosure {
@@ -99,19 +60,18 @@ class MMTkScanObjectClosure : public BasicOopIterateClosure {
   CLDToOopClosure follow_cld_closure;
 
   template <class T>
-  void do_oop_work(T* p) {
-    // oop ref = (void*) oopDesc::decode_heap_oop(oopDesc::load_heap_oop(p));
-    // process_edge(_trace, (void*) p);
+  void do_oop_work(T* p, bool narrow) {
+    if (UseCompressedOops && !narrow) {
+      guarantee((uintptr_t(p) & (1ull << 63)) == 0, "test");
+      p = (T*) (uintptr_t(p) | (1ull << 63));
+    }
   }
 
 public:
   MMTkScanObjectClosure(void* trace): _trace(trace), follow_cld_closure(this, false) {}
 
-  virtual void do_oop(oop* p)       { do_oop_work(p); }
-  virtual void do_oop(narrowOop* p) {
-    // printf("narrowoop edge %p -> %d %p %p\n", (void*) p, *p, *((void**) p), (void*) oopDesc::load_decode_heap_oop(p));
-    do_oop_work(p);
-  }
+  virtual void do_oop(oop* p)       { do_oop_work(p, false); }
+  virtual void do_oop(narrowOop* p) { do_oop_work(p, true); }
 
   virtual bool do_metadata() {
     return true;

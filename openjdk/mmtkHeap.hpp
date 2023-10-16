@@ -162,6 +162,8 @@ private:
 
   void initialize_serviceability() ;
 
+  void set_mmtk_options(bool set_defaults);
+
 public:
 
   // Print heap information on the given outputStream.
@@ -195,7 +197,7 @@ public:
 
   void scan_roots(OopClosure& cl);
 
-  void scan_thread_roots(OopClosure& cl);
+  void scan_roots_in_all_mutator_threads(OopClosure& cl);
 
   void scan_universe_roots(OopClosure& cl);
   void scan_jni_handle_roots(OopClosure& cl);

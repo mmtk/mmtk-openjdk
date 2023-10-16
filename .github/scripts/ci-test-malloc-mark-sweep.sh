@@ -16,7 +16,7 @@ run_test() {
     # Malloc marksweep is horribly slow. We just run fop.
 
     # build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar antlr
-    build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms50M -Xmx50M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
+    build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms50M -Xmx50M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
     # build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
     # build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar pmd
     # build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar hsqldb
