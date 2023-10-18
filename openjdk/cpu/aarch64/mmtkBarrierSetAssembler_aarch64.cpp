@@ -87,29 +87,22 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     cursor = Address(rthread, alloc_offsets.tlab_top_offset);
     limit = Address(rthread, alloc_offsets.tlab_end_offset);
 
-    // XXX disassembly
-    // 0x7fffe85597e0:      ld      a0,688(s7)
-    // 0x7fffe85597e4:      add     a1,a0,a3
-    // 0x7fffe85597e8:      bltu    a1,a0,0x7fffe8559878
-    // 0x7fffe85597ec:      ld      t0,696(s7)
-    // 0x7fffe85597f0:      bltu    t0,a1,0x7fffe8559878
-    // 0x7fffe85597f4:      sd      a1,688(s7)
-
     __ ldr(obj, cursor);
     Register end = tmp2;
     if (var_size_in_bytes == noreg) {
-      __ adr(end, Address(obj, con_size_in_bytes));
+      __ lea(end, Address(obj, con_size_in_bytes));
     } else {
-      __ add(end, obj, var_size_in_bytes);
+      __ lea(end, Address(obj, var_size_in_bytes));
     }
     // slowpath if end < obj
     __ cmp(end, obj);
-    __ br(Assembler::LT, slow_case);
+    __ br(Assembler::LS, slow_case);
     // slowpath if end > lab.limit
-    __ ldr(tmp1, limit);
+    __ ldr(rscratch1, limit);
     // XXX debug use, force slow path
-    __ cmp(end, tmp1);
-    __ br(Assembler::GT, slow_case);
+    // __ cmp(end, zr);
+    __ cmp(end, rscratch1);
+    __ br(Assembler::HI, slow_case);
     
     // lab.cursor = end
     __ str(end, cursor);
