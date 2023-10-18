@@ -32,7 +32,7 @@ memoffset = "0.9.0"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = {   git = "https://github.com/mmtk/mmtk-core.git",rev = "27b14992f76c44d187c64af91e433b273e21ecac"}
+mmtk = {   git = "https://github.com/mmtk/mmtk-core.git",rev = "b40020537a76ba9aa923f87818fd2106e8b99027"}
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
