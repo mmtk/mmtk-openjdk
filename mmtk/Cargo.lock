@@ -374,9 +374,9 @@ checksum = "da2479e8c062e40bf0066ffa0bc823de0a9368974af99c9f6df941d2c231e03f"
 
 [[package]]
 name = "lock_api"
-version = "0.4.10"
+version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1cc9717a20b1bb222f333e6a92fd32f7d8a18ddc5a3191a11af45dcbf4dcd16"
+checksum = "3c168f8615b12bc01f9c17e2eb0cc07dcae1940121185446edc3744920e8ef45"
 dependencies = [
  "autocfg",
  "scopeguard",
@@ -406,7 +406,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.20.0"
-source = "git+https://github.com/qinsoon/mmtk-core.git?rev=753b511ac3e5f46ef80b9e6fb412c3f855e53c1b#753b511ac3e5f46ef80b9e6fb412c3f855e53c1b"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=d5f5ac9ee285b871c1985146b75e6aaa5619ded4#d5f5ac9ee285b871c1985146b75e6aaa5619ded4"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -440,7 +440,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.20.0"
-source = "git+https://github.com/qinsoon/mmtk-core.git?rev=753b511ac3e5f46ef80b9e6fb412c3f855e53c1b#753b511ac3e5f46ef80b9e6fb412c3f855e53c1b"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=d5f5ac9ee285b871c1985146b75e6aaa5619ded4#d5f5ac9ee285b871c1985146b75e6aaa5619ded4"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
