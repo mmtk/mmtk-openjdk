@@ -406,7 +406,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.20.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=db2e4b427acaf1c1c4b91bc95b05f3ce78f00a30#db2e4b427acaf1c1c4b91bc95b05f3ce78f00a30"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=f1393245685badebfc3a7849cee26ab1a7e9e6ee#f1393245685badebfc3a7849cee26ab1a7e9e6ee"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -440,7 +440,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.20.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=db2e4b427acaf1c1c4b91bc95b05f3ce78f00a30#db2e4b427acaf1c1c4b91bc95b05f3ce78f00a30"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=f1393245685badebfc3a7849cee26ab1a7e9e6ee#f1393245685badebfc3a7849cee26ab1a7e9e6ee"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -632,9 +632,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.20"
+version = "0.38.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67ce50cb2e16c2903e30d1cbccfd8387a74b9d4c938b6a4c5ec6cc7556f7a8a0"
+checksum = "745ecfa778e66b2b63c88a61cb36e0eea109e803b0b86bf9879fbc77c70e86ed"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
@@ -784,18 +784,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.50"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
+checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.50"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
+checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
 dependencies = [
  "proc-macro2",
  "quote",
