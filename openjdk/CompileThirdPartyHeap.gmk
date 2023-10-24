@@ -69,7 +69,7 @@ else
 endif
 
 CARGO_EXECUTABLE = cargo
-CARGO_TARGET = UNSUPPORTED_MMTK_TARGET_CPU
+CARGO_TARGET = .
 CARGO_TARGET_FLAG =
 
 ifeq ($(COMPILE_TYPE), cross)
@@ -77,9 +77,10 @@ ifeq ($(COMPILE_TYPE), cross)
 		# Set the CARGO_TARGET based on the architecture
 		ifeq ($(OPENJDK_TARGET_CPU), riscv64)
 			CARGO_TARGET = riscv64gc-unknown-linux-gnu
-		endif
-		ifeq ($(OPENJDK_TARGET_CPU), aarch64)
+		else ifeq ($(OPENJDK_TARGET_CPU), aarch64)
 			CARGO_TARGET = aarch64-unknown-linux-gnu
+    else
+      CARGO_TARGET = UNSUPPORTED_MMTK_OPENJDK_TARGET_CPU
 		endif
 		CARGO_EXECUTABLE = cross
 		CARGO_TARGET_FLAG = --target $(CARGO_TARGET)
