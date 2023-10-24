@@ -75,10 +75,10 @@ CARGO_TARGET_FLAG =
 ifeq ($(COMPILE_TYPE), cross)
 	ifneq ($(CREATING_BUILDJDK), true)
 		# Set the CARGO_TARGET based on the architecture
-		ifeq ($(HOTSPOT_TARGET_CPU_ARCH), riscv64)
+		ifeq ($(OPENJDK_TARGET_CPU_ARCH), riscv64)
 			CARGO_TARGET = riscv64gc-unknown-linux-gnu
 		endif
-		ifeq ($(HOTSPOT_TARGET_CPU_ARCH), aarch64)
+		ifeq ($(OPENJDK_TARGET_CPU_ARCH), aarch64)
 			CARGO_TARGET = aarch64-unknown-linux-gnu
 		endif
 		CARGO_EXECUTABLE = cross
