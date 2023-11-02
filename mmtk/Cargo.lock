@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "mmtk_openjdk"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "atomic",
  "built 0.5.2",

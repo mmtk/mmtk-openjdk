@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_openjdk"
-version = "0.20.0"
+version = "0.21.0"
 authors = [" <>"]
 rust-version = "1.70.0"
 build = "build.rs"
