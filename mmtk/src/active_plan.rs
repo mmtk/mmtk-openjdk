@@ -4,7 +4,6 @@ use crate::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
-use mmtk::Plan;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 
@@ -39,10 +38,6 @@ impl<'a, const COMPRESSED: bool> Iterator for OpenJDKMutatorIterator<'a, COMPRES
 pub struct VMActivePlan {}
 
 impl<const COMPRESSED: bool> ActivePlan<OpenJDK<COMPRESSED>> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM = OpenJDK<COMPRESSED>> {
-        crate::singleton::<COMPRESSED>().get_plan()
-    }
-
     fn is_mutator(tls: VMThread) -> bool {
         unsafe { ((*UPCALLS).is_mutator)(tls) }
     }

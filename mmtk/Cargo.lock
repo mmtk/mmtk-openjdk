@@ -197,9 +197,9 @@ checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "enum-map"
-version = "2.6.3"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c188012f8542dee7b3996e44dd89461d64aa471b0a7c71a1ae2f595d259e96e5"
+checksum = "53337c2dbf26a3c31eccc73a37b10c1614e8d4ae99b6a50d553e8936423c1f16"
 dependencies = [
  "enum-map-derive",
 ]
@@ -405,8 +405,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk"
-version = "0.20.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=06a2e5d9773c9f7a32a6afc1add9cef311432dbc#06a2e5d9773c9f7a32a6afc1add9cef311432dbc"
+version = "0.21.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=39d237189fdfa22873eeb529f3e97b7578d9b246#39d237189fdfa22873eeb529f3e97b7578d9b246"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -439,8 +439,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.20.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=06a2e5d9773c9f7a32a6afc1add9cef311432dbc#06a2e5d9773c9f7a32a6afc1add9cef311432dbc"
+version = "0.21.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=39d237189fdfa22873eeb529f3e97b7578d9b246#39d237189fdfa22873eeb529f3e97b7578d9b246"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "mmtk_openjdk"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "atomic",
  "built 0.5.2",
@@ -520,9 +520,9 @@ checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
 name = "portable-atomic"
-version = "1.4.3"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31114a898e107c51bb1609ffaf55a0e011cf6a4d7f1170d0015a165082c0338b"
+checksum = "b559898e0b4931ed2d3b959ab0c2da4d99cc644c4b0b1a35b4d344027f474023"
 
 [[package]]
 name = "probe"
@@ -632,9 +632,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.19"
+version = "0.38.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "745ecfa778e66b2b63c88a61cb36e0eea109e803b0b86bf9879fbc77c70e86ed"
+checksum = "67ce50cb2e16c2903e30d1cbccfd8387a74b9d4c938b6a4c5ec6cc7556f7a8a0"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
@@ -784,18 +784,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
+checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
+checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
 dependencies = [
  "proc-macro2",
  "quote",
