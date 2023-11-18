@@ -3,10 +3,11 @@ use std::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
+use super::abi::LOG_BYTES_IN_INT;
 use atomic::Atomic;
 use mmtk::{
     util::{
-        constants::{LOG_BYTES_IN_INT, LOG_BYTES_IN_WORD},
+        constants::LOG_BYTES_IN_WORD,
         Address, ObjectReference,
     },
     vm::edge_shape::{Edge, MemorySlice},
