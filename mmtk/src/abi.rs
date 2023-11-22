@@ -11,6 +11,17 @@ use std::fmt;
 use std::sync::atomic::AtomicUsize;
 use std::{mem, slice};
 
+// These are some Java specific constants that were in MMTk.
+// As we plan to remove them from MMTk, they are moved here.
+// We could further investigae if we really need them in the OpenJDK binding.
+
+pub const LOG_BYTES_IN_INT: u8 = 2;
+pub const BYTES_IN_INT: usize = 1 << LOG_BYTES_IN_INT;
+pub const LOG_BYTES_IN_LONG: u8 = 3;
+pub const BYTES_IN_LONG: usize = 1 << LOG_BYTES_IN_LONG;
+pub const LOG_BITS_IN_LONG: u8 = LOG_BITS_IN_BYTE + LOG_BYTES_IN_LONG;
+pub const BITS_IN_LONG: usize = 1 << LOG_BITS_IN_LONG;
+
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[allow(dead_code)]
