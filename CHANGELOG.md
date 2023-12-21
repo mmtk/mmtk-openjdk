@@ -1,3 +1,16 @@
+0.22.0 (2023-12-21)
+===
+
+## What's Changed
+* Change README to make images target the default build command by @angussidney in https://github.com/mmtk/mmtk-openjdk/pull/253
+* Add Java-specific constants from MMTk by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/258
+* Post-release dependency version bump for v0.21.0 by @wks in https://github.com/mmtk/mmtk-openjdk/pull/259
+
+## New Contributors
+* @angussidney made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/253
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.21.0...v0.22.0
+
 0.21.0 (2023-11-03)
 ===
 
