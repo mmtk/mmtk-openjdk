@@ -2,8 +2,10 @@ name: DaCapo Tests
 
 on:
   pull_request:
-    branches:
-      - master
+    # branches:
+    #   - master
+    branches-ignore:
+      - "**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

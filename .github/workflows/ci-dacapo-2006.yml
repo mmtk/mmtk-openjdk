@@ -1,0 +1,134 @@
+name: "Contiguous Integration"
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  DACAPO_VERSION: dacapo-2006-10-MR2
+  DACAPO_FILE: dacapo-2006-10-MR2.jar
+  DACAPO_DOWNLOAD_URL: https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar
+
+jobs:
+  build-normal:
+    uses: ./.github/workflows/build.yml
+
+  cache-dacapo:
+    name: Cache Dacapo
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check ${{ env.DACAPO_VERSION }} cache
+        id: check-cache
+        uses: actions/cache@v3
+        with:
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
+          lookup-only: true
+      - name: Install ${{ env.DACAPO_VERSION }}
+        if: steps.check-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
+          popd
+
+  test-normal-build:
+    name: Test normal build
+    runs-on: ubuntu-22.04
+    env:
+      build-debug-level: fastdebug
+    needs:
+      - build-normal
+      - cache-dacapo
+    strategy:
+      fail-fast: false
+      matrix:
+        test-script: ["ci-test-only-normal", "ci-test-only-normal-no-compressed-oops", "ci-test-only-weak-ref"]
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+          # Leave some room for the runner for logging in /dev/root
+          root-reserve-mb: 6000
+          temp-reserve-mb: 1024
+      # We need to check out the binding repo to get the running configs and test scripts
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v3
+      - name: Setup environment
+        run: |
+          pip3 install running-ng
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
+      - name: Fetch ${{ env.DACAPO_VERSION }} cache
+        id: fetch-cache
+        uses: actions/cache@v3
+        with:
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
+      - name: Install ${{ env.DACAPO_VERSION }}
+        if: steps.fetch-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
+          popd
+      - name: Unzip ${{ env.DACAPO_VERSION }}
+        run: |
+          pushd dacapo
+          unzip ${{ env.DACAPO_FILE }}
+          rm ${{ env.DACAPO_FILE }}
+          popd
+      - name: Download bundles
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x86_64-server-${{ env.build-debug-level }}-bundles
+          path: bundles
+      - name: Extract OpenJDK
+        run: |
+          pushd bundles
+          tar xvf *.tar.gz
+          BIN_DIR=`find . -name bin`
+          mv `dirname $BIN_DIR` jdk
+          popd
+      - name: Test ${{ matrix.test-script }}
+        run: ./.github/scripts/${{ matrix.test-script }}.sh
+
+  test-feature-build:
+    name: Test feature build
+    runs-on: ubuntu-22.04
+    needs:
+      - cache-dacapo
+    strategy:
+      fail-fast: false
+      matrix:
+        test-script: ["ci-test-vo-bit", "ci-test-assertions"]
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+          # Leave some room for the runner for logging in /dev/root
+          root-reserve-mb: 6000
+          temp-reserve-mb: 1024
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v3
+      - name: Setup environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/setup.sh
+      - name: Test ${{ matrix.test-script }}
+        run: ./.github/scripts/${{ matrix.test-script }}.sh
