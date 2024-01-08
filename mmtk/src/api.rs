@@ -488,11 +488,11 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn get_finalized_object() -> ObjectReference {
+pub extern "C" fn get_finalized_object() -> Address {
     with_singleton!(|singleton| {
         match memory_manager::get_finalized_object(singleton) {
-            Some(obj) => obj,
-            None => ObjectReference::NULL,
+            Some(obj) => obj.to_raw_address(),
+            None => Address::ZERO,
         }
     })
 }

@@ -15,7 +15,7 @@ impl<const COMPRESSED: bool> ReferenceGlue<OpenJDK<COMPRESSED>> for VMReferenceG
         let oop = Oop::from(reff);
         InstanceRefKlass::referent_address::<COMPRESSED>(oop).store(referent);
     }
-    fn get_referent(object: ObjectReference) -> ObjectReference {
+    fn get_referent(object: ObjectReference) -> Option<ObjectReference> {
         let oop = Oop::from(object);
         InstanceRefKlass::referent_address::<COMPRESSED>(oop).load()
     }
@@ -23,5 +23,9 @@ impl<const COMPRESSED: bool> ReferenceGlue<OpenJDK<COMPRESSED>> for VMReferenceG
         unsafe {
             ((*UPCALLS).enqueue_references)(references.as_ptr(), references.len());
         }
+    }
+    fn clear_referent(new_reference: ObjectReference) {
+        let oop = Oop::from(new_reference);
+        InstanceRefKlass::referent_address::<COMPRESSED>(oop).store_null();
     }
 }
