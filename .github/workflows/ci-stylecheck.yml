@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  style-check:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
