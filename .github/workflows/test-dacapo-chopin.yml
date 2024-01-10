@@ -14,7 +14,6 @@ env:
 
 jobs:
   cache-dacapo:
-    name: Cache ${{ env.DACAPO_VERSION }}
     runs-on: ubuntu-22.04
     steps:
       - name: Check ${{ env.DACAPO_VERSION }} cache
