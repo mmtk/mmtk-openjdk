@@ -3,10 +3,6 @@ name: "Test with DaCapo 2006"
 on:
   workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 env:
   DACAPO_VERSION: dacapo-2006-10-MR2
   DACAPO_FILE: dacapo-2006-10-MR2.jar

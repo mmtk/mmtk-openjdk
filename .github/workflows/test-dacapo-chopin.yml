@@ -3,10 +3,6 @@ name: "Test with DaCapo Chopin"
 on:
   workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 env:
   DACAPO_VERSION: dacapo-23.9-RC3-chopin
   DACAPO_FILE: dacapo-23.9-RC3-chopin.zip
