@@ -25,7 +25,7 @@ runbms_dacapo2006_with_heap_multiplier()
     minheap_value="${!minheap_env}"
     heap_size=$((minheap_value * heap_multiplier))
 
-    shift
+    shift 2
 
     runbms_dacapo2006_with_heap_size $benchmark $heap_size $heap_size $@
 }

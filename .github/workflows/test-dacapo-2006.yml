@@ -71,9 +71,8 @@ jobs:
           rm ${{ env.DACAPO_FILE }}
           popd
       - name: Download bundles
-        uses: dawidd6/action-download-artifact@v3
+        uses: actions/download-artifact@v3
         with:
-          workflow: test-all.yml
           name: linux-x86_64-server-${{ env.build-debug-level }}-bundles
           path: bundles
       - name: Extract OpenJDK
