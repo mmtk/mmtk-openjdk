@@ -1,0 +1,22 @@
+name: DaCapo Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-normal:
+    uses: ./.github/workflows/build.yml
+
+  run-dacapo-2006:
+    needs: build-normal
+    uses: ./.github/workflows/test-dacapo-2006.yml
+
+  run-dacapo-chopin:
+    needs: build-normal
+    uses: ./.github/workflows/test-dacapo-chopin.yml

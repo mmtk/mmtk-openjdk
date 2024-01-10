@@ -1,9 +1,7 @@
-name: "Contiguous Integration"
+name: "Test with DaCapo 2006"
 
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,9 +13,6 @@ env:
   DACAPO_DOWNLOAD_URL: https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar
 
 jobs:
-  build-normal:
-    uses: ./.github/workflows/build.yml
-
   cache-dacapo:
     name: Cache ${{ env.DACAPO_VERSION }}
     runs-on: ubuntu-22.04
@@ -43,7 +38,6 @@ jobs:
     env:
       build-debug-level: fastdebug
     needs:
-      - build-normal
       - cache-dacapo
     strategy:
       fail-fast: false
@@ -82,8 +76,9 @@ jobs:
           rm ${{ env.DACAPO_FILE }}
           popd
       - name: Download bundles
-        uses: actions/download-artifact@v3
+        uses: dawidd6/action-download-artifact@v3
         with:
+          workflow: test-all.yml
           name: linux-x86_64-server-${{ env.build-debug-level }}-bundles
           path: bundles
       - name: Extract OpenJDK
@@ -94,7 +89,9 @@ jobs:
           mv `dirname $BIN_DIR` jdk
           popd
       - name: Test ${{ matrix.test-script }}
-        run: ./.github/scripts/${{ matrix.test-script }}.sh
+        run: |
+          export JAVA_BIN=bundles/jdk/bin/java
+          ./.github/scripts/${{ matrix.test-script }}.sh
 
   test-feature-build:
     name: Test feature build
