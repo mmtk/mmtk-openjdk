@@ -45,7 +45,8 @@ run_subset 2
 # -- NoGC --
 export MMTK_PLAN=NoGC
 
-run_subset 2
+runbms_dacapo2006_with_heap_size fop 1000 1000
+runbms_dacapo2006_with_heap_size luindex 1000 1000
 
 # --- MarkSweep ---
 export MMTK_PLAN=MarkSweep
