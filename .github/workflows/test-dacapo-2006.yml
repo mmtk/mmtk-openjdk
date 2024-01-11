@@ -64,12 +64,6 @@ jobs:
         with:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
-      - name: Unzip ${{ env.DACAPO_VERSION }}
-        run: |
-          pushd dacapo
-          unzip ${{ env.DACAPO_FILE }}
-          rm ${{ env.DACAPO_FILE }}
-          popd
       - name: Download bundles
         uses: actions/download-artifact@v3
         with:
@@ -133,15 +127,9 @@ jobs:
         with:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
-      - name: Unzip ${{ env.DACAPO_VERSION }}
-        run: |
-          pushd dacapo
-          unzip ${{ env.DACAPO_FILE }}
-          rm ${{ env.DACAPO_FILE }}
-          popd
       - name: Test ${{ matrix.test-script }}
         run: |
           export DACAPO_PATH=$GITHUB_WORKSPACE/dacapo
-          export OPENJDK_PATH=$GITHUB_WORKSPACE/openjdk
+          export OPENJDK_PATH=$GITHUB_WORKSPACE/git/openjdk
           ./.github/scripts/${{ matrix.test-script }}.sh
         working-directory: ./git/mmtk-openjdk
