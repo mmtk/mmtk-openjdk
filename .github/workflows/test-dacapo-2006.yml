@@ -131,5 +131,6 @@ jobs:
         run: |
           export DACAPO_PATH=$GITHUB_WORKSPACE/dacapo
           export OPENJDK_PATH=$GITHUB_WORKSPACE/git/openjdk
+          export DEBUG_LEVEL=fastdebug
           ./.github/scripts/${{ matrix.test-script }}.sh
         working-directory: ./git/mmtk-openjdk
