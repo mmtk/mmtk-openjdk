@@ -8,7 +8,7 @@ export MMTK_EXTREME_ASSERTIONS=0
 export VO_BIT=1
 . $(dirname "$0")/ci-build.sh
 
-export JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
+export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
 
 run_subset() {
     heap_multiplier=$1

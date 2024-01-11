@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup environments
-      run: ./.github/scripts/setup.sh
+      run: ./.github/scripts/ci-setup.sh
     - name: Style checks
       run: ./.github/scripts/ci-style.sh
 

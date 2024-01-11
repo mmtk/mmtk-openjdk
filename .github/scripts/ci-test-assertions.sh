@@ -6,7 +6,7 @@ unset JAVA_TOOL_OPTIONS
 
 export MMTK_EXTREME_ASSERTIONS=1
 . $(dirname "$0")/ci-build.sh
-export JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
+export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
 
 cd $OPENJDK_PATH
 

@@ -28,13 +28,11 @@ jobs:
         path: ./git/openjdk
         ref: ${{ steps.extract-openjdk-revision.outputs.openjdk-revision }}
     - name: Setup environment
-      run: ./.github/scripts/setup.sh
-      working-directory: ./git/mmtk-openjdk
-    - name: Style checks
-      run: ./.github/scripts/style-check.sh
+      run: ./.github/scripts/ci-setup.sh
       working-directory: ./git/mmtk-openjdk
     - name: Build MMTk OpenJDK ${{ matrix.debug-level }}
-      run: DEBUG_LEVEL=${{ matrix.debug-level }} ./.github/scripts/build-normal.sh
+      run: |
+        OPENJDK_PATH=$GITHUB_WORKSPACE/git/openjdk DEBUG_LEVEL=${{ matrix.debug-level }} OPENJDK_BUILD_TARGET=product-bundles ./.github/scripts/ci-build.sh
       working-directory: ./git/mmtk-openjdk
     - name: Upload bundles
       uses: actions/upload-artifact@v3
