@@ -22,11 +22,11 @@ run_test() {
 unset JAVA_TOOL_OPTIONS
 unset MMTK_PLAN
 
-export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
-
 # --- Normal test ---
-build
 run_test
+
+export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
+export DEBUG_LEVEL=fastdebug
 
 # --- Header mark bit ---
 export MARK_IN_HEADER=1

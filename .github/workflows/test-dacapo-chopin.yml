@@ -114,7 +114,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v3
         with:
-          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles
+          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |
