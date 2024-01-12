@@ -46,10 +46,12 @@ jobs:
     - name: Setup environment
       run: ./.github/scripts/ci-setup.sh
       working-directory: ./git/mmtk-openjdk
-    - name: Export build environemnt variables and build suffix
+    - name: Export build environemnt variables
       if: ${{ inputs.build-env-var != '' }}
       run: |
         echo "${{ inputs.build-env-var }}" >> $GITHUB_ENV
+    - name: Export build suffix
+      run: |
         if [ -z "${{ inputs.build-env-var }}" ]; then
           echo "BUILD_SUFFIX=normal" >> $GITHUB_ENV
         else
