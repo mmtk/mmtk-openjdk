@@ -2,14 +2,6 @@ set -xe
 
 . $(dirname "$0")/common.sh
 
-build() {
-    cd $OPENJDK_PATH
-    export MMTK_MALLOC_MARK_SWEEP=1
-    sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
-    make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$BINDING_PATH/openjdk
-    unset MMTK_MALLOC_MARK_SWEEP
-}
-
 run_test() {
     export MMTK_PLAN=MarkSweep
 
@@ -24,18 +16,3 @@ unset MMTK_PLAN
 
 # --- Normal test ---
 run_test
-
-export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
-export DEBUG_LEVEL=fastdebug
-
-# --- Header mark bit ---
-export MARK_IN_HEADER=1
-build
-run_test
-unset MARK_IN_HEADER
-
-# --- Test assertions ---
-export MMTK_EXTREME_ASSERTIONS=1
-build
-run_test
-unset MMTK_EXTREME_ASSERTIONS

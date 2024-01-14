@@ -37,7 +37,14 @@ jobs:
   build-malloc-mark-sweep:
     uses: ./.github/workflows/build.yml
     with:
-      build-env-var: MMTK_MALLOC_MARK_SWEEP=1
+      # Test malloc mark sweep with extreme assertions
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_EXTREME_ASSERTIONS=1
+      debug-level: fastdebug
+
+  build-mark-in-header:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MARK_IN_HEADER=1
       debug-level: fastdebug
 
   run-dacapo-2006:
@@ -46,6 +53,7 @@ jobs:
       - build-vo-bit
       - build-extreme-assertions
       - build-malloc-mark-sweep
+      - build-mark-in-header
     uses: ./.github/workflows/test-dacapo-2006.yml
 
   run-dacapo-chopin:

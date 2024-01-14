@@ -4,8 +4,6 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
-cd $OPENJDK_PATH
-
 run_subset() {
     heap_multiplier=$1
 
