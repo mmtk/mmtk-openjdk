@@ -1,4 +1,4 @@
-name: DaCapo Tests
+name: Extended tests for MMTk core
 
 on:
   workflow_dispatch:
@@ -9,6 +9,8 @@ on:
       mmtk-core-ref:
         required: false
         type: string
+  # Trigger the test once
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
