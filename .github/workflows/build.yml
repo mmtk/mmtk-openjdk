@@ -42,6 +42,7 @@ jobs:
       run: |
         pip3 install tomlkit
         python3 .github/scripts/patch-mmtk-dep.py mmtk/Cargo.toml ${{ inputs.mmtk-core-ref }} ${{ inputs.mmtk-core-repo }}
+        cat mmtk/Cargo.toml
       working-directory: ./git/mmtk-openjdk
     - name: Setup environment
       run: ./.github/scripts/ci-setup.sh
