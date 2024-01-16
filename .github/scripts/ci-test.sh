@@ -1,11 +1,18 @@
 set -ex
 
-cur=$(realpath $(dirname "$0"))
+. $(dirname "$0")/common.sh
+cur=$BINDING_PATH/.github/scripts
 
 # This script is only used by MMTk core.
 # OPENJDK_PATH is the default path set in ci-checkout.sh
-OPENJDK_PATH=$BINDING_PATH/repos/openjdk
-export TEST_JAVA_BIN=$OPENJDK_PATH/jdk/bin/java
+export OPENJDK_PATH=$BINDING_PATH/repos/openjdk
+export DEBUG_LEVEL=fastdebug
+export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
+
+# Download dacapo
+export DACAPO_PATH=$BINDING_PATH/dacapo
+mkdir -p $DACAPO_PATH
+wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
 
 # Normal build
 $cur/ci-build.sh
