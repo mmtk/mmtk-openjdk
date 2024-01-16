@@ -13,22 +13,18 @@ run_subset() {
 }
 
 # --- Immix ---
-export MMTK_PLAN=Immix
-
-run_subset 4
+# export MMTK_PLAN=Immix
+# run_subset 4
 
 # --- GenImmix ---
-export MMTK_PLAN=GenImmix
-
-run_subset 4
+# export MMTK_PLAN=GenImmix
+# run_subset 4
 
 # --- StickyImmix ---
-export MMTK_PLAN=StickyImmix
-
-run_subset 4
+# export MMTK_PLAN=StickyImmix
+# run_subset 4
 
 # --- MarkSweep ---
 export MMTK_PLAN=MarkSweep
 
 run_subset 8
-
