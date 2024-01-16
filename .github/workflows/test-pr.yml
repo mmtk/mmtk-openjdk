@@ -25,7 +25,7 @@ jobs:
   build-vo-bit:
     uses: ./.github/workflows/build.yml
     with:
-      build-env-var: VO_BIT=1
+      build-env-var: MMTK_VO_BIT=1
       debug-level: fastdebug
 
   build-extreme-assertions:
@@ -45,7 +45,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       # Before we get other plans work with mark in header, we only test with malloc mark sweep.
-      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MARK_IN_HEADER=1
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_MARK_IN_HEADER=1
       debug-level: fastdebug
 
   run-dacapo-2006:

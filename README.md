@@ -192,22 +192,22 @@ you may have to change the location of `llvm-profdata`.
 
 ### Location of Mark-bit
 The location of the mark-bit can be specified by the environment variable
-`MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
-metadata), but by setting the environment variable `MARK_IN_HEADER=1` while
+`MMTK_MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
+metadata), but by setting the environment variable `MMTK_MARK_IN_HEADER=1` while
 building OpenJDK, we can change its location to be in the object's header:
 
 ```console
-$ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ### Valid object bit
 
 To support the `vo_bit` (valid object bit) feature in mmtk-core, you can set the
-environment variable `VO_BIT=1` when building OpenJDK. This will set the feature
+environment variable `MMTK_VO_BIT=1` when building OpenJDK. This will set the feature
 for mmtk-core, as well as compiling the fastpath for the VO bit.
 
 ```console
-$ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ## Test
