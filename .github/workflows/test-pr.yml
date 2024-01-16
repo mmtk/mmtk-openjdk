@@ -44,7 +44,8 @@ jobs:
   build-mark-in-header:
     uses: ./.github/workflows/build.yml
     with:
-      build-env-var: MARK_IN_HEADER=1
+      # Before we get other plans work with mark in header, we only test with malloc mark sweep.
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MARK_IN_HEADER=1
       debug-level: fastdebug
 
   run-dacapo-2006:

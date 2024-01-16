@@ -10,7 +10,7 @@ on:
         required: false
         type: string
   # Trigger the test once
-  pull_request:
+  # pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -22,10 +22,8 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       debug-level: fastdebug
-      # mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
-      # mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
-      mmtk-core-repo: qinsoon/mmtk-core
-      mmtk-core-ref: 4156c28e90235c51de9740001f62b12d423a0fcc
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
 
   # Feature build
   build-vo-bit:
