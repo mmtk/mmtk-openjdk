@@ -1,8 +1,10 @@
 # Extended tests for MMTk core. These tests are only executed on demand.
 
-# TODO: We should use dacapo chopin for testing.
+# TODO:
+# - This is currently a duplicate of test-core-extended.yml. But we should only keep a subset of the essential tests in this workflow.
+# - We should use dacapo chopin for testing.
 
-name: Extended tests for MMTk core
+name: Minimal tests for MMTk core
 
 on:
   workflow_dispatch:

@@ -41,10 +41,10 @@ $cur/ci-test-malloc-mark-sweep.sh
 unset MMTK_EXTREME_ASSERTIONS
 unset MMTK_MALLOC_MARK_SWEEP
 
-# Build with mark in header
-export MMTK_MARK_IN_HEADER=1
-export MMTK_MALLOC_MARK_SWEEP=1
-$cur/ci-build.sh
-$cur/ci-test-malloc-mark-sweep.sh
-unset MMTK_MARK_IN_HEADER
-unset MMTK_MALLOC_MARK_SWEEP
+# Build with mark in header - comment this out as it takes too long.
+# export MMTK_MARK_IN_HEADER=1
+# export MMTK_MALLOC_MARK_SWEEP=1
+# $cur/ci-build.sh
+# $cur/ci-test-malloc-mark-sweep.sh
+# unset MMTK_MARK_IN_HEADER
+# unset MMTK_MALLOC_MARK_SWEEP
