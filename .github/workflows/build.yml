@@ -67,5 +67,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: linux-x86_64-server-${{ inputs.debug-level }}-bundles-${{ env.BUILD_SUFFIX }}
-        path: ./git/openjdk/build/linux-x86_64-normal-server-${{ inputs.debug-level }}/bundles/*_bin.tar.gz
+        path: |
+          ./git/openjdk/build/linux-x86_64-normal-server-${{ inputs.debug-level }}/bundles/*_bin.tar.gz
+          ./git/openjdk/build/linux-x86_64-normal-server-${{ inputs.debug-level }}/bundles/*_bin-debug.tar.gz
         retention-days: 2

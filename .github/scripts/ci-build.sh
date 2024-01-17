@@ -14,10 +14,3 @@ build_target=$1
 cd $OPENJDK_PATH
 sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$BINDING_PATH/openjdk $OPENJDK_BUILD_TARGET
-
-if [[ $DEBUG_LEVEL == "fastdebug" && $OPENJDK_BUILD_TARGET == "product-bundles" ]]; then
-    pushd build/linux-x86_64-normal-server-fastdebug/bundles
-    F=`ls *_bin-debug.tar.gz`
-    mv $F ${F/_bin-debug/_bin}
-    popd
-fi
