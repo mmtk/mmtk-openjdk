@@ -19,7 +19,7 @@ ifdef MMTK_PLAN
   GC_FEATURES=--features $(MMTK_PLAN)
 endif
 
-ifeq ($(VO_BIT), 1)
+ifeq ($(MMTK_VO_BIT), 1)
   ifndef GC_FEATURES
     GC_FEATURES=--features vo_bit
   else
@@ -27,7 +27,7 @@ ifeq ($(VO_BIT), 1)
   endif
 endif
 
-ifeq ($(MARK_IN_HEADER), 1)
+ifeq ($(MMTK_MARK_IN_HEADER), 1)
   ifndef GC_FEATURES
     GC_FEATURES=--features mark_bit_in_header
   else
@@ -78,7 +78,7 @@ FORCE:
 TARGETS += $(LIB_MMTK)
 JVM_SRC_DIRS += $(MMTK_CPP_ROOT) $(MMTK_CPP_ROOT)/barriers
 JVM_CFLAGS += -std=c++11 -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
-ifeq ($(VO_BIT), 1)
+ifeq ($(MMTK_VO_BIT), 1)
   JVM_CFLAGS += -DMMTK_ENABLE_VO_BIT
 endif
 

@@ -1,13 +1,7 @@
-name: "Continuous Integration"
+name: "Test with DaCapo Chopin"
 
 on:
-  pull_request:
-    branches:
-      - master
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+  workflow_call:
 
 env:
   DACAPO_VERSION: dacapo-23.9-RC3-chopin
@@ -15,47 +9,7 @@ env:
   DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.9-RC3-chopin.zip
 
 jobs:
-  build-linux-x64:
-    name: linux-x64
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: true
-      matrix:
-        debug-level: ["fastdebug", "release"]
-    steps:
-      - name: Checkout MMTk OpenJDK binding
-        uses: actions/checkout@v3
-        with:
-          path: ./git/mmtk-openjdk
-      - name: Extract OpenJDK revision
-        id: extract-openjdk-revision
-        run: |
-          OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < git/mmtk-openjdk/mmtk/Cargo.toml`
-          echo "openjdk-revision=$OPENJDK_VERSION" >> $GITHUB_OUTPUT
-      - name: Checkout OpenJDK
-        uses: actions/checkout@v3
-        with:
-          repository: mmtk/openjdk
-          path: ./git/openjdk
-          ref: ${{ steps.extract-openjdk-revision.outputs.openjdk-revision }}
-      - name: Setup environment
-        run: ./.github/scripts/setup.sh
-        working-directory: ./git/mmtk-openjdk
-      - name: Style checks
-        run: ./.github/scripts/style-check.sh
-        working-directory: ./git/mmtk-openjdk
-      - name: Build MMTk OpenJDK ${{ matrix.debug-level }}
-        run: DEBUG_LEVEL=${{ matrix.debug-level }} ./.github/scripts/build-normal.sh
-        working-directory: ./git/mmtk-openjdk
-      - name: Upload bundles
-        uses: actions/upload-artifact@v3
-        with:
-          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles
-          path: ./git/openjdk/build/linux-x86_64-normal-server-${{ matrix.debug-level }}/bundles/*_bin.tar.gz
-          retention-days: 2
-
   cache-dacapo:
-    name: Cache Dacapo
     runs-on: ubuntu-22.04
     steps:
       - name: Check ${{ env.DACAPO_VERSION }} cache
@@ -73,10 +27,8 @@ jobs:
           wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
           popd
 
-  test-linux-x64:
-    name: linux-x64
+  test-normal-build:
     needs:
-      - build-linux-x64
       - cache-dacapo
     runs-on: ubuntu-22.04
     strategy:
@@ -123,7 +75,7 @@ jobs:
       - name: Check free space
         run: df -h
       - name: Checkout MMTk OpenJDK binding
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup environment
         run: |
           pip3 install running-ng
@@ -162,7 +114,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v3
         with:
-          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles
+          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |

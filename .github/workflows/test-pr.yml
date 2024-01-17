@@ -1,0 +1,64 @@
+name: DaCapo Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # Normal build: build both fastdebug and release
+  build-normal-fastdebug:
+    uses: ./.github/workflows/build.yml
+    with:
+      debug-level: fastdebug
+
+  build-normal-release:
+    uses: ./.github/workflows/build.yml
+    with:
+      debug-level: release
+
+  # Feature build: only build fastdebug
+  build-vo-bit:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_VO_BIT=1
+      debug-level: fastdebug
+
+  build-extreme-assertions:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_EXTREME_ASSERTIONS=1
+      debug-level: fastdebug
+
+  build-malloc-mark-sweep:
+    uses: ./.github/workflows/build.yml
+    with:
+      # Test malloc mark sweep with extreme assertions
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_EXTREME_ASSERTIONS=1
+      debug-level: fastdebug
+
+  build-mark-in-header:
+    uses: ./.github/workflows/build.yml
+    with:
+      # Before we get other plans work with mark in header, we only test with malloc mark sweep.
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_MARK_IN_HEADER=1
+      debug-level: fastdebug
+
+  run-dacapo-2006:
+    needs:
+      - build-normal-fastdebug
+      - build-vo-bit
+      - build-extreme-assertions
+      - build-malloc-mark-sweep
+      - build-mark-in-header
+    uses: ./.github/workflows/run-dacapo-2006.yml
+
+  run-dacapo-chopin:
+    needs:
+      - build-normal-fastdebug
+      - build-normal-release
+    uses: ./.github/workflows/run-dacapo-chopin.yml

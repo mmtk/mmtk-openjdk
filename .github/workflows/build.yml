@@ -1,0 +1,73 @@
+name: Build OpenJDK Binding
+
+on:
+  workflow_call:
+    inputs:
+      debug-level:
+        required: true
+        type: string
+      build-env-var:
+        required: false
+        type: string
+      mmtk-core-repo:
+        required: false
+        type: string
+      mmtk-core-ref:
+        required: false
+        type: string
+
+jobs:
+  build-linux-x64:
+    name: linux-x64
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout MMTk OpenJDK binding
+      uses: actions/checkout@v4
+      with:
+        path: ./git/mmtk-openjdk
+    - name: Extract OpenJDK revision
+      id: extract-openjdk-revision
+      run: |
+        OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < git/mmtk-openjdk/mmtk/Cargo.toml`
+        echo "openjdk-revision=$OPENJDK_VERSION" >> $GITHUB_OUTPUT
+    - name: Checkout OpenJDK
+      uses: actions/checkout@v4
+      with:
+        repository: mmtk/openjdk
+        path: ./git/openjdk
+        ref: ${{ steps.extract-openjdk-revision.outputs.openjdk-revision }}
+    # Patch mmtk-core version if needed
+    - name: Patch mmtk-core version
+      if: ${{ inputs.mmtk-core-repo != '' || inputs.mmtk-core-ref != '' }}
+      run: |
+        pip3 install tomlkit
+        python3 .github/scripts/patch-mmtk-dep.py mmtk/Cargo.toml ${{ inputs.mmtk-core-ref }} ${{ inputs.mmtk-core-repo }}
+        cat mmtk/Cargo.toml
+      working-directory: ./git/mmtk-openjdk
+    - name: Setup environment
+      run: ./.github/scripts/ci-setup.sh
+      working-directory: ./git/mmtk-openjdk
+    - name: Export build environemnt variables
+      if: ${{ inputs.build-env-var != '' }}
+      run: |
+        echo "${{ inputs.build-env-var }}" >> $GITHUB_ENV
+    - name: Export build suffix
+      run: |
+        if [ -z "${{ inputs.build-env-var }}" ]; then
+          echo "BUILD_SUFFIX=normal" >> $GITHUB_ENV
+        else
+          escaped_build=$(echo "${{ inputs.build-env-var }}" | sed 's/ /_/g')
+          echo "BUILD_SUFFIX=$escaped_build" >> $GITHUB_ENV
+        fi
+    - name: Build MMTk OpenJDK ${{ inputs.debug-level }}
+      run: |
+        OPENJDK_PATH=$GITHUB_WORKSPACE/git/openjdk DEBUG_LEVEL=${{ inputs.debug-level }} OPENJDK_BUILD_TARGET=product-bundles ./.github/scripts/ci-build.sh
+      working-directory: ./git/mmtk-openjdk
+    - name: Upload bundles
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-x86_64-server-${{ inputs.debug-level }}-bundles-${{ env.BUILD_SUFFIX }}
+        path: |
+          ./git/openjdk/build/linux-x86_64-normal-server-${{ inputs.debug-level }}/bundles/*_bin.tar.gz
+          ./git/openjdk/build/linux-x86_64-normal-server-${{ inputs.debug-level }}/bundles/*_bin-debug.tar.gz
+        retention-days: 2
