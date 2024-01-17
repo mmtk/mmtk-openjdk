@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout MMTk OpenJDK binding
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./git/mmtk-openjdk
     - name: Extract OpenJDK revision
@@ -31,7 +31,7 @@ jobs:
         OPENJDK_VERSION=`sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < git/mmtk-openjdk/mmtk/Cargo.toml`
         echo "openjdk-revision=$OPENJDK_VERSION" >> $GITHUB_OUTPUT
     - name: Checkout OpenJDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: mmtk/openjdk
         path: ./git/openjdk
