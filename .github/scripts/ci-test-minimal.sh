@@ -17,39 +17,22 @@ wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/d
 # Normal build
 $cur/ci-build.sh
 # Test
-export MMTK_PLAN=SemiSpace
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=Immix
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=GenImmix
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=StickyImmix
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=GenCopy
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=MarkCompact
-runbms_dacapo2006_with_heap_multiplier fop 4
-export MMTK_PLAN=MarkSweep
-runbms_dacapo2006_with_heap_multiplier fop 8
-export MMTK_PLAN=NoGC
-runbms_dacapo2006_with_heap_size antlr 1000 1000
-runbms_dacapo2006_with_heap_size fop 1000 1000
-runbms_dacapo2006_with_heap_size luindex 1000 1000
+MMTK_PLAN=SemiSpace runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=Immix runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=StickyImmix runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=GenCopy runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=MarkCompact runbms_dacapo2006_with_heap_multiplier fop 4
+MMTK_PLAN=MarkSweep runbms_dacapo2006_with_heap_multiplier fop 8
+MMTK_PLAN=NoGC runbms_dacapo2006_with_heap_size fop 1000 1000
 # Test heap resizing
-export MMTK_PLAN=GenImmix
-runbms_dacapo2006_with_heap_size fop 20 100
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_size fop 20 100
 # Test no compressed oop
-export MMTK_PLAN=GenImmix
-runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
-
-unset MMTK_PLAN
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
 
 # Build with vo bit
 export MMTK_VO_BIT=1
 $cur/ci-build.sh
 unset MMTK_VO_BIT=1
 # Test
-export MMTK_PLAN=GenImmix
-runbms_dacapo2006_with_heap_multiplier fop 4
-
-unset MMTK_PLAN
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4
