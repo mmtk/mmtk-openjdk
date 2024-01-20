@@ -31,8 +31,6 @@ MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_size fop 20 100
 MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
 
 # Build with vo bit
-export MMTK_VO_BIT=1
-$cur/ci-build.sh
-unset MMTK_VO_BIT=1
+MMTK_VO_BIT=1 $cur/ci-build.sh
 # Test
 MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4
