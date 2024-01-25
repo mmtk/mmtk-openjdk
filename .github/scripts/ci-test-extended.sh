@@ -22,24 +22,16 @@ $cur/ci-test-only-normal-no-compressed-oops.sh
 $cur/ci-test-only-weak-ref.sh
 
 # Build with extreme assertions
-export MMTK_EXTREME_ASSERTIONS=1
-$cur/ci-build.sh
+MMTK_EXTREME_ASSERTIONS=1 $cur/ci-build.sh
 $cur/ci-test-assertions.sh
-unset MMTK_EXTREME_ASSERTIONS
 
 # Build with vo bit
-export MMTK_VO_BIT=1
-$cur/ci-build.sh
+MMTK_VO_BIT=1 $cur/ci-build.sh
 $cur/ci-test-vo-bit.sh
-unset MMTK_VO_BIT=1
 
 # Build with malloc mark sweep
-export MMTK_EXTREME_ASSERTIONS=1
-export MMTK_MALLOC_MARK_SWEEP=1
-$cur/ci-build.sh
+MMTK_EXTREME_ASSERTIONS=1 MMTK_MALLOC_MARK_SWEEP=1 $cur/ci-build.sh
 $cur/ci-test-malloc-mark-sweep.sh
-unset MMTK_EXTREME_ASSERTIONS
-unset MMTK_MALLOC_MARK_SWEEP
 
 # Build with mark in header - comment this out as it takes too long.
 # export MMTK_MARK_IN_HEADER=1
