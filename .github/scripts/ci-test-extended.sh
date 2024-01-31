@@ -33,6 +33,10 @@ $cur/ci-test-vo-bit.sh
 MMTK_EXTREME_ASSERTIONS=1 MMTK_MALLOC_MARK_SWEEP=1 $cur/ci-build.sh
 $cur/ci-test-malloc-mark-sweep.sh
 
+# Build with sanity
+MMTK_SANITY=1 $cur/ci-build.sh
+$cur/ci-test-sanity.sh
+
 # Build with mark in header - comment this out as it takes too long.
 # export MMTK_MARK_IN_HEADER=1
 # export MMTK_MALLOC_MARK_SWEEP=1
