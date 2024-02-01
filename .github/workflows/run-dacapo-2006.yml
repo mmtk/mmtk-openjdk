@@ -1,0 +1,127 @@
+name: "Test with DaCapo 2006"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      mmtk-core-repo:
+        required: false
+        type: string
+      mmtk-core-ref:
+        required: false
+        type: string
+
+env:
+  DACAPO_VERSION: dacapo-2006-10-MR2
+  DACAPO_FILE: dacapo-2006-10-MR2.jar
+  DACAPO_DOWNLOAD_URL: https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar
+
+jobs:
+  cache-dacapo:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check ${{ env.DACAPO_VERSION }} cache
+        id: check-cache
+        uses: actions/cache@v3
+        with:
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
+          lookup-only: true
+      - name: Install ${{ env.DACAPO_VERSION }}
+        if: steps.check-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dacapo
+          pushd dacapo
+          wget -q "${{ env.DACAPO_DOWNLOAD_URL }}" -O ${{ env.DACAPO_FILE }}
+          popd
+
+  test-normal-build:
+    name: Test normal build
+    runs-on: ubuntu-22.04
+    env:
+      build-debug-level: fastdebug
+    needs:
+      - cache-dacapo
+    strategy:
+      fail-fast: false
+      matrix:
+        test-script: ["ci-test-only-normal", "ci-test-only-normal-no-compressed-oops", "ci-test-only-weak-ref"]
+    steps:
+      # We need to check out the binding repo to get the running configs and test scripts
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v4
+      - name: Setup environment
+        run: |
+          pip3 install running-ng
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libx11-dev libxext-dev libxrender-dev libxtst-dev libxt-dev libcups2-dev libasound2-dev libxrandr-dev
+      - name: Fetch ${{ env.DACAPO_VERSION }} cache
+        id: fetch-cache
+        uses: actions/cache@v3
+        with:
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
+      - name: Download bundles
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-normal
+          path: bundles
+      - name: Extract OpenJDK
+        run: |
+          pushd bundles
+          tar xvf *.tar.gz
+          BIN_DIR=`find . -name bin`
+          mv `dirname $BIN_DIR` jdk
+          popd
+      - name: Test ${{ matrix.test-script }}
+        run: |
+          export TEST_JAVA_BIN=$GITHUB_WORKSPACE/bundles/jdk/bin/java
+          export DACAPO_PATH=$GITHUB_WORKSPACE/dacapo
+          ./.github/scripts/${{ matrix.test-script }}.sh
+
+  test-feature-build:
+    name: Test feature build
+    runs-on: ubuntu-22.04
+    needs:
+      - cache-dacapo
+    env:
+      build-debug-level: fastdebug
+    strategy:
+      fail-fast: false
+      matrix:
+        test-script: ["ci-test-vo-bit", "ci-test-assertions", "ci-test-malloc-mark-sweep", "ci-test-mark-in-header"]
+        include:
+          - test-script: ci-test-vo-bit
+            build-suffix: MMTK_VO_BIT=1
+          - test-script: ci-test-assertions
+            build-suffix: MMTK_EXTREME_ASSERTIONS=1
+          - test-script: ci-test-malloc-mark-sweep
+            build-suffix: MMTK_MALLOC_MARK_SWEEP=1_MMTK_EXTREME_ASSERTIONS=1
+          - test-script: ci-test-mark-in-header
+            build-suffix: MMTK_MALLOC_MARK_SWEEP=1_MMTK_MARK_IN_HEADER=1
+    steps:
+      - name: Checkout MMTk OpenJDK binding
+        uses: actions/checkout@v4
+      - name: Fetch ${{ env.DACAPO_VERSION }} cache
+        id: fetch-cache
+        uses: actions/cache@v3
+        with:
+          path: dacapo/${{ env.DACAPO_FILE }}
+          key: ${{ env.DACAPO_VERSION }}
+      - name: Download bundles
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
+          path: bundles
+      - name: Extract OpenJDK
+        run: |
+          pushd bundles
+          tar xvf *.tar.gz
+          BIN_DIR=`find . -name bin`
+          mv `dirname $BIN_DIR` jdk
+          popd
+      - name: Test ${{ matrix.test-script }}
+        run: |
+          export TEST_JAVA_BIN=$GITHUB_WORKSPACE/bundles/jdk/bin/java
+          export DACAPO_PATH=$GITHUB_WORKSPACE/dacapo
+          ./.github/scripts/${{ matrix.test-script }}.sh

@@ -4,57 +4,53 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
-export MMTK_EXTREME_ASSERTIONS=1
-. $(dirname "$0")/ci-build.sh
+run_subset() {
+    heap_multiplier=$1
 
-cd $OPENJDK_PATH
+    runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier
+    runbms_dacapo2006_with_heap_multiplier luindex $heap_multiplier
+}
 
 # -- SemiSpace --
 export MMTK_PLAN=SemiSpace
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 4
 
 # --- Immix ---
 export MMTK_PLAN=Immix
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 4
 
 # --- GenImmix ---
 export MMTK_PLAN=GenImmix
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 4
 
 # --- StickyImmix ---
 export MMTK_PLAN=StickyImmix
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 4
 
 # -- GenCopy --
 export MMTK_PLAN=GenCopy
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 4
 
 # -- NoGC --
 export MMTK_PLAN=NoGC
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms1G -Xmx1G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms1G -Xmx1G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+runbms_dacapo2006_with_heap_size fop 1000 1000
+runbms_dacapo2006_with_heap_size luindex 1000 1000
 
 # --- MarkSweep ---
 export MMTK_PLAN=MarkSweep
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms500M -Xmx500M -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+run_subset 8
 
 # -- PageProtect --
 sudo sysctl -w vm.max_map_count=655300
 export MMTK_PLAN=PageProtect
 
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar fop
-# Note: Disable compressed pointers for luindex as it does not work well with GC plans that uses virtual memory excessively.
-build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -server -XX:MetaspaceSize=100M -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -Xms4G -Xmx4G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
+# Note: Disable compressed pointers as it does not work well with GC plans that uses virtual memory excessively.
+runbms_dacapo2006_with_heap_size fop 4000 4000 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
+runbms_dacapo2006_with_heap_size luindex 4000 4000 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers

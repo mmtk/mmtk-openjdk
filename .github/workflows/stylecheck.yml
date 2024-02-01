@@ -1,0 +1,39 @@
+name: Style check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  style-check:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup environments
+      run: ./.github/scripts/ci-setup.sh
+    - name: Style checks
+      run: ./.github/scripts/ci-style.sh
+
+  msrv:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install cargo-msrv
+        run: cargo install cargo-msrv
+      # Verify the MSRV defined in Cargo.toml
+      - name: Verify MSRV
+        run: cargo msrv --path mmtk verify
+      # If the previous step fails, find MSRV
+      - name: Find MSRV
+        if: failure()
+        run: cargo msrv --path mmtk
