@@ -206,15 +206,11 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut libc::c_void) {
     if crate::use_compressed_oops() {
-        let mut worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<true>>) };
-        memory_manager::start_worker::<OpenJDK<true>>(crate::singleton::<true>(), tls, &mut worker)
+        let worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<true>>) };
+        memory_manager::start_worker::<OpenJDK<true>>(crate::singleton::<true>(), tls, worker)
     } else {
-        let mut worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<false>>) };
-        memory_manager::start_worker::<OpenJDK<false>>(
-            crate::singleton::<false>(),
-            tls,
-            &mut worker,
-        )
+        let worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<false>>) };
+        memory_manager::start_worker::<OpenJDK<false>>(crate::singleton::<false>(), tls, worker)
     }
 }
 
