@@ -1,3 +1,13 @@
+0.23.0 (2024-02-09)
+===
+
+## What's Changed
+* Refactor CI test scripts by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/263
+* Expose test scripts for minimal/extended tests for mmtk-core by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/266
+* Add tests for sanity GC in ci-test-extended by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/267
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.22.0...v0.23.0
+
 0.22.0 (2023-12-21)
 ===
 
