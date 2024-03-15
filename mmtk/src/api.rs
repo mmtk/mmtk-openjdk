@@ -6,7 +6,6 @@ use crate::UPCALLS;
 use libc::c_char;
 use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
-use mmtk::scheduler::GCController;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::opaque_pointer::*;
@@ -203,42 +202,15 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
-// We trust the gc_collector pointer is valid.
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_control_collector(tls: VMWorkerThread, gc_controller: *mut libc::c_void) {
-    if crate::use_compressed_oops() {
-        let mut gc_controller =
-            unsafe { Box::from_raw(gc_controller as *mut GCController<OpenJDK<true>>) };
-        memory_manager::start_control_collector(
-            crate::singleton::<true>(),
-            tls,
-            &mut gc_controller,
-        );
-    } else {
-        let mut gc_controller =
-            unsafe { Box::from_raw(gc_controller as *mut GCController<OpenJDK<false>>) };
-        memory_manager::start_control_collector(
-            crate::singleton::<false>(),
-            tls,
-            &mut gc_controller,
-        );
-    }
-}
-
-#[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut libc::c_void) {
     if crate::use_compressed_oops() {
-        let mut worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<true>>) };
-        memory_manager::start_worker::<OpenJDK<true>>(crate::singleton::<true>(), tls, &mut worker)
+        let worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<true>>) };
+        memory_manager::start_worker::<OpenJDK<true>>(crate::singleton::<true>(), tls, worker)
     } else {
-        let mut worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<false>>) };
-        memory_manager::start_worker::<OpenJDK<false>>(
-            crate::singleton::<false>(),
-            tls,
-            &mut worker,
-        )
+        let worker = unsafe { Box::from_raw(worker as *mut GCWorker<OpenJDK<false>>) };
+        memory_manager::start_worker::<OpenJDK<false>>(crate::singleton::<false>(), tls, worker)
     }
 }
 
