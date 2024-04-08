@@ -1,3 +1,9 @@
+0.24.0 (2024-04-08)
+===
+
+* Update mmtk-core to v0.24.0.
+* Update Rust toolchain to 1.77.0.
+
 0.23.0 (2024-02-09)
 ===
 
