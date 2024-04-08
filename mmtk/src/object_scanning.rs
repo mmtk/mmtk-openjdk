@@ -216,7 +216,7 @@ fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl EdgeVisitor<
 }
 
 thread_local! {
-    static CLOSURE: UnsafeCell<*mut u8> = UnsafeCell::new(std::ptr::null_mut());
+    static CLOSURE: UnsafeCell<*mut u8> = const { UnsafeCell::new(std::ptr::null_mut()) };
 }
 
 pub unsafe extern "C" fn scan_object_fn<
