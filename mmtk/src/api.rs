@@ -198,7 +198,11 @@ pub extern "C" fn post_alloc(
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    !object.is_movable()
+    if crate::use_compressed_oops() {
+        !object.is_movable::<OpenJDK<true>>()
+    } else {
+        !object.is_movable::<OpenJDK<false>>()
+    }
 }
 
 #[no_mangle]
