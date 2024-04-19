@@ -136,7 +136,7 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
         if v == 0 {
             None
         } else {
-            // Note on `unsafe`: The result cannot be zero, so it is safe to use here.
+            // Note on `unsafe`: `v` must be positive here, so the result must be positive.
             let objref = unsafe {
                 ObjectReference::from_raw_address_unchecked(
                     BASE.load(Ordering::Relaxed) + ((v as usize) << SHIFT.load(Ordering::Relaxed)),
