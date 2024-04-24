@@ -8,6 +8,7 @@ use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
+use mmtk::util::apiutils::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
@@ -17,28 +18,6 @@ use once_cell::sync;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::sync::atomic::Ordering;
-
-/// An `Option<ObjectReference>` encoded as a `usize`.  It guarantees that `None` is encoded as 0,
-/// and `Some(objref)` is encoded as the underlying `usize` of `objref` itself.  It is intended for
-/// passing values to or from C++ code.
-/// Notes: The Rust ABI currently doesn't guarantee the encoding of `None`.
-#[repr(transparent)]
-pub struct NullableObjectReference(usize);
-
-impl From<NullableObjectReference> for Option<ObjectReference> {
-    fn from(value: NullableObjectReference) -> Self {
-        ObjectReference::from_raw_address(unsafe { Address::from_usize(value.0) })
-    }
-}
-
-impl From<Option<ObjectReference>> for NullableObjectReference {
-    fn from(value: Option<ObjectReference>) -> Self {
-        let encoded = value
-            .map(|obj| obj.to_raw_address().as_usize())
-            .unwrap_or(0);
-        Self(encoded)
-    }
-}
 
 macro_rules! with_singleton {
     (|$x: ident| $($expr:tt)*) => {
