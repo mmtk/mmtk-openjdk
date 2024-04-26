@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c168f8615b12bc01f9c17e2eb0cc07dcae1940121185446edc3744920e8ef45"
+checksum = "07af8b9cdd281b7915f413fa73f29ebd5d55d0d3f0155584dade1ff18cea1b17"
 dependencies = [
  "autocfg",
  "scopeguard",
@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.24.0"
-source = "git+https://github.com/wks/mmtk-core.git?rev=6aa75cd72247d12b9568dc321c46feca6572a512#6aa75cd72247d12b9568dc321c46feca6572a512"
+source = "git+https://github.com/wks/mmtk-core.git?rev=edd0d0af8104446e2effdfd7aea6e6d35800217a#edd0d0af8104446e2effdfd7aea6e6d35800217a"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -460,7 +460,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.24.0"
-source = "git+https://github.com/wks/mmtk-core.git?rev=6aa75cd72247d12b9568dc321c46feca6572a512#6aa75cd72247d12b9568dc321c46feca6572a512"
+source = "git+https://github.com/wks/mmtk-core.git?rev=edd0d0af8104446e2effdfd7aea6e6d35800217a#edd0d0af8104446e2effdfd7aea6e6d35800217a"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
