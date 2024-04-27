@@ -8,6 +8,7 @@ use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::alloc::AllocatorSelector;
+use mmtk::util::api_util::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
@@ -492,13 +493,8 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn get_finalized_object() -> ObjectReference {
-    with_singleton!(|singleton| {
-        match memory_manager::get_finalized_object(singleton) {
-            Some(obj) => obj,
-            None => ObjectReference::NULL,
-        }
-    })
+pub extern "C" fn get_finalized_object() -> NullableObjectReference {
+    with_singleton!(|singleton| memory_manager::get_finalized_object(singleton).into())
 }
 
 thread_local! {
