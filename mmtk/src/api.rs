@@ -401,12 +401,12 @@ pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
-    target: ObjectReference,
+    target: NullableObjectReference,
 ) {
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_pre(src, slot.into(), target);
+            .object_reference_write_pre(src, slot.into(), target.into());
     })
 }
 
@@ -416,12 +416,12 @@ pub extern "C" fn mmtk_object_reference_write_post(
     mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
-    target: ObjectReference,
+    target: NullableObjectReference,
 ) {
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_post(src, slot.into(), target);
+            .object_reference_write_post(src, slot.into(), target.into());
     })
 }
 
@@ -431,12 +431,12 @@ pub extern "C" fn mmtk_object_reference_write_slow(
     mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
-    target: ObjectReference,
+    target: NullableObjectReference,
 ) {
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_slow(src, slot.into(), target);
+            .object_reference_write_slow(src, slot.into(), target.into());
     })
 }
 
