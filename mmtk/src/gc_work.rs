@@ -80,7 +80,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         }
         // Create work packet
         if !slots.is_empty() {
-            self.factory.create_process_slot_roots_work(slots);
+            self.factory.create_process_root_slots_work(slots);
         }
         // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
         // unsafe {
