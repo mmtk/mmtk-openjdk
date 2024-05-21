@@ -25,7 +25,7 @@ extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
         // should fix the Rust-to-C interface.
         let buf = unsafe { Vec::<S>::from_raw_parts(ptr as _, length, capacity) };
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
-        factory.create_process_root_slots_work(buf);
+        factory.create_process_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
