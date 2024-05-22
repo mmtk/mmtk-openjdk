@@ -25,7 +25,7 @@ pub(crate) const FORWARDING_POINTER_METADATA_SPEC: VMLocalForwardingPointerSpec 
 /// PolicySpecific object forwarding status metadata spec
 /// 2 bits per object
 pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
-    VMLocalForwardingBitsSpec::in_header(FORWARDING_BITS_OFFSET);
+    VMLocalForwardingBitsSpec::side_after(MARKING_METADATA_SPEC.as_spec());
 
 /// PolicySpecific mark bit metadata spec
 /// 1 bit per object
