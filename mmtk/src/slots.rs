@@ -7,7 +7,7 @@ use super::abi::LOG_BYTES_IN_INT;
 use atomic::Atomic;
 use mmtk::{
     util::{constants::LOG_BYTES_IN_WORD, Address, ObjectReference},
-    vm::edge_shape::{Edge, MemorySlice},
+    vm::slot::{MemorySlice, Slot},
 };
 
 static USE_COMPRESSED_OOPS: AtomicBool = AtomicBool::new(false);
@@ -54,13 +54,13 @@ pub fn initialize_compressed_oops_base_and_shift() {
     }
 }
 
-/// The type of edges in OpenJDK.
+/// The type of slots in OpenJDK.
 /// Currently it has the same layout as `Address`, but we override its load and store methods.
 ///
-/// If `COMPRESSED = false`, every edge is uncompressed.
+/// If `COMPRESSED = false`, every slot is uncompressed.
 ///
 /// If `COMPRESSED = true`,
-/// * If this is a field of an object, the edge is compressed.
+/// * If this is a field of an object, the slot is compressed.
 /// * If this is a root pointer: The c++ part of the binding should pass all the root pointers to
 ///   rust as tagged pointers.
 ///   * If the 63rd bit of the pointer is set to 1, the value referenced by the pointer is a
@@ -68,18 +68,18 @@ pub fn initialize_compressed_oops_base_and_shift() {
 ///   * Otherwise, it is a uncompressed root pointer.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[repr(transparent)]
-pub struct OpenJDKEdge<const COMPRESSED: bool> {
+pub struct OpenJDKSlot<const COMPRESSED: bool> {
     pub addr: Address,
 }
 
-impl<const COMPRESSED: bool> From<Address> for OpenJDKEdge<COMPRESSED> {
+impl<const COMPRESSED: bool> From<Address> for OpenJDKSlot<COMPRESSED> {
     fn from(value: Address) -> Self {
         Self { addr: value }
     }
 }
-impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
-    pub const LOG_BYTES_IN_EDGE: usize = if COMPRESSED { 2 } else { 3 };
-    pub const BYTES_IN_EDGE: usize = 1 << Self::LOG_BYTES_IN_EDGE;
+impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
+    pub const LOG_BYTES_IN_SLOT: usize = if COMPRESSED { 2 } else { 3 };
+    pub const BYTES_IN_SLOT: usize = 1 << Self::LOG_BYTES_IN_SLOT;
 
     const MASK: usize = 1usize << 63;
 
@@ -88,7 +88,7 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
         self.addr.as_usize() & Self::MASK == 0
     }
 
-    /// Get the edge address with tags stripped
+    /// Get the slot address with tags stripped
     const fn untagged_address(&self) -> Address {
         unsafe { Address::from_usize(self.addr.as_usize() << 1 >> 1) }
     }
@@ -165,7 +165,7 @@ impl<const COMPRESSED: bool> OpenJDKEdge<COMPRESSED> {
     }
 }
 
-impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
+impl<const COMPRESSED: bool> Slot for OpenJDKSlot<COMPRESSED> {
     fn load(&self) -> Option<ObjectReference> {
         if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
             if COMPRESSED {
@@ -203,13 +203,13 @@ impl<const COMPRESSED: bool> Edge for OpenJDKEdge<COMPRESSED> {
     }
 }
 
-/// A range of OpenJDKEdge, usually used for arrays.
+/// A range of OpenJDKSlot, usually used for arrays.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct OpenJDKEdgeRange<const COMPRESSED: bool> {
-    range: Range<OpenJDKEdge<COMPRESSED>>,
+pub struct OpenJDKSlotRange<const COMPRESSED: bool> {
+    range: Range<OpenJDKSlot<COMPRESSED>>,
 }
 
-impl<const COMPRESSED: bool> From<Range<Address>> for OpenJDKEdgeRange<COMPRESSED> {
+impl<const COMPRESSED: bool> From<Range<Address>> for OpenJDKSlotRange<COMPRESSED> {
     fn from(value: Range<Address>) -> Self {
         Self {
             range: Range {
@@ -220,39 +220,39 @@ impl<const COMPRESSED: bool> From<Range<Address>> for OpenJDKEdgeRange<COMPRESSE
     }
 }
 
-pub struct OpenJDKEdgeRangeIterator<const COMPRESSED: bool> {
+pub struct OpenJDKSlotRangeIterator<const COMPRESSED: bool> {
     cursor: Address,
     limit: Address,
 }
 
-impl<const COMPRESSED: bool> Iterator for OpenJDKEdgeRangeIterator<COMPRESSED> {
-    type Item = OpenJDKEdge<COMPRESSED>;
+impl<const COMPRESSED: bool> Iterator for OpenJDKSlotRangeIterator<COMPRESSED> {
+    type Item = OpenJDKSlot<COMPRESSED>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cursor >= self.limit {
             None
         } else {
-            let edge = self.cursor;
-            self.cursor += OpenJDKEdge::<COMPRESSED>::BYTES_IN_EDGE;
-            Some(edge.into())
+            let slot = self.cursor;
+            self.cursor += OpenJDKSlot::<COMPRESSED>::BYTES_IN_SLOT;
+            Some(slot.into())
         }
     }
 }
 
-impl<const COMPRESSED: bool> From<OpenJDKEdgeRange<COMPRESSED>> for Range<Address> {
-    fn from(value: OpenJDKEdgeRange<COMPRESSED>) -> Self {
+impl<const COMPRESSED: bool> From<OpenJDKSlotRange<COMPRESSED>> for Range<Address> {
+    fn from(value: OpenJDKSlotRange<COMPRESSED>) -> Self {
         value.range.start.addr..value.range.end.addr
     }
 }
 
-// Note that we cannot implement MemorySlice for `Range<OpenJDKEdgeRange>` because neither
+// Note that we cannot implement MemorySlice for `Range<OpenJDKSlot>` because neither
 // `MemorySlice` nor `Range<T>` are defined in the `mmtk-openjdk` crate. ("orphan rule")
-impl<const COMPRESSED: bool> MemorySlice for OpenJDKEdgeRange<COMPRESSED> {
-    type Edge = OpenJDKEdge<COMPRESSED>;
-    type EdgeIterator = OpenJDKEdgeRangeIterator<COMPRESSED>;
+impl<const COMPRESSED: bool> MemorySlice for OpenJDKSlotRange<COMPRESSED> {
+    type SlotType = OpenJDKSlot<COMPRESSED>;
+    type SlotIterator = OpenJDKSlotRangeIterator<COMPRESSED>;
 
-    fn iter_edges(&self) -> Self::EdgeIterator {
-        OpenJDKEdgeRangeIterator {
+    fn iter_slots(&self) -> Self::SlotIterator {
+        OpenJDKSlotRangeIterator {
             cursor: self.range.start.addr,
             limit: self.range.end.addr,
         }

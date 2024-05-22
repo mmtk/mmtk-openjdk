@@ -130,7 +130,7 @@ struct MutatorClosure {
     }
 };
 
-struct EdgesClosure {
+struct SlotsClosure {
     NewBuffer (*func)(void** buf, size_t size, size_t capa, void* data);
     void* data;
 
@@ -162,20 +162,20 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_roots_in_all_mutator_threads)(EdgesClosure closure);
-    void (*scan_roots_in_mutator_thread)(EdgesClosure closure, void* tls);
-    void (*scan_universe_roots) (EdgesClosure closure);
-    void (*scan_jni_handle_roots) (EdgesClosure closure);
-    void (*scan_object_synchronizer_roots) (EdgesClosure closure);
-    void (*scan_management_roots) (EdgesClosure closure);
-    void (*scan_jvmti_export_roots) (EdgesClosure closure);
-    void (*scan_aot_loader_roots) (EdgesClosure closure);
-    void (*scan_system_dictionary_roots) (EdgesClosure closure);
-    void (*scan_code_cache_roots) (EdgesClosure closure);
-    void (*scan_string_table_roots) (EdgesClosure closure);
-    void (*scan_class_loader_data_graph_roots) (EdgesClosure closure);
-    void (*scan_weak_processor_roots) (EdgesClosure closure);
-    void (*scan_vm_thread_roots) (EdgesClosure closure);
+    void (*scan_roots_in_all_mutator_threads)(SlotsClosure closure);
+    void (*scan_roots_in_mutator_thread)(SlotsClosure closure, void* tls);
+    void (*scan_universe_roots) (SlotsClosure closure);
+    void (*scan_jni_handle_roots) (SlotsClosure closure);
+    void (*scan_object_synchronizer_roots) (SlotsClosure closure);
+    void (*scan_management_roots) (SlotsClosure closure);
+    void (*scan_jvmti_export_roots) (SlotsClosure closure);
+    void (*scan_aot_loader_roots) (SlotsClosure closure);
+    void (*scan_system_dictionary_roots) (SlotsClosure closure);
+    void (*scan_code_cache_roots) (SlotsClosure closure);
+    void (*scan_string_table_roots) (SlotsClosure closure);
+    void (*scan_class_loader_data_graph_roots) (SlotsClosure closure);
+    void (*scan_weak_processor_roots) (SlotsClosure closure);
+    void (*scan_vm_thread_roots) (SlotsClosure closure);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();

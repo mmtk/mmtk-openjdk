@@ -8,7 +8,7 @@
 #include "utilities/globalDefinitions.hpp"
 
 class MMTkRootsClosure : public OopClosure {
-  EdgesClosure _edges_closure;
+  SlotsClosure _slots_closure;
   void** _buffer;
   size_t _cap;
   size_t _cursor;
@@ -30,7 +30,7 @@ class MMTkRootsClosure : public OopClosure {
 
   void flush() {
     if (_cursor > 0) {
-      NewBuffer buf = _edges_closure.invoke(_buffer, _cursor, _cap);
+      NewBuffer buf = _slots_closure.invoke(_buffer, _cursor, _cap);
       _buffer = buf.buf;
       _cap = buf.cap;
       _cursor = 0;
@@ -38,8 +38,8 @@ class MMTkRootsClosure : public OopClosure {
   }
 
 public:
-  MMTkRootsClosure(EdgesClosure edges_closure): _edges_closure(edges_closure), _cursor(0) {
-    NewBuffer buf = edges_closure.invoke(NULL, 0, 0);
+  MMTkRootsClosure(SlotsClosure slots_closure): _slots_closure(slots_closure), _cursor(0) {
+    NewBuffer buf = slots_closure.invoke(NULL, 0, 0);
     _buffer = buf.buf;
     _cap = buf.cap;
   }
