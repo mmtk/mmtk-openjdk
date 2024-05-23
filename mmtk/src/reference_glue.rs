@@ -3,7 +3,7 @@ use crate::OpenJDK;
 use crate::UPCALLS;
 use mmtk::util::opaque_pointer::VMWorkerThread;
 use mmtk::util::ObjectReference;
-use mmtk::vm::edge_shape::Edge;
+use mmtk::vm::slot::Slot;
 use mmtk::vm::ReferenceGlue;
 
 pub struct VMReferenceGlue {}

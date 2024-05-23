@@ -1,5 +1,5 @@
 use super::UPCALLS;
-use crate::OpenJDKEdge;
+use crate::OpenJDKSlot;
 use atomic::Atomic;
 use atomic::Ordering;
 use mmtk::util::constants::*;
@@ -278,10 +278,10 @@ impl InstanceRefKlass {
         }
         *DISCOVERED_OFFSET
     }
-    pub fn referent_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
+    pub fn referent_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKSlot<COMPRESSED> {
         oop.get_field_address(Self::referent_offset()).into()
     }
-    pub fn discovered_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKEdge<COMPRESSED> {
+    pub fn discovered_address<const COMPRESSED: bool>(oop: Oop) -> OpenJDKSlot<COMPRESSED> {
         oop.get_field_address(Self::discovered_offset()).into()
     }
 }
@@ -461,10 +461,10 @@ impl ArrayOopDesc {
     pub unsafe fn slice<const COMPRESSED: bool>(
         &self,
         ty: BasicType,
-    ) -> crate::OpenJDKEdgeRange<COMPRESSED> {
+    ) -> crate::OpenJDKSlotRange<COMPRESSED> {
         let base = self.base::<COMPRESSED>(ty);
         let start = base;
-        let lshift = OpenJDKEdge::<COMPRESSED>::LOG_BYTES_IN_EDGE;
+        let lshift = OpenJDKSlot::<COMPRESSED>::LOG_BYTES_IN_SLOT;
         let end = base + ((self.length::<COMPRESSED>() as usize) << lshift);
         (start..end).into()
     }
