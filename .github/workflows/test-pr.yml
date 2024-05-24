@@ -48,6 +48,12 @@ jobs:
       build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_MARK_IN_HEADER=1
       debug-level: fastdebug
 
+  build-forwarding-on-side:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_FORWARDING_ON_SIDE=1
+      debug-level: fastdebug
+
   run-dacapo-2006:
     needs:
       - build-normal-fastdebug
@@ -55,6 +61,7 @@ jobs:
       - build-extreme-assertions
       - build-malloc-mark-sweep
       - build-mark-in-header
+      - build-forwarding-on-side
     uses: ./.github/workflows/run-dacapo-2006.yml
 
   run-dacapo-chopin:
