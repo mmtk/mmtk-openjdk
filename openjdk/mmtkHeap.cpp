@@ -69,7 +69,7 @@ MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) :
   _collector_policy(policy),
   _num_root_scan_tasks(0),
   _n_workers(0),
-  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_sometimes)),
+  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_never)),
   _soft_ref_policy()
 {
   _heap = this;

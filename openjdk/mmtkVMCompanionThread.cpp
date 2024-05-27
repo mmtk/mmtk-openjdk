@@ -53,7 +53,7 @@ void MMTkVMCompanionThread::run() {
       MutexLockerEx locker(_lock, Mutex::_no_safepoint_check_flag);
       assert(_reached_state == _threads_resumed, "Threads should be running at this moment.");
       while (_desired_state != _threads_suspended) {
-        _lock->wait(true);
+        _lock->wait(Mutex::_no_safepoint_check_flag);
       }
       assert(_reached_state == _threads_resumed, "Threads should still be running at this moment.");
     }
@@ -63,25 +63,9 @@ void MMTkVMCompanionThread::run() {
     VM_MMTkSTWOperation op(this);
     // VMThread::execute() is blocking. The companion thread will be blocked
     // here waiting for the VM thread to execute op, and the VM thread will
-    // be blocked in reach_suspended_and_wait_for_resume() until a GC thread
+    // be blocked in do_mmtk_stw_operation() until a GC thread
     // calls request(_threads_resumed).
     VMThread::execute(&op);
-
-    // Tell the waiter thread that the world has resumed.
-    log_trace(gc)("MMTkVMCompanionThread: Notifying threads resumption...");
-    {
-      MutexLockerEx locker(_lock, Mutex::_no_safepoint_check_flag);
-      assert(_desired_state == _threads_resumed, "start-the-world should be requested.");
-      assert(_reached_state == _threads_suspended, "Threads should still be suspended at this moment.");
-      _reached_state = _threads_resumed;
-      _lock->notify_all();
-    }
-    {
-      MutexLocker x(Heap_lock);
-      if (Universe::has_reference_pending_list()) {
-        Heap_lock->notify_all();
-      }
-    }
   }
 }
 
@@ -107,7 +91,7 @@ void MMTkVMCompanionThread::request(stw_state desired_state, bool wait_until_rea
 
   if (wait_until_reached) {
     while (_reached_state != desired_state) {
-      _lock->wait(true);
+      _lock->wait(Mutex::_no_safepoint_check_flag);
     }
   }
 }
@@ -123,23 +107,70 @@ void MMTkVMCompanionThread::wait_for_reached(stw_state desired_state) {
   assert(_desired_state == desired_state, "State %d not requested.", desired_state);
 
   while (_reached_state != desired_state) {
-    _lock->wait(true);
+    _lock->wait(Mutex::_no_safepoint_check_flag);
   }
 }
 
-// Called by the VM thread to indicate that all Java threads have stopped.
-// This method will block until the GC requests start-the-world.
-void MMTkVMCompanionThread::reach_suspended_and_wait_for_resume() {
-  assert(Thread::current()->is_VM_thread(), "reach_suspended_and_wait_for_resume can only be executed by the VM thread");
+// Called by the VM thread in `VM_MMTkSTWOperation`.
+// This method notify that all Java threads have yielded, and will block the VM thread (thereby
+// blocking Java threads) until the GC requests start-the-world.
+void MMTkVMCompanionThread::do_mmtk_stw_operation() {
+  assert(Thread::current()->is_VM_thread(), "do_mmtk_stw_operation can only be executed by the VM thread");
 
-  MutexLockerEx locker(_lock, Mutex::_no_safepoint_check_flag);
+  {
+    MutexLockerEx locker(_lock, Mutex::_no_safepoint_check_flag);
 
-  // Tell the waiter thread that the world has stopped.
-  _reached_state = _threads_suspended;
-  _lock->notify_all();
+    // Tell the waiter thread that Java threads have stopped at yieldpoints.
+    _reached_state = _threads_suspended;
+    log_trace(gc)("do_mmtk_stw_operation: Reached _thread_suspended state. Notifying...");
+    _lock->notify_all();
 
-  // Wait until resume-the-world is requested
-  while (_desired_state != _threads_resumed) {
-    _lock->wait(true);
+    // Wait until resume-the-world is requested
+    while (_desired_state != _threads_resumed) {
+      _lock->wait(Mutex::_no_safepoint_check_flag);
+    }
+
+    // Tell the waiter thread that Java threads will eventually resume from yieldpoints.  This
+    // function will return, and, as soon as the VM thread stops executing safepoint VM operations,
+    // Java threads will resume from yieldpoints.
+    //
+    // Note: We have to notify *now* instead of after `VMThread::execute()`.  For reasons unknown
+    // (likely a bug in OpenJDK 11), the VMThread fails to notify the companion thread after
+    // evaluating `VM_MMTkSTWOperation`, and continues to execute other VM operations (such as
+    // `RevokeBias`). This leaves the companion thread blocking on `VMThread::execute()` until the
+    // VM thread finishes executing the next batch of queued VM operations.  If we notify after
+    // `VMThread::execute` in `run()`, it will cause a deadlock like the following:
+    //
+    // - The companion thread is blocked at `VMThread::execute()`, waiting for the next batch of VM
+    //   operations to finish.
+    // - The VM thread is blocked in `SafepointSynchronize::begin()`, waiting for all mutators to
+    //   reach safepoints.
+    // - One mutator is allocating too fast and triggers a GC, which requires the `WorkerMonitor`
+    //   lock in mmtk-core.
+    // - A GC worker is still executing `mmtk_resume_mutator`, holding the `WorkerMutator` (as the
+    //   last parked GC worker).  It is asking the companion thread to resume mutators, and is still
+    //   waiting for the companion thread to reach the `_thread_resumed` state.  As we see before,
+    //   the companion thread is waiting, too.
+    //
+    // By notifying now, we let the companion thread stop waiting, and therefore allowing the last
+    // parked GC worker to finish `resume_mutators`, breaking the deadlock.  When the next GC
+    // starts, the GC worker running `mmtk_stop_all_mutators` will need to wait a little longer (as
+    // it always should) until the VM thread finishes executing other VM operations and the
+    // companion thread is ready to respond to another request from GC workers.
+    //
+    // Also note that OpenJDK 17 changed the way the VM thread executes VM operations.  The same
+    // problem may not manifest in OpenJDK 17 or 21.
+    assert(_desired_state == _threads_resumed, "start-the-world should be requested.");
+    assert(_reached_state == _threads_suspended, "Threads should still be suspended at this moment.");
+    _reached_state = _threads_resumed;
+    log_trace(gc)("do_mmtk_stw_operation: Reached _thread_resumed state. Notifying...");
+    _lock->notify_all();
+  }
+
+  {
+    MutexLockerEx x(Heap_lock, Mutex::_no_safepoint_check_flag);
+    if (Universe::has_reference_pending_list()) {
+      Heap_lock->notify_all();
+    }
   }
 }
