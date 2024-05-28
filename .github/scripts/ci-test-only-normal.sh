@@ -10,6 +10,7 @@ run_all() {
     runbms_dacapo2006_with_heap_multiplier antlr $heap_multiplier
     runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier
     runbms_dacapo2006_with_heap_multiplier luindex $heap_multiplier
+    runbms_dacapo2006_with_heap_multiplier lusearch $heap_multiplier
     runbms_dacapo2006_with_heap_multiplier pmd $heap_multiplier
     runbms_dacapo2006_with_heap_multiplier hsqldb $heap_multiplier
     runbms_dacapo2006_with_heap_multiplier eclipse $heap_multiplier
