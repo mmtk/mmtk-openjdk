@@ -152,11 +152,11 @@ void MMTkVMCompanionThread::do_mmtk_stw_operation() {
     //   waiting for the companion thread to reach the `_thread_resumed` state.  As we see before,
     //   the companion thread is waiting, too.
     //
-    // By notifying now, we let the companion thread stop waiting, and therefore allowing the last
-    // parked GC worker to finish `resume_mutators`, breaking the deadlock.  When the next GC
-    // starts, the GC worker running `mmtk_stop_all_mutators` will need to wait a little longer (as
-    // it always should) until the VM thread finishes executing other VM operations and the
-    // companion thread is ready to respond to another request from GC workers.
+    // By notifying now, we unblock the last parked GC worker before the companion thread returns
+    // from `VMThread::execute`, allowing the GC worker to finish `resume_mutators`, breaking the
+    // deadlock.  When the next GC starts, the GC worker running `mmtk_stop_all_mutators` will need
+    // to wait a little longer (as it always should) until the VM thread finishes executing other VM
+    // operations and the companion thread is ready to respond to another request from GC workers.
     //
     // Also note that OpenJDK 17 changed the way the VM thread executes VM operations.  The same
     // problem may not manifest in OpenJDK 17 or 21.
