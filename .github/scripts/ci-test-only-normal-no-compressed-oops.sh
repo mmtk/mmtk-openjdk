@@ -10,6 +10,7 @@ run_all_no_compressed_oop() {
     runbms_dacapo2006_with_heap_multiplier antlr $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier luindex $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
+    runbms_dacapo2006_with_heap_multiplier lusearch $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier pmd $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier hsqldb $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier eclipse $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
