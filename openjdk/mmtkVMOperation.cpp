@@ -34,6 +34,6 @@ VM_MMTkSTWOperation::VM_MMTkSTWOperation(MMTkVMCompanionThread *companion_thread
 
 void VM_MMTkSTWOperation::doit() {
     log_trace(vmthread)("Entered VM_MMTkSTWOperation::doit().");
-    _companion_thread->reach_suspended_and_wait_for_resume();
+    _companion_thread->do_mmtk_stw_operation();
     log_trace(vmthread)("Leaving VM_MMTkSTWOperation::doit()");
 }
