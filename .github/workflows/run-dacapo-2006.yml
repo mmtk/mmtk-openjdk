@@ -89,7 +89,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-script: ["ci-test-vo-bit", "ci-test-assertions", "ci-test-malloc-mark-sweep", "ci-test-mark-in-header"]
+        test-script:
+          - ci-test-vo-bit
+          - ci-test-assertions
+          - ci-test-malloc-mark-sweep
+          - ci-test-mark-in-header
+          - ci-test-forwarding-on-side
         include:
           - test-script: ci-test-vo-bit
             build-suffix: MMTK_VO_BIT=1
@@ -99,6 +104,8 @@ jobs:
             build-suffix: MMTK_MALLOC_MARK_SWEEP=1_MMTK_EXTREME_ASSERTIONS=1
           - test-script: ci-test-mark-in-header
             build-suffix: MMTK_MALLOC_MARK_SWEEP=1_MMTK_MARK_IN_HEADER=1
+          - test-script: ci-test-forwarding-on-side
+            build-suffix: MMTK_FORWARDING_ON_SIDE=1
     steps:
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v4

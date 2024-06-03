@@ -34,3 +34,12 @@ MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompress
 MMTK_VO_BIT=1 $cur/ci-build.sh
 # Test
 MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4
+
+# Build with on-the-side forwarding bits
+MMTK_FORWARDING_ON_SIDE=1 $cur/ci-build.sh
+# Test
+MMTK_PLAN=SemiSpace runbms_dacapo2006_with_heap_multiplier lusearch 4
+MMTK_PLAN=Immix runbms_dacapo2006_with_heap_multiplier lusearch 4
+MMTK_PLAN=GenCopy runbms_dacapo2006_with_heap_multiplier lusearch 4
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier lusearch 4
+MMTK_PLAN=StickyImmix runbms_dacapo2006_with_heap_multiplier lusearch 4

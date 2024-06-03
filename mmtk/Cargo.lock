@@ -99,9 +99,9 @@ checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
 
 [[package]]
 name = "built"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41bfbdb21256b87a8b5e80fab81a8eed158178e812fd7ba451907518b2742f16"
+checksum = "c6a6c0b39c38fd754ac338b00a88066436389c0f029da5d37d1e01091d9b7c17"
 dependencies = [
  "git2",
 ]
@@ -123,7 +123,7 @@ checksum = "4da9a32f3fed317401fa3c862968128267c3106685286e15d5aaa3d7389c2f60"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.65",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -219,7 +219,7 @@ checksum = "4e018fccbeeb50ff26562ece792ed06659b9c2dae79ece77c4456bb10d9bf79b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.65",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -251,7 +251,7 @@ checksum = "f282cfdfe92516eb26c2af8589c274c7c17681f5ecc03c18255fe741c6aa64eb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.65",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -432,7 +432,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.25.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=56b2521d2b99848ee0613a0a5288fe6d81b754ba#56b2521d2b99848ee0613a0a5288fe6d81b754ba"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=a9b619a4ee18a4f83209f930f8c48a3b63ee478c#a9b619a4ee18a4f83209f930f8c48a3b63ee478c"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -467,12 +467,12 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.25.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=56b2521d2b99848ee0613a0a5288fe6d81b754ba#56b2521d2b99848ee0613a0a5288fe6d81b754ba"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=a9b619a4ee18a4f83209f930f8c48a3b63ee478c#a9b619a4ee18a4f83209f930f8c48a3b63ee478c"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.65",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -481,6 +481,7 @@ version = "0.25.0"
 dependencies = [
  "atomic",
  "built",
+ "cfg-if",
  "lazy_static",
  "libc",
  "memoffset",
@@ -695,7 +696,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustversion",
- "syn 2.0.65",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -710,9 +711,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.65"
+version = "2.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2863d96a84c6439701d7a38f9de935ec562c8832cc55d1dde0f513b52fad106"
+checksum = "c42f3f41a2de00b01c0aaad383c5a45241efc8b2d1eda5661812fda5f3cdcff5"
 dependencies = [
  "proc-macro2",
  "quote",
