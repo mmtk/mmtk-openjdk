@@ -1,3 +1,13 @@
+0.26.0 (2024-07-01)
+===
+
+## What's Changed
+* Rename edge to slot by @wks in https://github.com/mmtk/mmtk-openjdk/pull/274
+* Fix deadlock related to safepoint sync. by @wks in https://github.com/mmtk/mmtk-openjdk/pull/279
+* Add option to put forwarding bits on the side by @wks in https://github.com/mmtk/mmtk-openjdk/pull/277
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.25.0...v0.26.0
+
 0.25.0 (2024-05-17)
 ===
 
