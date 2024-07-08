@@ -12,7 +12,7 @@ use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
-const WORK_PACKET_CAPACITY: usize = 4096;
+pub(crate) const WORK_PACKET_CAPACITY: usize = 4096;
 
 extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
     ptr: *mut Address,
