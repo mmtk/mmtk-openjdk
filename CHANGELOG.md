@@ -1,3 +1,11 @@
+0.27.0 (2024-08-09)
+===
+
+## What's Changed
+* Update to MMTK core PR #1159 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/283
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.26.0...v0.27.0
+
 0.26.0 (2024-07-01)
 ===
 
