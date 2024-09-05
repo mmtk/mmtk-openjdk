@@ -91,8 +91,6 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<
         object.to_raw_address()
     }
 
-    const IN_OBJECT_ADDRESS_OFFSET: isize = 0;
-
     fn dump_object(object: ObjectReference) {
         unsafe {
             ((*UPCALLS).dump_object)(object);
