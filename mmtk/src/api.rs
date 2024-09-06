@@ -199,11 +199,7 @@ pub extern "C" fn post_alloc(
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    if crate::use_compressed_oops() {
-        !object.is_movable::<OpenJDK<true>>()
-    } else {
-        !object.is_movable::<OpenJDK<false>>()
-    }
+    !object.is_movable()
 }
 
 #[no_mangle]
@@ -264,11 +260,7 @@ pub extern "C" fn mmtk_set_compressed_klass_base_and_shift(base: Address, shift:
 
 #[no_mangle]
 pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
-    if crate::use_compressed_oops() {
-        memory_manager::is_in_mmtk_spaces::<OpenJDK<true>>(object)
-    } else {
-        memory_manager::is_in_mmtk_spaces::<OpenJDK<false>>(object)
-    }
+    memory_manager::is_in_mmtk_spaces(object)
 }
 
 #[no_mangle]
