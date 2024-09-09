@@ -76,7 +76,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             .generational()
             .is_some_and(|gen| gen.is_current_gc_nursery());
 
-            let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
+        let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 
         let mut nursery_slots = 0;
         let mut mature_slots = 0;

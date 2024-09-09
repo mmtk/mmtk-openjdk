@@ -490,19 +490,22 @@ pub extern "C" fn get_finalized_object() -> NullableObjectReference {
 }
 
 thread_local! {
-    /// Cache all the pointers reported by the current thread.
+    /// Cache reference slots of an nmethod while the current thread is executing
+    /// `MMTkRegisterNMethodOopClosure`.
     static NMETHOD_SLOTS: RefCell<Vec<Address>> = const { RefCell::new(vec![]) };
 }
 
-/// Report a list of pointers in nmethod to mmtk.
+/// Report one reference slot in an nmethod to MMTk.
 #[no_mangle]
 pub extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
     NMETHOD_SLOTS.with_borrow_mut(|x| x.push(addr))
 }
 
-/// Register a nmethod.
-/// The c++ part of the binding should scan the nmethod and report all the pointers to mmtk first, before calling this function.
-/// This function will transfer all the locally cached pointers of this nmethod to the global storage.
+/// Register an nmethod.
+///
+/// The C++ part of the binding should have scanned the nmethod and reported all the reference slots
+/// using `mmtk_add_nmethod_oop` before calling this function. This function will transfer all the
+/// locally cached slots of this nmethod to the global storage.
 #[no_mangle]
 pub extern "C" fn mmtk_register_nmethod(nm: Address) {
     NMETHOD_SLOTS.with_borrow_mut(|slots| {
@@ -513,7 +516,7 @@ pub extern "C" fn mmtk_register_nmethod(nm: Address) {
     });
 }
 
-/// Unregister a nmethod.
+/// Unregister an nmethod.
 #[no_mangle]
 pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
     {

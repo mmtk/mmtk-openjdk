@@ -203,9 +203,9 @@ pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
 lazy_static! {
-    /// A global storage for all the cached CodeCache root pointers added since the last GC.
+    /// A global storage for all the cached CodeCache roots added since the last GC.
     static ref NURSERY_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
-    /// A global storage for all the cached CodeCache root pointers added before the last GC.
+    /// A global storage for all the cached CodeCache roots added before the last GC.
     static ref MATURE_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
 }
 
