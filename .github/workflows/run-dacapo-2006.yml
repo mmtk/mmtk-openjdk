@@ -62,7 +62,7 @@ jobs:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
       - name: Download bundles
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-normal
           path: bundles
@@ -116,7 +116,7 @@ jobs:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
       - name: Download bundles
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
           path: bundles
