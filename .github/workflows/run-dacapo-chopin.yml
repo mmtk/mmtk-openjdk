@@ -138,7 +138,7 @@ jobs:
           RUN_ID=`sed -n 's/^Run id:.\(.*\)$/\1/p' < /tmp/running.stdout`
           echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
       - name: Upload running artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }}
           path: /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
