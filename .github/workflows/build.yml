@@ -64,7 +64,7 @@ jobs:
         OPENJDK_PATH=$GITHUB_WORKSPACE/git/openjdk DEBUG_LEVEL=${{ inputs.debug-level }} OPENJDK_BUILD_TARGET=product-bundles ./.github/scripts/ci-build.sh
       working-directory: ./git/mmtk-openjdk
     - name: Upload bundles
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: linux-x86_64-server-${{ inputs.debug-level }}-bundles-${{ env.BUILD_SUFFIX }}
         path: |
