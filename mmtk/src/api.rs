@@ -490,49 +490,41 @@ pub extern "C" fn get_finalized_object() -> NullableObjectReference {
 }
 
 thread_local! {
-    /// Cache all the pointers reported by the current thread.
+    /// Cache reference slots of an nmethod while the current thread is executing
+    /// `MMTkRegisterNMethodOopClosure`.
     static NMETHOD_SLOTS: RefCell<Vec<Address>> = const { RefCell::new(vec![]) };
 }
 
-/// Report a list of pointers in nmethod to mmtk.
+/// Report one reference slot in an nmethod to MMTk.
 #[no_mangle]
 pub extern "C" fn mmtk_add_nmethod_oop(addr: Address) {
-    NMETHOD_SLOTS.with(|x| x.borrow_mut().push(addr))
+    NMETHOD_SLOTS.with_borrow_mut(|x| x.push(addr))
 }
 
-/// Register a nmethod.
-/// The c++ part of the binding should scan the nmethod and report all the pointers to mmtk first, before calling this function.
-/// This function will transfer all the locally cached pointers of this nmethod to the global storage.
+/// Register an nmethod.
+///
+/// The C++ part of the binding should have scanned the nmethod and reported all the reference slots
+/// using `mmtk_add_nmethod_oop` before calling this function. This function will transfer all the
+/// locally cached slots of this nmethod to the global storage.
 #[no_mangle]
 pub extern "C" fn mmtk_register_nmethod(nm: Address) {
-    let slots = NMETHOD_SLOTS.with(|x| {
-        if x.borrow().len() == 0 {
-            return None;
+    NMETHOD_SLOTS.with_borrow_mut(|slots| {
+        if !slots.is_empty() {
+            let mut roots = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+            roots.insert(nm, std::mem::take(slots));
         }
-        Some(x.replace(vec![]))
     });
-    let slots = match slots {
-        Some(slots) => slots,
-        _ => return,
-    };
-    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
-    // Relaxed add instead of `fetch_add`, since we've already acquired the lock.
-    crate::CODE_CACHE_ROOTS_SIZE.store(
-        crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) + slots.len(),
-        Ordering::Relaxed,
-    );
-    roots.insert(nm, slots);
 }
 
-/// Unregister a nmethod.
+/// Unregister an nmethod.
 #[no_mangle]
 pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
-    let mut roots = crate::CODE_CACHE_ROOTS.lock().unwrap();
-    if let Some(slots) = roots.remove(&nm) {
-        // Relaxed sub instead of `fetch_sub`, since we've already acquired the lock.
-        crate::CODE_CACHE_ROOTS_SIZE.store(
-            crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed) - slots.len(),
-            Ordering::Relaxed,
-        );
+    {
+        let mut roots = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+        roots.remove(&nm);
+    }
+    {
+        let mut roots = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
+        roots.remove(&nm);
     }
 }

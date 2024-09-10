@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate probe;
 
 use std::collections::HashMap;
 use std::ptr::null_mut;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
 use libc::{c_char, c_void, uintptr_t};
@@ -202,12 +203,11 @@ pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
 lazy_static! {
-    /// A global storage for all the cached CodeCache root pointers
-    static ref CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+    /// A global storage for all the cached CodeCache roots added since the last GC.
+    static ref NURSERY_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+    /// A global storage for all the cached CodeCache roots added before the last GC.
+    static ref MATURE_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
 }
-
-/// A counter tracking the total size of the `CODE_CACHE_ROOTS`.
-static CODE_CACHE_ROOTS_SIZE: AtomicUsize = AtomicUsize::new(0);
 
 fn set_compressed_pointer_vm_layout(builder: &mut MMTKBuilder) {
     let max_heap_size = builder.options.gc_trigger.max_heap_size();

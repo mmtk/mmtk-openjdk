@@ -16,3 +16,5 @@ target/
 /*.so
 
 /repos/mmtk-core
+
+__pycache__

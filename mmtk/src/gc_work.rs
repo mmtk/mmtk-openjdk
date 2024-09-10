@@ -1,10 +1,10 @@
-use std::sync::atomic::Ordering;
-
+use crate::scanning;
 use crate::scanning::to_slots_closure;
 use crate::OpenJDK;
 use crate::OpenJDKSlot;
 use crate::UPCALLS;
 use mmtk::scheduler::*;
+use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
 use mmtk::MMTK;
@@ -69,16 +69,51 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
     fn do_work(
         &mut self,
         _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
-        _mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
+        mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
     ) {
-        // Collect all the cached roots
-        let mut slots = Vec::with_capacity(crate::CODE_CACHE_ROOTS_SIZE.load(Ordering::Relaxed));
-        for roots in (*crate::CODE_CACHE_ROOTS.lock().unwrap()).values() {
-            for r in roots {
-                slots.push((*r).into())
+        let is_current_gc_nursery = mmtk
+            .get_plan()
+            .generational()
+            .is_some_and(|gen| gen.is_current_gc_nursery());
+
+        let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
+
+        let mut nursery_slots = 0;
+        let mut mature_slots = 0;
+
+        let mut add_roots = |roots: &[Address]| {
+            for root in roots {
+                slots.push(OpenJDKSlot::<COMPRESSED>::from(*root));
+                if slots.len() >= scanning::WORK_PACKET_CAPACITY {
+                    self.factory
+                        .create_process_roots_work(std::mem::take(&mut slots));
+                }
+            }
+        };
+
+        {
+            let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
+
+            // Only scan mature roots in full-heap collections.
+            if !is_current_gc_nursery {
+                for roots in mature.values() {
+                    mature_slots += roots.len();
+                    add_roots(roots);
+                }
+            }
+
+            {
+                let mut nursery = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+                for (key, roots) in nursery.drain() {
+                    nursery_slots += roots.len();
+                    add_roots(&roots);
+                    mature.insert(key, roots);
+                }
             }
         }
-        // Create work packet
+
+        probe!(mmtk_openjdk, code_cache_roots, nursery_slots, mature_slots);
+
         if !slots.is_empty() {
             self.factory.create_process_roots_work(slots);
         }
