@@ -1,3 +1,14 @@
+0.28.0 (2024-09-27)
+===
+
+## What's Changed
+* Require ObjectReference to point inside object by @wks in https://github.com/mmtk/mmtk-openjdk/pull/286
+* Bump the version of action/download-artifact by @wks in https://github.com/mmtk/mmtk-openjdk/pull/287
+* Bump version of action/upload-artifact by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/288
+* Generational code cache roots by @wks in https://github.com/mmtk/mmtk-openjdk/pull/282
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.27.0...v0.28.0
+
 0.27.0 (2024-08-09)
 ===
 
