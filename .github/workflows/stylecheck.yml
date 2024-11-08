@@ -32,8 +32,8 @@ jobs:
         run: cargo install cargo-msrv
       # Verify the MSRV defined in Cargo.toml
       - name: Verify MSRV
-        run: cargo msrv --path mmtk verify
+        run: cargo msrv verify --path mmtk
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: failure()
-        run: cargo msrv --path mmtk
+        run: cargo msrv find --path mmtk
