@@ -1,3 +1,11 @@
+0.29.0 (2024-11-08)
+===
+
+## What's Changed
+* Update mmtk-core to v0.29.0
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.28.0...v0.29.0
+
 0.28.0 (2024-09-27)
 ===
 
