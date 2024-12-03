@@ -38,8 +38,11 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 
 #define __ masm->
 
-void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
+void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+
+  bool is_not_null = (decorators & IS_NOT_NULL) != 0;
+
   Register obj = dst.base();
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
@@ -70,7 +73,19 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
 
   __ movptr(c_rarg0, obj);
   __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+  if (val == noreg) {
+    __ xorptr(c_rarg2, c_rarg2);
+  } else {
+    if (compensate_val_reg && UseCompressedOops) {
+      // `val` is compressed.  Decompress it.
+      if (is_not_null) {
+        __ decode_heap_oop_not_null(val);
+      } else {
+        __ decode_heap_oop(val);
+      }
+    }
+    __ movptr(c_rarg2, val);
+  }
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
 
   __ bind(done);
