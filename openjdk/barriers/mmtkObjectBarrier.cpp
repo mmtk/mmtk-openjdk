@@ -70,6 +70,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   __ andptr(tmp2, 1);
   __ cmpptr(tmp2, 1);
   __ jcc(Assembler::notEqual, done);
+#endif
 
   __ movptr(c_rarg0, obj);
   __ lea(c_rarg1, dst);
@@ -86,13 +87,11 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
     }
     __ movptr(c_rarg2, val);
   }
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
 
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
   __ bind(done);
 #else
-  __ movptr(c_rarg0, obj);
-  __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
 #endif
 }
