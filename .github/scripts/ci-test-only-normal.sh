@@ -40,6 +40,10 @@ run_all 4
 # Test heap resizing
 runbms_dacapo2006_with_heap_size fop 20 100
 
+# Test compressed oops with heap range > 4GB
+# When the heap size is larger than 4GiB, compressed oops will be shifted by 3 bits.
+runbms_dacapo2006_with_heap_size fop 20 5000
+
 # --- StickyImmix ---
 export MMTK_PLAN=StickyImmix
 

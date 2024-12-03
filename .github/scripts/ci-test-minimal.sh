@@ -27,6 +27,8 @@ MMTK_PLAN=MarkSweep runbms_dacapo2006_with_heap_multiplier fop 8
 MMTK_PLAN=NoGC runbms_dacapo2006_with_heap_size fop 1000 1000
 # Test heap resizing
 MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_size fop 20 100
+# Test compressed oops with heap range > 4GB
+MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_size fop 20 5000
 # Test no compressed oop
 MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
 
