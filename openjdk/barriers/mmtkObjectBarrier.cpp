@@ -38,8 +38,11 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 
 #define __ masm->
 
-void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
+void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+
+  bool is_not_null = (decorators & IS_NOT_NULL) != 0;
+
   Register obj = dst.base();
 #if MMTK_ENABLE_BARRIER_FASTPATH
   Label done;
@@ -67,17 +70,22 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   __ andptr(tmp2, 1);
   __ cmpptr(tmp2, 1);
   __ jcc(Assembler::notEqual, done);
+#endif
 
   __ movptr(c_rarg0, obj);
-  __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+  __ xorptr(c_rarg1, c_rarg1);
+  // Note: If `compensate_val_reg == true && UseCompressedOops === true`, the `val` register will be
+  // holding a compressed pointer to the target object. If the write barrier needs to know the
+  // target, we will need to decompress it before passing it to the barrier slow path. However,
+  // since we know the semantics of `mmtk::plan::barriers::ObjectBarrier`, i.e. it logs the object
+  // without looking at the `slot` or the `target` parameter at all, we simply pass nullptr to both
+  // parameters.
+  __ xorptr(c_rarg2, c_rarg2);
 
+#if MMTK_ENABLE_BARRIER_FASTPATH
+  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
   __ bind(done);
 #else
-  __ movptr(c_rarg0, obj);
-  __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
   __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
 #endif
 }
