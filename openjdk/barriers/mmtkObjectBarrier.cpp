@@ -77,8 +77,9 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   // Note: If `compensate_val_reg == true && UseCompressedOops === true`, the `val` register will be
   // holding a compressed pointer to the target object. If the write barrier needs to know the
   // target, we will need to decompress it before passing it to the barrier slow path. However,
-  // since we know the semantics of `ObjectReference`, i.e. it logs the object without looking at
-  // the `slot` or the `target` parameter at all, we simply pass nullptr to both parameters.
+  // since we know the semantics of `mmtk::plan::barriers::ObjectBarrier`, i.e. it logs the object
+  // without looking at the `slot` or the `target` parameter at all, we simply pass nullptr to both
+  // parameters.
   __ xorptr(c_rarg2, c_rarg2);
 
 #if MMTK_ENABLE_BARRIER_FASTPATH
