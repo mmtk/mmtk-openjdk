@@ -1,3 +1,12 @@
+0.30.0 (2024-12-20)
+===
+
+## What's Changed
+* Skip val register in ObjectBarrier impl by @wks in https://github.com/mmtk/mmtk-openjdk/pull/294
+* Update mmtk-core to v0.30.0
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.29.0...v0.30.0
+
 0.29.0 (2024-11-08)
 ===
 
