@@ -12,7 +12,7 @@ struct OpenJDKMutatorIterator<'a, const COMPRESSED: bool> {
     phantom_data: PhantomData<&'a ()>,
 }
 
-impl<'a, const COMPRESSED: bool> OpenJDKMutatorIterator<'a, COMPRESSED> {
+impl<const COMPRESSED: bool> OpenJDKMutatorIterator<'_, COMPRESSED> {
     fn new() -> Self {
         let mut mutators = VecDeque::new();
         unsafe {

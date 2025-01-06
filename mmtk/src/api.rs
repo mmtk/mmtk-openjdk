@@ -236,12 +236,6 @@ pub extern "C" fn total_bytes() -> usize {
 }
 
 #[no_mangle]
-#[cfg(feature = "sanity")]
-pub extern "C" fn scan_region() {
-    with_singleton!(|singleton| memory_manager::scan_region(singleton))
-}
-
-#[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     with_singleton!(|singleton| {
         memory_manager::handle_user_collection_request(singleton, tls);
