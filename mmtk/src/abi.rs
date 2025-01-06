@@ -329,7 +329,9 @@ impl OopDesc {
 
 impl fmt::Debug for OopDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let c_string = unsafe { ((*UPCALLS).dump_object_string)(mem::transmute(self)) };
+        let c_string = unsafe {
+            ((*UPCALLS).dump_object_string)(mem::transmute::<&OopDesc, ObjectReference>(self))
+        };
         let c_str: &CStr = unsafe { CStr::from_ptr(c_string) };
         let s: &str = c_str.to_str().unwrap();
         write!(f, "{}", s)
