@@ -12,7 +12,7 @@ use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
-pub(crate) const WORK_PACKET_CAPACITY: usize = mmtk::util::constants::BUFFER_SIZE;
+pub(crate) const WORK_PACKET_CAPACITY: usize = mmtk::scheduler::gc_work::EDGES_WORK_BUFFER_SIZE;
 
 extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
     ptr: *mut Address,
