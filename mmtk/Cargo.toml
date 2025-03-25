@@ -40,7 +40,7 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "0b3ec9b8f95b9c535
 # mmtk = { path = "../repos/mmtk-core" }
 
 [build-dependencies]
-built = { version = "0.7.1", features = ["git2"] }
+built = { version = "0.7.7", features = ["git2"] }
 
 [features]
 default = []
