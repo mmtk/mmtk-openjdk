@@ -77,7 +77,7 @@ MMTkHeap* MMTkHeap::_heap = NULL;
 MMTkHeap::MMTkHeap() :
   CollectedHeap(),
   _n_workers(0),
-  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true)),
+  _gc_lock(new Monitor(Mutex::nosafepoint, "MMTkHeap::_gc_lock", true)),
   _num_root_scan_tasks(0),
   _soft_ref_policy(),
   _last_gc_time(0)
