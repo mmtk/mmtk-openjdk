@@ -70,7 +70,10 @@ public:
 struct MMTkC1BarrierStub: CodeStub {
   LIR_Opr src, slot, new_val;
 
-  MMTkC1BarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {}
+  MMTkC1BarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {
+    FrameMap* f = Compilation::current()->frame_map();
+    f->update_reserved_argument_area_size(3 * BytesPerWord);
+  }
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
