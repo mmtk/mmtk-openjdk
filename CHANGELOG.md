@@ -1,3 +1,138 @@
+0.30.0 (2024-12-20)
+===
+
+## What's Changed
+* Skip val register in ObjectBarrier impl by @wks in https://github.com/mmtk/mmtk-openjdk/pull/294
+* Update mmtk-core to v0.30.0
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.29.0...v0.30.0
+
+0.29.0 (2024-11-08)
+===
+
+## What's Changed
+* Update mmtk-core to v0.29.0
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.28.0...v0.29.0
+
+0.28.0 (2024-09-27)
+===
+
+## What's Changed
+* Require ObjectReference to point inside object by @wks in https://github.com/mmtk/mmtk-openjdk/pull/286
+* Bump the version of action/download-artifact by @wks in https://github.com/mmtk/mmtk-openjdk/pull/287
+* Bump version of action/upload-artifact by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/288
+* Generational code cache roots by @wks in https://github.com/mmtk/mmtk-openjdk/pull/282
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.27.0...v0.28.0
+
+0.27.0 (2024-08-09)
+===
+
+## What's Changed
+* Update to MMTK core PR #1159 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/283
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.26.0...v0.27.0
+
+0.26.0 (2024-07-01)
+===
+
+## What's Changed
+* Rename edge to slot by @wks in https://github.com/mmtk/mmtk-openjdk/pull/274
+* Fix deadlock related to safepoint sync. by @wks in https://github.com/mmtk/mmtk-openjdk/pull/279
+* Add option to put forwarding bits on the side by @wks in https://github.com/mmtk/mmtk-openjdk/pull/277
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.25.0...v0.26.0
+
+0.25.0 (2024-05-17)
+===
+
+## What's Changed
+* Update mmtk-core to v0.25.0.
+* Remove the coordinator thread by @wks in https://github.com/mmtk/mmtk-openjdk/pull/268
+* Use to_address for SFT access by @wks in https://github.com/mmtk/mmtk-openjdk/pull/272
+* Remove NULL ObjectReference by @wks in https://github.com/mmtk/mmtk-openjdk/pull/265
+* Fix write barrier parameter type by @wks in https://github.com/mmtk/mmtk-openjdk/pull/273
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.24.0...v0.25.0
+
+0.24.0 (2024-04-08)
+===
+
+## What's Changed
+* Update mmtk-core to v0.24.0.
+* Update Rust toolchain to 1.77.0.
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.23.0...v0.24.0
+
+0.23.0 (2024-02-09)
+===
+
+## What's Changed
+* Refactor CI test scripts by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/263
+* Expose test scripts for minimal/extended tests for mmtk-core by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/266
+* Add tests for sanity GC in ci-test-extended by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/267
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.22.0...v0.23.0
+
+0.22.0 (2023-12-21)
+===
+
+## What's Changed
+* Change README to make images target the default build command by @angussidney in https://github.com/mmtk/mmtk-openjdk/pull/253
+* Add Java-specific constants from MMTk by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/258
+* Post-release dependency version bump for v0.21.0 by @wks in https://github.com/mmtk/mmtk-openjdk/pull/259
+
+## New Contributors
+* @angussidney made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/253
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.21.0...v0.22.0
+
+0.21.0 (2023-11-03)
+===
+
+## What's Changed
+* Update to mmtk-core PR #988 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/255
+* Update to MMTk core PR #949 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/240
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.20.0...v0.21.0
+
+0.20.0 (2023-09-29)
+===
+
+## What's Changed
+* Updating code to reflect API change by @udesou in https://github.com/mmtk/mmtk-openjdk/pull/238
+* Fix Cargo.lock by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/239
+* Update tests to use dacapo-23.9-RC3-chopin by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/241
+* Check results for new CI, allow some benchmarks to fail by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/211
+* Fix ignored env var options by @wks in https://github.com/mmtk/mmtk-openjdk/pull/244
+* Update pgo-build script to use the pinned Rust toolchain by @caizixian in https://github.com/mmtk/mmtk-openjdk/pull/236
+* Compressed Oops Support by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/235
+
+## New Contributors
+* @udesou made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/238
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.19.0...v0.20.0
+
+0.19.0 (2023-08-18)
+===
+
+## What's Changed
+* Rename alloc bit to valid object bit (VO bit) by @wks in https://github.com/mmtk/mmtk-openjdk/pull/214
+* Fix invalid register values in `arraycopy_epilogue` barrier by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/216
+* Remove deprecated const. by @wks in https://github.com/mmtk/mmtk-openjdk/pull/217
+* Update MMTk core PR #817 (alternative approach) by @wks in https://github.com/mmtk/mmtk-openjdk/pull/220
+* Update to mmtk-core PR #838 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/221
+* Rename ambiguous `scan_thread_root{,s}` functions by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/222
+* Update to MMTk core PR #875 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/225
+* Show the version after cd by @wks in https://github.com/mmtk/mmtk-openjdk/pull/227
+* Add features for genimmix and stickyimmix by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/228
+* Pass hotspot command line flags to mmtk-core by @wenyuzhao in https://github.com/mmtk/mmtk-openjdk/pull/229
+* Fix unaligned edge access by @wks in https://github.com/mmtk/mmtk-openjdk/pull/232
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.18.0...v0.19.0
+
+
 0.18.0 (2023-04-03)
 ===
 

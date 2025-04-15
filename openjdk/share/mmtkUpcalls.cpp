@@ -29,7 +29,6 @@
 #include "memory/iterator.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "mmtkCollectorThread.hpp"
-#include "mmtkContextThread.hpp"
 #include "mmtkHeap.hpp"
 #include "mmtkRootsClosure.hpp"
 #include "mmtkUpcalls.hpp"
@@ -82,34 +81,24 @@ static void mmtk_resume_mutators(void *tls) {
   }
 
   // Note: we don't have to hold gc_lock to increment the counter.
-  // The increment has to be done before mutators can be resumed
-  // otherwise, mutators might see a stale value
+  // The increment has to be done before mutators can be resumed (from `block_for_gc` or yieldpoints).
+  // Otherwise, mutators might see an outdated start-the-world count.
   Atomic::inc(&mmtk_start_the_world_count);
+  log_debug(gc)("Incremented start_the_world counter to %zu.", Atomic::load(&mmtk_start_the_world_count));
 
-  log_debug(gc)("Requesting the VM to resume all mutators...");
+  log_debug(gc)("Requesting the companion thread to resume all mutators blocking on yieldpoints...");
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_resumed, true);
-  log_debug(gc)("Mutators resumed. Now notify any mutators waiting for GC to finish...");
 
+  log_debug(gc)("Notifying mutators blocking on the start-the-world counter...");
   {
-    MutexLocker locker(MMTkHeap::heap()->gc_lock());
+    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
-  log_debug(gc)("Mutators notified.");
 }
 
-static const int GC_THREAD_KIND_CONTROLLER = 0;
 static const int GC_THREAD_KIND_WORKER = 1;
 static void mmtk_spawn_gc_thread(void* tls, int kind, void* ctx) {
   switch (kind) {
-    case GC_THREAD_KIND_CONTROLLER: {
-      MMTkContextThread* t = new MMTkContextThread(ctx);
-      if (!os::create_thread(t, os::gc_thread)) {
-        printf("Failed to create thread");
-        guarantee(false, "panic");
-      }
-      os::start_thread(t);
-      break;
-    }
     case GC_THREAD_KIND_WORKER: {
       MMTkHeap::heap()->new_collector_thread();
       MMTkCollectorThread* t = new MMTkCollectorThread(ctx);
@@ -129,30 +118,37 @@ static void mmtk_spawn_gc_thread(void* tls, int kind, void* ctx) {
 
 static void mmtk_block_for_gc() {
   MMTkHeap::heap()->_last_gc_time = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
-  log_debug(gc)("Thread (id=%d) will block waiting for GC to finish.", Thread::current()->osthread()->thread_id());
 
   // We must read the counter before entering safepoint.
-  // This thread has just triggered GC.
-  // Before this thread enters safe point, the GC cannot start, and therefore cannot finish,
-  // and cannot increment the counter mmtk_start_the_world_count.
-  // Otherwise, if we attempt to acquire the gc_lock first, GC may have triggered stop-the-world
-  // first, and this thread will be blocked for the entire stop-the-world duration before it can
-  // get the lock.  Once that happens, the current thread will read the counter after the GC, and
-  // wait for the next non-existing GC forever.
+  // This thread (or another mutator) has just triggered GC.
+  // The GC cannot start until all mutators enter safepoint.
+  // If the GC cannot start, it cannot finish, and cannot increment mmtk_start_the_world_count.
+  // Otherwise, if we enter safepoint before reading mmtk_start_the_world_count,
+  // we will allow the GC to start before we read the counter,
+  // and the GC workers may run so fast that they have finished one whole GC and incremented the
+  // counter before this mutator reads the counter for the first time.
+  // Once that happens, the current mutator will wait for the next GC forever,
+  // which may not happen at all before the program exits.
   size_t my_count = Atomic::load(&mmtk_start_the_world_count);
   size_t next_count = my_count + 1;
 
+  log_debug(gc)("Will block until the start_the_world counter reaches %zu.", next_count);
+
   {
-    // Once this thread acquires the lock, the VM will consider this thread to be "in safe point".
-    MutexLocker locker(MMTkHeap::heap()->gc_lock());
+    // Enter safepoint.
+    JavaThread* thread = JavaThread::current();
+    ThreadBlockInVM tbivm(thread);
+
+    // No safepoint check.  We are already in safepoint.
+    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
 
     while (Atomic::load(&mmtk_start_the_world_count) < next_count) {
       // wait() may wake up spuriously, but the authoritative condition for unblocking is
       // mmtk_start_the_world_count being incremented.
-      MMTkHeap::heap()->gc_lock()->wait();
+      MMTkHeap::heap()->gc_lock()->wait(Mutex::_no_safepoint_check_flag);
     }
   }
-  log_debug(gc)("Thread (id=%d) resumed after GC finished.", Thread::current()->osthread()->thread_id());
+  log_debug(gc)("Resumed after GC finished.");
 }
 
 static void mmtk_out_of_memory(void* tls, MMTkAllocationError err_kind) {
@@ -185,22 +181,22 @@ static bool mmtk_is_mutator(void* tls) {
 
 static void mmtk_get_mutators(MutatorClosure closure) {
   JavaThread *thr;
-  for (JavaThreadIteratorWithHandle jtiwh; thr = jtiwh.next();) {
+  for (JavaThreadIteratorWithHandle jtiwh; (thr = jtiwh.next());) {
     closure.invoke(&thr->third_party_heap_mutator);
   }
 }
 
-static void mmtk_scan_roots_in_all_mutator_threads(EdgesClosure closure) {
-  MMTkRootsClosure2 cl(closure);
+static void mmtk_scan_roots_in_all_mutator_threads(SlotsClosure closure) {
+  MMTkRootsClosure cl(closure);
   MMTkHeap::heap()->scan_roots_in_all_mutator_threads(cl);
 }
 
-static void mmtk_scan_roots_in_mutator_thread(EdgesClosure closure, void* tls) {
+static void mmtk_scan_roots_in_mutator_thread(SlotsClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
-  MMTkRootsClosure2 cl(closure);
+  MMTkRootsClosure cl(closure);
   MarkingCodeBlobClosure cb_cl(&cl, false, true);
-  thread->oops_do(&cl, &cb_cl);
+  thread->oops_do(&cl, NULL);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
@@ -286,11 +282,11 @@ static void mmtk_schedule_finalizer() {
   MMTkHeap::heap()->schedule_finalizer();
 }
 
-static void mmtk_scan_code_cache_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_class_loader_data_graph_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
-static void mmtk_scan_oop_storage_set_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
-static void mmtk_scan_weak_processor_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
-static void mmtk_scan_vm_thread_roots(EdgesClosure closure) { MMTkRootsClosure2 cl(closure); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
+static void mmtk_scan_code_cache_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
+static void mmtk_scan_class_loader_data_graph_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
+static void mmtk_scan_oop_storage_set_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
+static void mmtk_scan_weak_processor_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_weak_processor_roots(cl); }
+static void mmtk_scan_vm_thread_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_vm_thread_roots(cl); }
 
 static size_t mmtk_number_of_mutators() {
   return Threads::number_of_threads();

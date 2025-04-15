@@ -76,7 +76,7 @@ MMTkHeap* MMTkHeap::_heap = NULL;
 MMTkHeap::MMTkHeap() :
   CollectedHeap(),
   _n_workers(0),
-  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true)),
+  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_never)),
   _num_root_scan_tasks(0),
   _soft_ref_policy(),
   _last_gc_time(0)
@@ -91,15 +91,34 @@ jint MMTkHeap::initialize() {
   assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
   const size_t min_heap_size = MinHeapSize;
   const size_t max_heap_size = MaxHeapSize;
+  // const size_t min_heap_size = collector_policy()->min_heap_byte_size();
+  // const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
-  // Set options
-  mmtk_builder_set_threads(ParallelGCThreads);
-  mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  if (UseCompressedOops) mmtk_enable_compressed_oops();
+
+  // Note that MMTk options may be set from several different sources, with increasing priorities:
+  // 1. Default values defined in mmtk::util::options::Options
+  // 2. Default values defined in ThirdPartyHeapArguments::initialize
+  // 3. Environment variables starting with `MMTK_`
+  // 4. Command line arguments
+  // We need to be careful about the order in which we set the options in the MMTKBuilder so that
+  // the values from the highest priority source will take effect.
+
+  // Priority 2: Set options in MMTKBuilder to OpenJDK's default options.
+  set_mmtk_options(true);
+
+  // Priority 3: Read MMTk options from environment variables (such as `MMTK_THREADS`).
+  mmtk_builder_read_env_var_settings();
+
+  // Priority 4: Pass non-default OpenJDK options (may be set from command line) to MMTk options.
+  set_mmtk_options(false);
+
   if (ThirdPartyHeapOptions != NULL) {
     bool set_options = process_bulk(os::strdup(ThirdPartyHeapOptions));
     guarantee(set_options, "Failed to set MMTk options. Please check if the options are valid: %s\n", ThirdPartyHeapOptions);
   }
+
   // Set heap size
   bool set_heap_size = mmtk_set_heap_size(min_heap_size, max_heap_size);
   guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: min = %ld, max = %ld\n", min_heap_size, max_heap_size);
@@ -124,6 +143,10 @@ jint MMTkHeap::initialize() {
 
   ReservedHeapSpace heap_rs = Universe::reserve_heap(MaxHeapSize, HeapAlignment);
   //  printf("start: %p, end: %p\n", _start, _end);
+  if (UseCompressedOops) {
+    Universe::set_narrow_oop_base((address) mmtk_narrow_oop_base());
+    Universe::set_narrow_oop_shift(mmtk_narrow_oop_shift());
+  }
 
   initialize_reserved_region(heap_rs);
 
@@ -144,6 +167,19 @@ jint MMTkHeap::initialize() {
 
 }
 
+void MMTkHeap::set_mmtk_options(bool set_defaults) {
+  // If set_defaults is true, we only set default options here;
+  // if it is false, we only set options that has been overridden by command line.
+  if (FLAG_IS_DEFAULT(ParallelGCThreads) == set_defaults) {
+    mmtk_builder_set_threads(ParallelGCThreads);
+  }
+
+  if (FLAG_IS_DEFAULT(UseTransparentHugePages) == set_defaults) {
+    mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
+  }
+}
+
+
 const char* MMTkHeap::version() {
   return get_mmtk_version();
 }
@@ -163,8 +199,11 @@ static MMTkIsScavengable _is_scavengable;
 void MMTkHeap::post_initialize() {
   CollectedHeap::post_initialize();
 
-
   ScavengableNMethods::initialize(&_is_scavengable);
+
+  if (UseCompressedOops) {
+    mmtk_set_compressed_klass_base_and_shift((void*) Universe::narrow_klass_base(), (size_t) Universe::narrow_klass_shift());
+  }
 }
 
 void MMTkHeap::enable_collection() {
@@ -374,12 +413,18 @@ bool MMTkHeap::print_location(outputStream* st, void* addr) const {
 // Registering and unregistering an nmethod (compiled code) with the heap.
 // Override with specific mechanism for each specialized heap type.
 class MMTkRegisterNMethodOopClosure: public OopClosure {
-  template <class T> void do_oop_work(T* p) {
-    mmtk_add_nmethod_oop((void*) p);
+  template <class T> void do_oop_work(T* p, bool narrow) {
+    if (UseCompressedOops && !narrow) {
+      guarantee((uintptr_t(p) & (1ull << 63)) == 0, "test");
+      auto tagged_p = (T*) (uintptr_t(p) | (1ull << 63));
+      mmtk_add_nmethod_oop((void*) tagged_p);
+    } else {
+      mmtk_add_nmethod_oop((void*) p);
+    }
   }
 public:
-  void do_oop(oop* p)       { do_oop_work(p); }
-  void do_oop(narrowOop* p) { do_oop_work(p); }
+  void do_oop(oop* p)       { do_oop_work(p, false); }
+  void do_oop(narrowOop* p) { do_oop_work(p, true); }
 };
 
 

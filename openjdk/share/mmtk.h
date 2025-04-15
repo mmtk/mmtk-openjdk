@@ -68,7 +68,6 @@ extern void release_buffer(void** buffer, size_t len, size_t cap);
 
 extern bool is_in_mmtk_spaces(void* ref);
 extern bool is_mapped_address(void* addr);
-extern void modify_check(void* ref);
 
 // This type declaration needs to match AllocatorSelector in mmtk-core
 struct AllocatorSelector {
@@ -131,7 +130,7 @@ struct MutatorClosure {
     }
 };
 
-struct EdgesClosure {
+struct SlotsClosure {
     NewBuffer (*func)(void** buf, size_t size, size_t capa, void* data);
     void* data;
 
@@ -163,13 +162,13 @@ typedef struct {
     int (*referent_offset) ();
     int (*discovered_offset) ();
     char* (*dump_object_string) (void* object);
-    void (*scan_roots_in_all_mutator_threads)(EdgesClosure closure);
-    void (*scan_roots_in_mutator_thread)(EdgesClosure closure, void* tls);
-    void (*scan_code_cache_roots) (EdgesClosure closure);
-    void (*scan_class_loader_data_graph_roots) (EdgesClosure closure);
-    void (*scan_oop_storage_set_roots) (EdgesClosure closure);
-    void (*scan_weak_processor_roots) (EdgesClosure closure);
-    void (*scan_vm_thread_roots) (EdgesClosure closure);
+    void (*scan_roots_in_all_mutator_threads)(SlotsClosure closure);
+    void (*scan_roots_in_mutator_thread)(SlotsClosure closure, void* tls);
+    void (*scan_code_cache_roots) (SlotsClosure closure);
+    void (*scan_class_loader_data_graph_roots) (SlotsClosure closure);
+    void (*scan_oop_storage_set_roots) (SlotsClosure closure);
+    void (*scan_weak_processor_roots) (SlotsClosure closure);
+    void (*scan_vm_thread_roots) (SlotsClosure closure);
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
@@ -180,6 +179,11 @@ extern void openjdk_gc_init(OpenJDK_Upcalls *calls);
 extern bool openjdk_is_gc_initialized();
 
 extern bool mmtk_set_heap_size(size_t min, size_t max);
+
+extern bool mmtk_enable_compressed_oops();
+extern void* mmtk_narrow_oop_base();
+extern size_t mmtk_narrow_oop_shift();
+extern size_t mmtk_set_compressed_klass_base_and_shift(void* base, size_t shift);
 
 extern size_t used_bytes();
 extern void* starting_heap_address();
@@ -204,6 +208,7 @@ extern void add_phantom_candidate(void* ref, void* referent);
 extern void mmtk_harness_begin_impl();
 extern void mmtk_harness_end_impl();
 
+extern void mmtk_builder_read_env_var_settings();
 extern void mmtk_builder_set_threads(size_t value);
 extern void mmtk_builder_set_transparent_hugepages(bool value);
 
