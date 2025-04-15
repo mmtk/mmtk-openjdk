@@ -163,11 +163,4 @@ void MMTkVMCompanionThread::do_mmtk_stw_operation() {
     log_trace(gc)("do_mmtk_stw_operation: Reached _thread_resumed state. Notifying...");
     _lock->notify_all();
   }
-
-  {
-    MutexLocker x(Heap_lock, Mutex::_no_safepoint_check_flag);
-    if (Universe::has_reference_pending_list()) {
-      Heap_lock->notify_all();
-    }
-  }
 }
