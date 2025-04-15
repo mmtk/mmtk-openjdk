@@ -43,13 +43,18 @@ void ThirdPartyHeapArguments::initialize() {
   assert(UseThirdPartyHeap , "Error, should UseThirdPartyHeap");
   FLAG_SET_DEFAULT(UseTLAB, false);
   FLAG_SET_DEFAULT(UseCompressedClassPointers, UseCompressedOops);
-  FLAG_SET_DEFAULT(ParallelGCThreads, Abstract_VM_Version::parallel_worker_threads());
+  FLAG_SET_DEFAULT(ParallelGCThreads, WorkerPolicy::parallel_worker_threads());
   if (ParallelGCThreads == 0) {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
     vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
   }
   // Note: If you add an option here that may be forwarded to an MMTk option,
   // make sure to add appropriate code to MMTkHeap::set_mmtk_options.
+}
+
+void ThirdPartyHeapArguments::initialize_alignments() {
+  SpaceAlignment =  1 << 19;
+  HeapAlignment = SpaceAlignment;
 }
 
 CollectedHeap* ThirdPartyHeapArguments::create_heap() {

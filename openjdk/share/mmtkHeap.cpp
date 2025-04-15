@@ -49,6 +49,7 @@
 #include "prims/jvmtiExport.hpp"
 #include "runtime/jniHandles.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/globals_extension.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/java.hpp"
 #include "runtime/thread.hpp"
@@ -76,7 +77,7 @@ MMTkHeap* MMTkHeap::_heap = NULL;
 MMTkHeap::MMTkHeap() :
   CollectedHeap(),
   _n_workers(0),
-  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true, Monitor::_safepoint_check_never)),
+  _gc_lock(new Monitor(Mutex::safepoint, "MMTkHeap::_gc_lock", true)),
   _num_root_scan_tasks(0),
   _soft_ref_policy(),
   _last_gc_time(0)
@@ -144,8 +145,8 @@ jint MMTkHeap::initialize() {
   ReservedHeapSpace heap_rs = Universe::reserve_heap(MaxHeapSize, HeapAlignment);
   //  printf("start: %p, end: %p\n", _start, _end);
   if (UseCompressedOops) {
-    Universe::set_narrow_oop_base((address) mmtk_narrow_oop_base());
-    Universe::set_narrow_oop_shift(mmtk_narrow_oop_shift());
+    CompressedOops::set_base((address) mmtk_narrow_oop_base());
+    CompressedOops::set_shift(mmtk_narrow_oop_shift());
   }
 
   initialize_reserved_region(heap_rs);
@@ -202,7 +203,9 @@ void MMTkHeap::post_initialize() {
   ScavengableNMethods::initialize(&_is_scavengable);
 
   if (UseCompressedOops) {
-    mmtk_set_compressed_klass_base_and_shift((void*) Universe::narrow_klass_base(), (size_t) Universe::narrow_klass_shift());
+    mmtk_set_compressed_klass_base_and_shift(
+      (void*)CompressedKlassPointers::base(),
+      (size_t)CompressedKlassPointers::shift());
   }
 }
 

@@ -91,7 +91,7 @@ static void mmtk_resume_mutators(void *tls) {
 
   log_debug(gc)("Notifying mutators blocking on the start-the-world counter...");
   {
-    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
+    MutexLocker locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
 }
@@ -140,12 +140,12 @@ static void mmtk_block_for_gc() {
     ThreadBlockInVM tbivm(thread);
 
     // No safepoint check.  We are already in safepoint.
-    MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
+    MutexLocker locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
 
     while (Atomic::load(&mmtk_start_the_world_count) < next_count) {
       // wait() may wake up spuriously, but the authoritative condition for unblocking is
       // mmtk_start_the_world_count being incremented.
-      MMTkHeap::heap()->gc_lock()->wait(Mutex::_no_safepoint_check_flag);
+      MMTkHeap::heap()->gc_lock()->wait_without_safepoint_check();
     }
   }
   log_debug(gc)("Resumed after GC finished.");
