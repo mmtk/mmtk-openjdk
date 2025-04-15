@@ -113,18 +113,21 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
-```
-
-The output jdk is at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
-
-**Note:** The above `make` command will build what is known as the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make). This build is exclusively meant for developers who want quick and incremental builds to test changes. If you are planning on evaluating your build (be it performance, minimum heap, etc.), then it is *highly advised* to use the `images` target. The `default` target is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well. The `images` target can be built like so:
-
-```console
 $ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
 The output jdk is then found at `./build/linux-x86_64-normal-server-release/images/jdk`.
+
+> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
+> 
+> The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
+>
+> ```console
+> $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+> ```
+>
+> Again: **do not use the exploded image for performance analysis**.
+
 
 ### Profile-Guided Optimized Build
 
@@ -189,22 +192,22 @@ you may have to change the location of `llvm-profdata`.
 
 ### Location of Mark-bit
 The location of the mark-bit can be specified by the environment variable
-`MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
-metadata), but by setting the environment variable `MARK_IN_HEADER=1` while
+`MMTK_MARK_IN_HEADER`. By default, the mark-bit is located on the side (in a side
+metadata), but by setting the environment variable `MMTK_MARK_IN_HEADER=1` while
 building OpenJDK, we can change its location to be in the object's header:
 
 ```console
-$ MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ### Valid object bit
 
 To support the `vo_bit` (valid object bit) feature in mmtk-core, you can set the
-environment variable `VO_BIT=1` when building OpenJDK. This will set the feature
+environment variable `MMTK_VO_BIT=1` when building OpenJDK. This will set the feature
 for mmtk-core, as well as compiling the fastpath for the VO bit.
 
 ```console
-$ VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ## Test
@@ -220,6 +223,36 @@ class HelloWorld {
 }
 $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/javac HelloWorld.java
 $ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
+Hello World!
+```
+
+### Run HelloWorld (with MMTk)
+
+Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+
+```
+$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap HelloWorld
+```
+
+If `DEBUG_LEVEL` is `release`, you should just see
+
+```
+Hello World!
+```
+
+If `DEBUG_LEVEL` has other values (such as `slowdebug`), you should see logs, too.
+
+```
+[2023-09-14T06:18:46Z INFO  mmtk::memory_manager] Initialized MMTk with GenImmix (DynamicHeapSize(6815744, 8377073664))
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1670/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (304/1664 pages, took 19 ms)
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1680/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (460/1664 pages, took 11 ms)
+[2023-09-14T06:18:47Z INFO  mmtk::util::heap::gc_trigger] [POLL] nursery: Triggering collection (1674/1664 pages)
+[2023-09-14T06:18:47Z INFO  mmtk::plan::generational::global] Nursery GC
+[2023-09-14T06:18:47Z INFO  mmtk::scheduler::gc_work] End of GC (614/1664 pages, took 11 ms)
 Hello World!
 ```
 
@@ -255,4 +288,28 @@ Using scaled threading model. 24 processors detected, 24 threads used to drive t
 ===== DaCapo 9.12-MR1 lusearch PASSED in 822 msec =====
 ```
 
-**Note:** Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
+### MMTk options
+
+MMTk has many options defined in https://github.com/mmtk/mmtk-core/blob/master/src/util/options.rs
+
+You can use environment variables started with `MMTK_` to set those options.  For example,
+`export MMTK_THREADS=1` will set the number of GC worker threads to one.  Follow the link above for
+more details.
+
+You can also set those options via command line arguments: `-XX:ThirdPartyHeapOptions=options`,
+where `options` is `key=value` pairs separated by commas (`,`).  For example,
+`-XX:ThirdPartyHeapOptions=stress_factor=1000000,threads=1` will set `stress_factor` to 1000000,
+and `threads` to 1.
+
+Some OpenJDK options are also forwarded to MMTk options.
+
+-   `-XX:ParallelGCThreads=n` (where `n` is a number) sets the number of GC worker threads.
+    -   MMTk option: `Options::threads`
+    -   Note that OpenJDK also has an option `-XX:ConcGCThreads`.  As we have not added any
+        concurrent GC plans into mmtk-core yet, that option is ignored when using MMTk.
+-   `-XX:+UseTransparentHugePages` enables transparent huge pages.
+    -   MMTk option: `Options::transparent_hugepages`
+
+Options set via command line arguments take prioritiy over environment variables starting with
+`MMTK_`.  If both the environment variable `MMTK_THREADS=1` and the command line argument
+`-XX:ParallelGCThreads=2` are give, the numberof GC worker threads will be 2.

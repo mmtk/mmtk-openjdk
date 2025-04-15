@@ -1,0 +1,309 @@
+results:
+  linux-x64:
+    fastdebug:
+      avrora:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      batik:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      biojava:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      cassandra:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: ignore
+      eclipse:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      fop:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      graphchi:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      h2:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      h2o:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      jme:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      jython:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      kafka:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: ignore
+      luindex:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      lusearch:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: ignore
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      pmd:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      sunflow:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      tomcat:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      xalan:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: ignore
+        MarkSweep: pass
+        MarkCompact: pass
+      zxing:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+
+    release:
+      avrora:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      batik:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      biojava:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      cassandra:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      eclipse:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      fop:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      graphchi:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      h2:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      h2o:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      jme:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      jython:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: ignore
+        MarkCompact: pass
+      kafka:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      luindex:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      lusearch:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      pmd:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      sunflow:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      tomcat:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: ignore
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      xalan:
+        SemiSpace: ignore
+        GenCopy: ignore
+        Immix: pass
+        GenImmix: ignore
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass
+      zxing:
+        SemiSpace: pass
+        GenCopy: pass
+        Immix: pass
+        GenImmix: pass
+        StickyImmix: pass
+        MarkSweep: pass
+        MarkCompact: pass

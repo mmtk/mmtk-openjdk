@@ -16,7 +16,8 @@ protected:
   /// Full pre-barrier
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
   /// Full post-barrier
-  virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
+  /// `compensate_val_reg` is true if this function is called after `BarrierSetAssembler::store_at` which compresses the pointer in the `val` register in place.
+  virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const {}
 
   /// Barrier elision test
   virtual bool can_remove_barrier(DecoratorSet decorators, Register val, bool skip_const_null) const {
@@ -34,7 +35,9 @@ public:
   virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) {
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_pre(masm, decorators, dst, val, tmp1, tmp2);
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);
-    if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2);
+    // BarrierSetAssembler::store_at modifies val and make it compressed if UseCompressedOops is true.
+    // We need to compensate for this change and decode it in object_reference_write_post.
+    if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2, true);
   }
 
   /// Generate C1 write barrier slow-call stub

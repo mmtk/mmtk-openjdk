@@ -63,7 +63,7 @@ public:
   void wait_for_reached(stw_state reached_state);
 
   // Interface for the VM_MMTkSTWOperation
-  void reach_suspended_and_wait_for_resume();
+  void do_mmtk_stw_operation();
 };
 
 #endif // MMTK_OPENJDK_MMTK_VM_COMPANION_THREAD_HPP

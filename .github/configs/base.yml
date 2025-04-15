@@ -2,11 +2,13 @@ includes:
   - "$RUNNING_NG_PACKAGE_DATA/base/runbms.yml"
 
 suites:
-  dacapochopin-04132797-ci:
+  dacapo-23.9-RC3-chopin-ci:
     type: DaCapo
+    # Need running-ng to support 23.9
     release: evaluation
-    path: "DACAPO_PATH/dacapo-evaluation-git-04132797.jar"
+    path: "DACAPO_PATH/dacapo-23.9-RC3-chopin.jar"
     minheap: mmtk-openjdk-11-MarkCompact
+    # Min heap values are from dacapo-evaluation-git-04132797
     minheap_values:
       mmtk-openjdk-11-MarkCompact:
         avrora: 8
@@ -66,6 +68,19 @@ modifiers:
     type: "EnvVar"
     var: "MMTK_PLAN"
     val: "{0}"
+  fail_on_oom:
+    type: JVMArg
+    val: "-XX:+CrashOnOutOfMemoryError"
+  preserve:
+    type: ProgramArg
+    val: "-preserve"
+
+plugins:
+  keep_stdout_stderr:
+    type: CopyFile
+    patterns:
+      - "scratch/stdout.log"
+      - "scratch/stderr.log"
 
 runtimes:
   jdk11-master:
@@ -74,13 +89,13 @@ runtimes:
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
 configs:
-  - "jdk11-master|ms|s|mmtk_gc-SemiSpace|tph"
-  - "jdk11-master|ms|s|mmtk_gc-GenCopy|tph"
-  - "jdk11-master|ms|s|mmtk_gc-Immix|tph"
-  - "jdk11-master|ms|s|mmtk_gc-GenImmix|tph"
-  - "jdk11-master|ms|s|mmtk_gc-StickyImmix|tph"
-  - "jdk11-master|ms|s|mmtk_gc-MarkSweep|tph"
-  - "jdk11-master|ms|s|mmtk_gc-MarkCompact|tph"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
 
 benchmarks:
-  dacapochopin-04132797-ci:
+  dacapo-23.9-RC3-chopin-ci:

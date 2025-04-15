@@ -1,0 +1,5 @@
+usdt:$MMTK:mmtk_openjdk:code_cache_roots {
+    if (@enable_print) {
+        printf("code_cache_roots,meta,%d,%lu,%lu,%lu\n", tid, nsecs, arg0, arg1);
+    }
+}

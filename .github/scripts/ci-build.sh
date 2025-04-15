@@ -2,12 +2,15 @@ set -xe
 
 . $(dirname "$0")/common.sh
 
-unset JAVA_TOOL_OPTIONS
-unset MMTK_PLAN
+ensure_env OPENJDK_PATH
 
-# To OpenJDK folder
+# Use fastdebug if DEBUG_LEVEL is unset
+DEBUG_LEVEL=${DEBUG_LEVEL:="fastdebug"}
+
+# Build target. Could be empty, or product-bundles.
+build_target=$1
+
+# Build product bundle
 cd $OPENJDK_PATH
-
-# Build
 sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
-make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$BINDING_PATH/openjdk
+make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$BINDING_PATH/openjdk $OPENJDK_BUILD_TARGET

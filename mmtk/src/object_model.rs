@@ -6,9 +6,9 @@ use mmtk::util::copy::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 
-pub struct VMObjectModel {}
+pub struct VMObjectModel<const COMPRESSED: bool> {}
 
-impl ObjectModel<OpenJDK> for VMObjectModel {
+impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<COMPRESSED> {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
@@ -24,21 +24,23 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
     fn copy(
         from: ObjectReference,
         copy: CopySemantics,
-        copy_context: &mut GCWorkerCopyContext<OpenJDK>,
+        copy_context: &mut GCWorkerCopyContext<OpenJDK<COMPRESSED>>,
     ) -> ObjectReference {
-        let bytes = unsafe { Oop::from(from).size() };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
+        debug_assert!(!dst.is_zero());
         // Copy
         let src = from.to_raw_address();
         unsafe { std::ptr::copy_nonoverlapping::<u8>(src.to_ptr(), dst.to_mut_ptr(), bytes) }
-        let to_obj = ObjectReference::from_raw_address(dst);
+        // Note on onsafe: `alloc_copy` never returns 0.
+        let to_obj = unsafe { ObjectReference::from_raw_address_unchecked(dst) };
         copy_context.post_copy(to_obj, bytes, copy);
         to_obj
     }
 
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         let need_copy = from != to;
-        let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
         if need_copy {
             // copy obj to target
             let dst = to.to_raw_address();
@@ -50,17 +52,18 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         }
         let start = Self::ref_to_object_start(to);
         if region != Address::ZERO {
-            fill_alignment_gap::<OpenJDK>(region, start);
+            fill_alignment_gap::<OpenJDK<COMPRESSED>>(region, start);
         }
         start + bytes
     }
 
     fn get_reference_when_copied_to(_from: ObjectReference, to: Address) -> ObjectReference {
-        ObjectReference::from_raw_address(to)
+        debug_assert!(!to.is_zero());
+        unsafe { ObjectReference::from_raw_address_unchecked(to) }
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        unsafe { Oop::from(object).size() }
+        unsafe { Oop::from(object).size::<COMPRESSED>() }
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
@@ -84,16 +87,8 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         object.to_raw_address()
     }
 
-    fn ref_to_address(object: ObjectReference) -> Address {
-        object.to_raw_address()
-    }
-
     fn ref_to_header(object: ObjectReference) -> Address {
         object.to_raw_address()
-    }
-
-    fn address_to_ref(address: Address) -> ObjectReference {
-        ObjectReference::from_raw_address(address)
     }
 
     fn dump_object(object: ObjectReference) {
@@ -106,6 +101,7 @@ impl ObjectModel<OpenJDK> for VMObjectModel {
         let oop = Oop::from(object);
         // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
         // If oop.klass is not a valid pointer, we may segfault here.
-        oop.klass.id as i32 >= 0 && (oop.klass.id as i32) < 6
+        let klass_id = oop.klass::<COMPRESSED>().id as i32;
+        (0..6).contains(&klass_id)
     }
 }
