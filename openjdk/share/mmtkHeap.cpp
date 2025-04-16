@@ -69,32 +69,49 @@ last gc time
 object iterator??!!
 */
 
-//mmtkGCTaskManager* MMTkHeap::_mmtk_gc_task_manager = NULL;
+// ReservedHeapSpace will actually do the mmap when constructed.
+// We reimplement it without mmaping, and fill in the fields manually using data from MMTk core.
+class MMTkReservedHeapSpace : public ReservedHeapSpace {
+public:
+  MMTkReservedHeapSpace(bool use_compressed_oops)
+    : ReservedHeapSpace(0, 0, 0) // When `size == 0`, the constructor of ReservedHeapSpace will return immediately.
+  {
+    uintptr_t start = (uintptr_t)starting_heap_address();
+    uintptr_t end = (uintptr_t)last_heap_address();
+    uintptr_t size = end - start;
 
+    _base = (char*)start;
+    _size = size;
+    _noaccess_prefix = 0;
+    _alignment = HeapAlignment;
+    _page_size = 4096; // MMTk has been assuming 4096-byte pages, which is not always true.
+    _special = false; // from jfrVirtualMemory.cpp: "ReservedSpaces marked as special will have the entire memory pre-committed."
+    _fd_for_heap = -1; // The MMTk heap is not backed by a file descriptor.
+  }
+};
 
 MMTkHeap* MMTkHeap::_heap = NULL;
 
 MMTkHeap::MMTkHeap() :
   CollectedHeap(),
+  _mmtk_pool(nullptr),
+  _mmtk_manager(nullptr),
   _n_workers(0),
   _gc_lock(new Monitor(Mutex::nosafepoint, "MMTkHeap::_gc_lock", true)),
   _num_root_scan_tasks(0),
+  _companion_thread(nullptr),
   _soft_ref_policy(),
   _last_gc_time(0)
-// , _par_state_string(StringTable::weak_storage())
 {
   _heap = this;
 }
 
 jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
-  assert(!UseCompressedOops , "should disable CompressedOops");
-  assert(!UseCompressedClassPointers , "should disable UseCompressedClassPointers");
+  assert(AllocateHeapAt == nullptr, "MMTk does not support file-backed heap.");
+
   const size_t min_heap_size = MinHeapSize;
   const size_t max_heap_size = MaxHeapSize;
-  // const size_t min_heap_size = collector_policy()->min_heap_byte_size();
-  // const size_t max_heap_size = collector_policy()->max_heap_byte_size();
-  //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
 
   if (UseCompressedOops) mmtk_enable_compressed_oops();
 
@@ -125,35 +142,27 @@ jint MMTkHeap::initialize() {
   guarantee(set_heap_size, "Failed to set MMTk heap size. Please check if the heap size is valid: min = %ld, max = %ld\n", min_heap_size, max_heap_size);
 
   openjdk_gc_init(&mmtk_upcalls);
+
   // Cache the value here. It is a constant depending on the selected plan. The plan won't change from now, so value won't change.
   MMTkMutatorContext::max_non_los_default_alloc_bytes = get_max_non_los_default_alloc_bytes();
 
-  //ReservedSpace heap_rs = Universe::reserve_heap(mmtk_heap_size, _collector_policy->heap_alignment());
+  // Compute the memory range.
+  // Other GC in OpenJDK will do mmap when constructing ReservedHeapSpace, but MMTk does mmap internally.
+  // So we construct our special MMTkReservedHeapSpace which doesn't actually do mmap.
+  MMTkReservedHeapSpace heap_rs(UseCompressedOops);
+  initialize_reserved_region(heap_rs); // initializes this->_reserved
 
-  //printf("inside mmtkHeap.cpp.. reserved base %x size %u \n", heap_rs.base(), heap_rs.size());
-
-  //os::trace_page_sizes("Heap",
-  //                     _collector_policy->min_heap_byte_size(),
-  //                     mmtk_heap_size,
-  //                     collector_policy()->space_alignment(),
-  //                     heap_rs.base(),
-  //                     heap_rs.size());
-
-  //_start = (HeapWord*)heap_rs.base();
-  //_end = (HeapWord*)(heap_rs.base() + heap_rs.size());
-
-  ReservedHeapSpace heap_rs = Universe::reserve_heap(MaxHeapSize, HeapAlignment);
-  //  printf("start: %p, end: %p\n", _start, _end);
   if (UseCompressedOops) {
-    CompressedOops::set_base((address) mmtk_narrow_oop_base());
-    CompressedOops::set_shift(mmtk_narrow_oop_shift());
+    CompressedOops::initialize(heap_rs);
+
+    // Assert the base and the shift computed by MMTk and OpenJDK match.
+    address mmtk_base = (address)mmtk_narrow_oop_base();
+    int mmtk_shift = mmtk_narrow_oop_shift();
+    guarantee(mmtk_base == CompressedOops::base(), "MMTk and OpenJDK disagree with narrow oop base.  MMTk: %p, OpenJDK: %p", mmtk_base, CompressedOops::base());
+    guarantee(mmtk_shift == CompressedOops::shift(), "MMTk and OpenJDK disagree with narrow oop shift.  MMTk: %d, OpenJDK: %d", mmtk_shift, CompressedOops::shift());
   }
 
-  initialize_reserved_region(heap_rs);
-
-
-  MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(heap_rs.region());
-  //barrier_set->initialize();
+  MMTkBarrierSet* const barrier_set = new MMTkBarrierSet(_reserved);
   BarrierSet::set_barrier_set(barrier_set);
 
   _companion_thread = new MMTkVMCompanionThread();
@@ -380,9 +389,7 @@ void MMTkHeap::prepare_for_verify() {
 
 
 void MMTkHeap::initialize_serviceability() {//OK
-
-
-  _mmtk_pool = new MMTkMemoryPool(_start, _end, "MMTk pool", MinHeapSize, false);
+  _mmtk_pool = new MMTkMemoryPool(_reserved, "MMTk pool", MinHeapSize, false);
 
   _mmtk_manager = new GCMemoryManager("MMTk GC");
   _mmtk_manager->add_pool(_mmtk_pool);

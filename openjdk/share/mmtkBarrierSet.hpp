@@ -33,6 +33,7 @@
 #include "oops/access.hpp"
 #include "oops/arrayOop.hpp"
 #include "oops/accessBackend.hpp"
+#include "oops/compressedOops.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/fakeRttiSupport.hpp"
 #include "utilities/macros.hpp"
