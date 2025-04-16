@@ -30,16 +30,15 @@
 
 class MMTkMemoryPool : public CollectedMemoryPool {
 private:
-  HeapWord* _start;
-  HeapWord* _end;
+  MemRegion _reserved;
   size_t _used_in_bytes;
 
 public:
-  MMTkMemoryPool(HeapWord* start, HeapWord* end, const char* name, size_t init_size,  bool support_usage_threshold);
+  MMTkMemoryPool(MemRegion region, const char* name, size_t init_size,  bool support_usage_threshold);
 
   MemoryUsage get_memory_usage();
   size_t used_in_bytes() { return _used_in_bytes; }
-  size_t max_size() const { return pointer_delta(_start, _end)*HeapWordSize; }
+  size_t max_size() const { return _reserved.byte_size(); }
 };
 
 

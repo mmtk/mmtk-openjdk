@@ -48,17 +48,20 @@ class MMTkVMCompanionThread;
 class MMTkHeap : public CollectedHeap {
   MMTkMemoryPool* _mmtk_pool;
   GCMemoryManager* _mmtk_manager;
-  HeapWord* _start;
-  HeapWord* _end;
-  static MMTkHeap* _heap;
   size_t _n_workers;
   Monitor* _gc_lock;
   ContiguousSpace* _space;
   int _num_root_scan_tasks;
   MMTkVMCompanionThread* _companion_thread;
   SoftRefPolicy _soft_ref_policy;
-public:
 
+public:
+  jlong _last_gc_time;
+
+private:
+  static MMTkHeap* _heap;
+
+public:
   MMTkHeap();
 
   void schedule_finalizer();
@@ -207,9 +210,6 @@ public:
   void scan_oop_storage_set_roots(OopClosure& cl);
   void scan_weak_processor_roots(OopClosure& cl);
   void scan_vm_thread_roots(OopClosure& cl);
-
-  jlong _last_gc_time;
-
 };
 
 

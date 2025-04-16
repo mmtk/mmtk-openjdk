@@ -25,19 +25,20 @@
 #include "precompiled.hpp"
 #include "mmtkMemoryPool.hpp"
 
-MMTkMemoryPool::MMTkMemoryPool(HeapWord* start, HeapWord* end,
-                               const char* name, size_t init_size,
+MMTkMemoryPool::MMTkMemoryPool(MemRegion region,
+                               const char* name,
+                               size_t init_size,
                                bool support_usage_threshold) :
-  CollectedMemoryPool(name, init_size,
-                      pointer_delta(start, end)*HeapWordSize, support_usage_threshold),
-            
-        _start(start), _end(end), _used_in_bytes(0){
+  CollectedMemoryPool(name, init_size, region.byte_size(), support_usage_threshold),
+  _reserved(region),
+  _used_in_bytes(0)
+{
 }
 
 MemoryUsage MMTkMemoryPool::get_memory_usage() {
   size_t maxSize   = (available_for_allocation() ? max_size() : 0);
   size_t used      = used_in_bytes();
-  size_t committed = pointer_delta(_start, _end)*HeapWordSize;
+  size_t committed = _reserved.byte_size();
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
