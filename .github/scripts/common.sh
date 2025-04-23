@@ -1,6 +1,10 @@
 BINDING_PATH=$(realpath $(dirname "$0"))/../..
 RUSTUP_TOOLCHAIN=`cat $BINDING_PATH/mmtk/rust-toolchain`
 
+# build.yml specifies the OPENJDK_PATH env var when calling ci-build.sh
+# But other scripts expect a default path for OpenJDK.
+OPENJDK_PATH=${OPENJDK_PATH:="$BINDING_PATH/repos/jdk"}
+
 # dacapo2006 min heap for mark compact
 MINHEAP_ANTLR=5
 MINHEAP_FOP=13

@@ -3,11 +3,13 @@ set -ex
 . $(dirname "$0")/common.sh
 cur=$BINDING_PATH/.github/scripts
 
+# This script runs against a specific pre-built java binary, not OpenJDK source code.
+ensure_env TEST_JAVA_BIN
+unset OPENJDK_PATH
+
 # This script is only used by MMTk core.
-# OPENJDK_PATH is the default path set in ci-checkout.sh
-export OPENJDK_PATH=$BINDING_PATH/repos/openjdk
 export DEBUG_LEVEL=fastdebug
-export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java
+export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java
 
 # Download dacapo
 export DACAPO_PATH=$BINDING_PATH/dacapo

@@ -3,7 +3,10 @@ set -xe
 . $(dirname "$0")/common.sh
 
 unset JAVA_TOOL_OPTIONS
-cd $OPENJDK_PATH
+
+# This script runs against a specific pre-built java binary, not OpenJDK source code.
+ensure_env TEST_JAVA_BIN
+unset OPENJDK_PATH
 
 export MMTK_NO_REFERENCE_TYPES=false
 # Just test Immix and MarkCompact
