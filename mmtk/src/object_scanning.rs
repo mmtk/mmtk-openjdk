@@ -181,42 +181,42 @@ fn oop_iterate_slow<const COMPRESSED: bool, V: SlotVisitor<S<COMPRESSED>>>(
 
 fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl SlotVisitor<S<COMPRESSED>>) {
     let klass = oop.klass::<COMPRESSED>();
-    let klass_id = klass.id;
+    let klass_id = klass.kind;
     assert!(
-        klass_id as i32 >= 0 && (klass_id as i32) < KlassID::MaxKlassID as i32,
+        klass_id as i32 >= 0 && (klass_id as i32) < KlassKind::Unknown as i32,
         "Invalid klass-id: {:x} for oop: {:x}",
         klass_id as i32,
         unsafe { mem::transmute::<Oop, ObjectReference>(oop) }
     );
     match klass_id {
-        KlassID::Instance => {
+        KlassKind::Instance => {
             let instance_klass = unsafe { klass.cast::<InstanceKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::InstanceClassLoader => {
+        KlassKind::InstanceClassLoader => {
             let instance_klass = unsafe { klass.cast::<InstanceClassLoaderKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::InstanceMirror => {
+        KlassKind::InstanceMirror => {
             let instance_klass = unsafe { klass.cast::<InstanceMirrorKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::ObjArray => {
+        KlassKind::ObjArray => {
             let array_klass = unsafe { klass.cast::<ObjArrayKlass>() };
             array_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::TypeArray => {
+        KlassKind::TypeArray => {
             // Skip scanning primitive arrays as they contain no reference fields.
         }
-        KlassID::InstanceRef => {
+        KlassKind::InstanceRef => {
             let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::InstanceStackChunk => {
+        KlassKind::InstanceStackChunk => {
             unreachable!("StackChunkOop not supported!")
         }
-        KlassID::MaxKlassID => {
-            unreachable!("Invalid KlassID")
+        KlassKind::Unknown => {
+            unreachable!("Unknown KlassKind")
         }
     }
 }

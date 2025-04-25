@@ -25,7 +25,7 @@ pub const BITS_IN_LONG: usize = 1 << LOG_BITS_IN_LONG;
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[allow(dead_code)]
-pub enum KlassID {
+pub enum KlassKind {
     Instance,
     InstanceRef,
     InstanceMirror,
@@ -33,7 +33,7 @@ pub enum KlassID {
     InstanceStackChunk,
     TypeArray,
     ObjArray,
-    MaxKlassID
+    Unknown,
 }
 
 #[repr(i32)]
@@ -66,7 +66,7 @@ pub struct Klass {
     #[cfg(debug_assertions)]
     valid: i32,
     pub layout_helper: i32,
-    pub id: KlassID, // _kind
+    pub kind: KlassKind,
     pub modifier_flags: i32,
     pub super_check_offset: u32,
     pub name: OpaquePointer, // Symbol*
@@ -82,7 +82,7 @@ pub struct Klass {
     pub vtable_len: i32,
     pub access_flags: i32, // AccessFlags
     #[cfg(feature = "jfr")]
-    pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
+    pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
     pub shared_class_flags: u16,
     pub archived_mirror_index: i32,
     pub padding: i32,
@@ -137,7 +137,7 @@ pub struct InstanceKlass {
     pub init_state: u8,
     pub reference_type: ReferenceType,
     pub misc_flags: u16,
-    pub init_monitor: OpaquePointer,         // Monitor*
+    pub init_monitor: OpaquePointer,        // Monitor*
     pub init_thread: OpaquePointer,         // Thread*
     pub oop_map_cache: OpaquePointer,       // OopMapCache*
     pub jni_ids: OpaquePointer,             // JNIid*
