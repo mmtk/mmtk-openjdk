@@ -83,19 +83,19 @@ plugins:
       - "scratch/stderr.log"
 
 runtimes:
-  jdk11-master:
+  jdk21-master:
     type: OpenJDK
-    release: 11
+    release: 21
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
 configs:
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
 
 benchmarks:
   dacapo-23.9-RC3-chopin-ci:
