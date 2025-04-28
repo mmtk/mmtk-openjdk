@@ -5,7 +5,7 @@ set -xe
 unset JAVA_TOOL_OPTIONS
 
 run_all_no_compressed_oop() {
-    heap_multiplier=$2
+    heap_multiplier=$1
 
     runbms_dacapo2006_with_heap_multiplier antlr $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
     runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
