@@ -1,23 +1,10 @@
 set -ex
 
-. $(dirname "$0")/common.sh
-cur=$BINDING_PATH/.github/scripts
-
-# This script runs against a specific pre-built java binary, not OpenJDK source code.
-ensure_env TEST_JAVA_BIN
-unset OPENJDK_PATH
-
-# This script is only used by MMTk core.
-export DEBUG_LEVEL=fastdebug
-export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java
-
-# Download dacapo
-export DACAPO_PATH=$BINDING_PATH/dacapo
-mkdir -p $DACAPO_PATH
-wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
+. $(dirname "$0")/common-binding-test.sh
 
 # Normal build
 $cur/ci-build.sh
+
 # Test
 $cur/ci-test-only-normal.sh
 $cur/ci-test-only-normal-no-compressed-oops.sh

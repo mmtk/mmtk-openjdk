@@ -4,6 +4,10 @@ set -xe
 
 unset JAVA_TOOL_OPTIONS
 
+# This script runs against a specific pre-built java binary, not OpenJDK source code.
+ensure_env TEST_JAVA_BIN
+unset OPENJDK_PATH
+
 run_all_no_compressed_oop() {
     heap_multiplier=$1
 

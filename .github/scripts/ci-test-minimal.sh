@@ -1,19 +1,10 @@
 set -ex
 
-. $(dirname "$0")/common.sh
-cur=$BINDING_PATH/.github/scripts
-
-# This script is only used by MMTk core.
-export DEBUG_LEVEL=fastdebug
-export TEST_JAVA_BIN=$OPENJDK_PATH/build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java
-
-# Download dacapo
-export DACAPO_PATH=$BINDING_PATH/dacapo
-mkdir -p $DACAPO_PATH
-wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
+. $(dirname "$0")/common-binding-test.sh
 
 # Normal build
 $cur/ci-build.sh
+
 # Test
 MMTK_PLAN=SemiSpace runbms_dacapo2006_with_heap_multiplier fop 4
 MMTK_PLAN=Immix runbms_dacapo2006_with_heap_multiplier fop 4
