@@ -4,9 +4,9 @@ on:
   workflow_call:
 
 env:
-  DACAPO_VERSION: dacapo-23.9-RC3-chopin
-  DACAPO_FILE: dacapo-23.9-RC3-chopin.zip
-  DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.9-RC3-chopin.zip
+  DACAPO_VERSION: dacapo-23.11-MR2-chopin
+  DACAPO_FILE: dacapo-23.11-MR2-chopin.zip
+  DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.11-MR2-chopin.zip
 
 jobs:
   cache-dacapo:
