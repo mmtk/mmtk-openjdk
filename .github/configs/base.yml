@@ -2,13 +2,16 @@ includes:
   - "$RUNNING_NG_PACKAGE_DATA/base/runbms.yml"
 
 suites:
-  dacapo-23.11-MR2-chopin-ci:
+  # We use the same suites name "dacapochopin" as defined in "running-ng/src/running/config/base/dacapo.yml".
+  # This will combine this definition with the existing "dacapochopin".
+  # This will also allow us to use modifiers such as "dacapochopin_jdk21" which expect the suites name "dacapochopin".
+  dacapochopin:
     type: DaCapo
-    # We use the following configuration to run tests.
-    release: evaluation
+    release: "23.11"
     path: "DACAPO_PATH/dacapo-23.11-MR2-chopin.jar"
     minheap: mmtk-openjdk-11-MarkCompact
     # Min heap values are from dacapo-evaluation-git-04132797
+    # TODO: Use the values provided by the released version, and use G1 instead of MarkCompact.
     minheap_values:
       mmtk-openjdk-11-MarkCompact:
         avrora: 8
@@ -98,4 +101,4 @@ configs:
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
 
 benchmarks:
-  dacapo-23.11-MR2-chopin-ci:
+  dacapochopin:
