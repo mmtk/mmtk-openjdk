@@ -15,8 +15,9 @@ Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-The minimal supported Rust version for MMTk-OpenJDK binding is 1.61.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
-binding with Rust 1.66.1 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
+The minimal supported Rust version for MMTk-OpenJDK binding is defined by the `package.rust-version` attribute in [`Cargo.toml`](mmtk/Cargo.toml).
+Make sure your Rust version is higher than this.
+We test MMTk-OpenJDK binding with the Rust version specified in [`rust-toolchain`](mmtk/rust-toolchain).
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
 ```console
@@ -34,7 +35,7 @@ Your working directory/
 ├─ mmtk-openjdk/
 │  ├─ openjdk/
 │  └─ mmtk/
-├─ openjdk/
+├─ jdk/
 └─ mmtk-core/ (optional)
 ```
 
@@ -51,13 +52,13 @@ The binding repo mainly consists of two folders, `mmtk` and `openjdk`.
 
 #### Checkout OpenJDK
 
-You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `openjdk` as a sibling of `mmtk-openjdk`.
+You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `jdk` as a sibling of `mmtk-openjdk`.
 [`Cargo.toml`](mmtk/Cargo.toml) defines the version of OpenJDK that works with the version of `mmtk-openjdk`.
 
 Assuming your current working directory is the parent folder of `mmtk-openjdk`, you can checkout out OpenJDK and the correct version using:
 ```console
 $ git clone https://github.com/mmtk/jdk.git
-$ git -C openjdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
+$ git -C jdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
 ```
 
 #### Checkout MMTk core (optional)
@@ -85,7 +86,7 @@ _**Note:** MMTk is only tested with the `server` build variant._
 After cloned the OpenJDK repo, cd into the root directiory:
 
 ```console
-$ cd openjdk
+$ cd jdk
 ```
 
 Then select a `DEBUG_LEVEL`, can be one of `release`, `fastdebug`, `slowdebug` and `optimized`.
@@ -118,7 +119,7 @@ $ make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/op
 
 The output jdk is then found at `./build/linux-x86_64-server-release/images/jdk`.
 
-> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
+> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk21u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
 > 
 > The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-server-$DEBUG_LEVEL/jdk`.
 >
@@ -162,14 +163,14 @@ We then run `fop` in order to get some profiling data. Note that your location
 for the DaCapo benchmarks may be different:
 
 ```bash
-MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-23.11-chopin.jar -n 5 fop
 ```
 
 We have to merge the profiling data into something we can feed into the Rust
 compiler using `llvm-profdata`:
 
 ```console
-$ /opt/rust/toolchains/1.66.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
+$ /opt/rust/toolchains/1.83.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
 ```
 
 The location of your version of `llvm-profdata` may be different to what we
