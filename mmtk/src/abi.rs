@@ -25,13 +25,15 @@ pub const BITS_IN_LONG: usize = 1 << LOG_BITS_IN_LONG;
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[allow(dead_code)]
-pub enum KlassID {
+pub enum KlassKind {
     Instance,
     InstanceRef,
     InstanceMirror,
     InstanceClassLoader,
+    InstanceStackChunk,
     TypeArray,
     ObjArray,
+    Unknown,
 }
 
 #[repr(i32)]
@@ -64,7 +66,8 @@ pub struct Klass {
     #[cfg(debug_assertions)]
     valid: i32,
     pub layout_helper: i32,
-    pub id: KlassID,
+    pub kind: KlassKind,
+    pub modifier_flags: i32,
     pub super_check_offset: u32,
     pub name: OpaquePointer, // Symbol*
     pub secondary_super_cache: &'static Klass,
@@ -76,14 +79,13 @@ pub struct Klass {
     pub next_sibling: &'static Klass,
     pub next_link: &'static Klass,
     pub class_loader_data: OpaquePointer, // ClassLoaderData*
-    pub modifier_flags: i32,
-    pub access_flags: i32, // AccessFlags
-    pub trace_id: u64,     // JFR_ONLY(traceid _trace_id;)
-    pub last_biased_lock_bulk_revocation_time: i64,
-    pub prototype_header: Oop, // markOop,
-    pub biased_lock_revocation_count: i32,
     pub vtable_len: i32,
-    pub shared_class_path_index: i16,
+    pub access_flags: i32, // AccessFlags
+    #[cfg(feature = "jfr")]
+    pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
+    pub shared_class_flags: u16,
+    pub archived_mirror_index: i32,
+    pub padding: i32,
 }
 
 impl Klass {
@@ -120,50 +122,49 @@ pub struct InstanceKlass {
     pub constants: OpaquePointer,     // ConstantPool*
     pub inner_classes: OpaquePointer, // Array<jushort>*
     pub nest_members: OpaquePointer,  // Array<jushort>*
-    pub nest_host_index: u16,
     pub nest_host: &'static InstanceKlass,
+    pub permitted_subclasses: OpaquePointer, // Array<jushort>*
+    pub record_components: OpaquePointer,    // Array<RecordComponent*>*
     pub source_debug_extension: OpaquePointer, // const char*
-    pub array_name: OpaquePointer,             // Symbol*
     pub nonstatic_field_size: i32,
     pub static_field_size: i32,
-    pub generic_signature_index: u16,
-    pub source_file_name_index: u16,
-    pub static_oop_field_count: u16,
-    pub java_fields_count: u16,
     pub nonstatic_oop_map_size: i32,
     pub itable_len: i32,
-    pub is_marked_dependent: bool, // bool
-    pub is_being_redefined: bool,  // bool
+    pub nest_host_index: u16,
+    pub this_class_index: u16,
+    pub static_oop_field_count: u16,
+    pub idnum_allocated_count: u16,
+    pub init_state: u8,
+    pub reference_type: ReferenceType,
     pub misc_flags: u16,
-    pub minor_version: u16,
-    pub major_version: u16,
+    pub init_monitor: OpaquePointer,        // Monitor*
     pub init_thread: OpaquePointer,         // Thread*
     pub oop_map_cache: OpaquePointer,       // OopMapCache*
     pub jni_ids: OpaquePointer,             // JNIid*
     pub methods_jmethod_ids: OpaquePointer, // jmethodID*
-    pub dep_context: usize,                 // intptr_t
-    pub osr_nmethods_head: OpaquePointer,   // nmethod*
+    pub dep_context: OpaquePointer,         // nmethodBucket*
+    pub dep_context_last_cleaned: u64,
+    pub osr_nmethods_head: OpaquePointer, // nmethod*
     // #if INCLUDE_JVMTI
     pub breakpoints: OpaquePointer,       // BreakpointInfo*
     pub previous_versions: OpaquePointer, // InstanceKlass*
     pub cached_class_file: OpaquePointer, // JvmtiCachedClassFileData*
     // #endif
-    pub idnum_allocated_count: u16,
-    pub init_state: u8,
-    pub reference_type: ReferenceType,
-    pub this_class_index: u16,
     // #if INCLUDE_JVMTI
     pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
     // #endif
     #[cfg(debug_assertions)]
     verify_count: i32,
+    #[cfg(debug_assertions)]
+    _shared_class_load_count: i32,
     pub methods: OpaquePointer,                // Array<Method*>*
     pub default_methods: OpaquePointer,        // Array<Method*>*
     pub local_interfaces: OpaquePointer,       // Array<Klass*>*
     pub transitive_interfaces: OpaquePointer,  // Array<Klass*>*
     pub method_ordering: OpaquePointer,        // Array<int>*
     pub default_vtable_indices: OpaquePointer, // Array<int>*
-    pub fields: OpaquePointer,                 // Array<u2>*
+    pub fieldinfo_stream: OpaquePointer,       // Array<u1>*
+    pub fields_status: OpaquePointer,          // Array<FieldStatus>*
 }
 
 #[repr(u8)]
@@ -237,7 +238,13 @@ impl InstanceMirrorKlass {
 #[repr(C)]
 pub struct ArrayKlass {
     pub klass: Klass,
-    pub dimension: i32,
+    // Note that dimension actually is i32
+    // However. it shares the same machine word as the Klass.padding in the C++
+    // abi
+    // While in Rust, dimension and padding occupy two separate words
+    // By changing dimension to have size zero, the remaining fields will
+    // Have the correct offset into the struct
+    dimension: (),
     pub higher_dimension: &'static Klass,
     pub lower_dimension: &'static Klass,
 }
@@ -490,5 +497,18 @@ pub fn validate_memory_layouts() {
             ^ mem::size_of::<TypeArrayKlass>()
             ^ mem::size_of::<ObjArrayKlass>()
     };
+    if vm_checksum != binding_checksum {
+        println!("Rust: Klass {} InstanceKlass {} InstanceRefKlass {} InstanceMirrorKlass {} InstanceClassLoaderKlass {} TypeArrayKlass {} ObjArrayKlass {} ArrayKlass {}",
+        mem::size_of::<Klass>()
+        , mem::size_of::<InstanceKlass>()
+        , mem::size_of::<InstanceRefKlass>()
+        , mem::size_of::<InstanceMirrorKlass>()
+        , mem::size_of::<InstanceClassLoaderKlass>()
+        , mem::size_of::<TypeArrayKlass>()
+        , mem::size_of::<ObjArrayKlass>()
+        , mem::size_of::<ArrayKlass>()
+        );
+        panic!("Rust and C++ definitions don't match");
+    }
     assert_eq!(vm_checksum, binding_checksum);
 }

@@ -1,4 +1,4 @@
-use crate::abi::Oop;
+use crate::abi::{KlassKind, Oop};
 use crate::UPCALLS;
 use crate::{vm_metadata, OpenJDK};
 use mmtk::util::alloc::fill_alignment_gap;
@@ -99,9 +99,8 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<
 
     fn is_object_sane(object: ObjectReference) -> bool {
         let oop = Oop::from(object);
-        // It is only valid if klass.id is between 0 and 5 (see KlassID in openjdk/src/hotspot/share/oops/klass.hpp)
-        // If oop.klass is not a valid pointer, we may segfault here.
-        let klass_id = oop.klass::<COMPRESSED>().id as i32;
-        (0..6).contains(&klass_id)
+        // The KlassKind must be one of the known variants, and cannot be InstanceStackChunk which we don't support.
+        let kind = oop.klass::<COMPRESSED>().kind;
+        (kind as i32) < (KlassKind::Unknown as i32) && kind != KlassKind::InstanceStackChunk
     }
 }

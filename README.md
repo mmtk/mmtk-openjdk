@@ -15,8 +15,9 @@ Please make sure your dev machine satisfies those prerequisites.
 
 ### Before you continue
 
-The minimal supported Rust version for MMTk-OpenJDK binding is 1.61.0. Make sure your Rust version is higher than this. We test MMTk-OpenJDK
-binding with Rust 1.66.1 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
+The minimal supported Rust version for MMTk-OpenJDK binding is defined by the `package.rust-version` attribute in [`Cargo.toml`](mmtk/Cargo.toml).
+Make sure your Rust version is higher than this.
+We test MMTk-OpenJDK binding with the Rust version specified in [`rust-toolchain`](mmtk/rust-toolchain).
 You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
 
 ```console
@@ -34,7 +35,7 @@ Your working directory/
 ├─ mmtk-openjdk/
 │  ├─ openjdk/
 │  └─ mmtk/
-├─ openjdk/
+├─ jdk/
 └─ mmtk-core/ (optional)
 ```
 
@@ -51,13 +52,13 @@ The binding repo mainly consists of two folders, `mmtk` and `openjdk`.
 
 #### Checkout OpenJDK
 
-You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `openjdk` as a sibling of `mmtk-openjdk`.
+You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `jdk` as a sibling of `mmtk-openjdk`.
 [`Cargo.toml`](mmtk/Cargo.toml) defines the version of OpenJDK that works with the version of `mmtk-openjdk`.
 
 Assuming your current working directory is the parent folder of `mmtk-openjdk`, you can checkout out OpenJDK and the correct version using:
 ```console
-$ git clone https://github.com/mmtk/openjdk.git
-$ git -C openjdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
+$ git clone https://github.com/mmtk/jdk.git
+$ git -C jdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
 ```
 
 #### Checkout MMTk core (optional)
@@ -85,7 +86,7 @@ _**Note:** MMTk is only tested with the `server` build variant._
 After cloned the OpenJDK repo, cd into the root directiory:
 
 ```console
-$ cd openjdk
+$ cd jdk
 ```
 
 Then select a `DEBUG_LEVEL`, can be one of `release`, `fastdebug`, `slowdebug` and `optimized`.
@@ -113,17 +114,17 @@ $ sh configure --disable-warnings-as-errors --with-debug-level=$DEBUG_LEVEL
 Then build OpenJDK (this will build MMTk as well):
 
 ```console
-$ make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
-The output jdk is then found at `./build/linux-x86_64-normal-server-release/images/jdk`.
+The output jdk is then found at `./build/linux-x86_64-server-release/images/jdk`.
 
-> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk11u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
+> **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk21u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
 > 
-> The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk`.
+> The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-server-$DEBUG_LEVEL/jdk`.
 >
 > ```console
-> $ make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+> $ make CONF=linux-x86_64-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 > ```
 >
 > Again: **do not use the exploded image for performance analysis**.
@@ -151,7 +152,7 @@ stress factor of 4 MB in order to trigger more GC events.
 First we compile MMTk with profiling support:
 
 ```console
-$ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 $ rm -rf /tmp/$USER/pgo-data/*
 ```
 We clear the `/tmp/$USER/pgo-data` directory as during compilation, the JVM we
@@ -162,14 +163,14 @@ We then run `fop` in order to get some profiling data. Note that your location
 for the DaCapo benchmarks may be different:
 
 ```bash
-MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-evaluation-git-6e411f33.jar -n 5 fop
+MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-23.11-chopin.jar -n 5 fop
 ```
 
 We have to merge the profiling data into something we can feed into the Rust
 compiler using `llvm-profdata`:
 
 ```console
-$ /opt/rust/toolchains/1.66.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
+$ /opt/rust/toolchains/1.83.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
 ```
 
 The location of your version of `llvm-profdata` may be different to what we
@@ -179,11 +180,11 @@ your Rust version.*
 Finally, we build a new image using the profiling data as an input:
 
 ```console
-$ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
+$ RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
 We now have an OpenJDK build under
-`./build/linux-x86_64-normal-server-release/images/jdk` with MMTk that has been
+`./build/linux-x86_64-server-release/images/jdk` with MMTk that has been
 optimized using PGO.
 
 For ease of use, we have provided an example script which does the above in
@@ -197,7 +198,7 @@ metadata), but by setting the environment variable `MMTK_MARK_IN_HEADER=1` while
 building OpenJDK, we can change its location to be in the object's header:
 
 ```console
-$ MMTK_MARK_IN_HEADER=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_MARK_IN_HEADER=1 make CONF=linux-x86_64-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ### Valid object bit
@@ -207,7 +208,7 @@ environment variable `MMTK_VO_BIT=1` when building OpenJDK. This will set the fe
 for mmtk-core, as well as compiling the fastpath for the VO bit.
 
 ```console
-$ MMTK_VO_BIT=1 make CONF=linux-x86_64-normal-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
+$ MMTK_VO_BIT=1 make CONF=linux-x86_64-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
 ```
 
 ## Test
@@ -221,8 +222,8 @@ class HelloWorld {
         System.out.println("Hello World!");
     }
 }
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/javac HelloWorld.java
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
+$ ./build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/javac HelloWorld.java
+$ ./build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java HelloWorld
 Hello World!
 ```
 
@@ -231,7 +232,7 @@ Hello World!
 Pass `-XX:+UseThirdPartyHeap` as java command line arguments to enable MMTk.
 
 ```
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap HelloWorld
+$ ./build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap HelloWorld
 ```
 
 If `DEBUG_LEVEL` is `release`, you should just see
@@ -266,7 +267,7 @@ $ wget https://sourceforge.net/projects/dacapobench/files/9.12-bach-MR1/dacapo-9
 Run a DaCapo benchmark (e.g. `lusearch`):
 
 ```console
-$ ./build/linux-x86_64-normal-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
+$ ./build/linux-x86_64-server-$DEBUG_LEVEL/jdk/bin/java -XX:+UseThirdPartyHeap -Xms512M -Xmx512M -jar ./dacapo-9.12-MR1-bach.jar lusearch
 Using scaled threading model. 24 processors detected, 24 threads used to drive the workload, in a possible range of [1,64]
 ===== DaCapo 9.12-MR1 lusearch starting =====
 4 query batches completed

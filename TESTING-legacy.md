@@ -34,8 +34,8 @@ cargo +nightly build
 cd ..
 # Build OpenJDK
 bash configure --disable-warnings-as-errors --with-debug-level=<DEBUG_LEVEL>
-CONF=linux-x86_64-normal-server-<DEBUG_LEVEL> make
-# JDK is at `build/linux-x86_64-normal-server-<DEBUG_LEVEL>/jdk`
+CONF=linux-x86_64-server-<DEBUG_LEVEL> make
+# JDK is at `build/linux-x86_64-server-<DEBUG_LEVEL>/jdk`
 ```
 
 ## Building (release)
@@ -48,13 +48,13 @@ cargo +nightly build --release
 cd ..
 # Build OpenJDK
 bash configure --disable-warnings-as-errors
-CONF=linux-x86_64-normal-server-release make
-# JDK is at `build/linux-x86_64-normal-server-release/jdk`
+CONF=linux-x86_64-server-release make
+# JDK is at `build/linux-x86_64-server-release/jdk`
 ```
 
 ## Testing
 
-1. `java` binary is at `build/linux-x86_64-normal-server-<DEBUG_LEVEL>/jdk/bin/java`.
+1. `java` binary is at `build/linux-x86_64-server-<DEBUG_LEVEL>/jdk/bin/java`.
 2. Set env `LD_LIBRARY_PATH` to include `$PWD/mmtk/vmbindings/openjdk/target/debug` (or `$PWD/mmtk/vmbindings/openjdk/target/release` if openjdk is built with debug level `release`).
 3. To enable MMTk, pass `-XX:+UseMMTk -XX:-UseCompressedOops` to `java`.
 
@@ -63,13 +63,13 @@ e.g.:
 * If `DEBUG_LEVEL` = `fastdebug`, `slowdebug` or `optimized`:
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/mmtk/vmbindings/openjdk/target/debug
-build/linux-x86_64-normal-server-fastdebug/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops HelloWorld
+build/linux-x86_64-server-fastdebug/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops HelloWorld
 ```
 
 * If `DEBUG_LEVEL` = `release`:
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/mmtk/vmbindings/openjdk/target/release
-build/linux-x86_64-normal-server-release/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops HelloWorld
+build/linux-x86_64-server-release/jdk/bin/java -XX:+UseMMTk -XX:-UseCompressedOops HelloWorld
 ```
 
 > Original instructions by Abdullah Al Mamun and Tanveer Hannan
