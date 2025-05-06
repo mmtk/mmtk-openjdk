@@ -22,7 +22,7 @@ struct RustDynPtr {
 const int MAX_BUMP_ALLOCATORS = 6;
 const int MAX_LARGE_OBJECT_ALLOCATORS = 2;
 const int MAX_MALLOC_ALLOCATORS = 1;
-const int MAX_IMMIX_ALLOCATORS = 1;
+const int MAX_IMMIX_ALLOCATORS = 2;
 const int MAX_FREE_LIST_ALLOCATORS = 2;
 const int MAX_MARK_COMPACT_ALLOCATORS = 1;
 
