@@ -304,17 +304,26 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 
   MutexLocker x(Heap_lock);
 
-  oop prev = NULL;
-  for (size_t i = 0; i < len; i++) {
+  oop first = (oop) objects[0]; // This points to the first node of the linked list.
+  oop last = first; // This points to the last node of the linked list.
+
+  for (size_t i = 1; i < len; i++) {
     oop reff = (oop) objects[i];
-    if (prev != NULL) {
-      HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset, reff);
+    oop old_discovered = HeapAccess<AS_NO_KEEPALIVE>::oop_load_at(reff, java_lang_ref_Reference::discovered_offset);
+    if (old_discovered != NULL || old_discovered == last) {
+      // Note that `objects` may contain duplicated elements.
+      // Because we gradually discover references during tracing,
+      // the ReferenceProcessor in mmtk-core may contain both from-space and to-space references of the same object.
+      // After processing references, they will be forwarded and become to-space references.
+      // We skip references that already have the `discovered` field set because they have already been visited.
+      continue;
     }
-    prev = reff;
+    HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, reff);
+    last = reff;
   }
 
-  oop old = Universe::swap_reference_pending_list(prev);
-  HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(prev, java_lang_ref_Reference::discovered_offset, old);
+  oop old_first = Universe::swap_reference_pending_list(first);
+  HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, old_first);
   assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
 }
 
