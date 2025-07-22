@@ -42,6 +42,11 @@ export MMTK_PLAN=MarkSweep
 
 run_subset 8
 
+# --- Compressor ---
+export MMTK_PLAN=Compressor
+
+run_subset 4
+
 # --- NoGC ---
 
 export MMTK_PLAN=NoGC
