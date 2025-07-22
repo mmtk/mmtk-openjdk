@@ -74,6 +74,9 @@ modifiers:
   preserve:
     type: ProgramArg
     val: "-preserve"
+  no_compressed_oops:
+    type: JVMArg
+    val: "-XX:-UseCompressedOops -XX:-UseCompressedClassPointers"
 
 plugins:
   keep_stdout_stderr:
@@ -96,7 +99,9 @@ configs:
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
+  # TODO: We need to disable compressed oops for Compressor temporarily until it supports
+  # discontiguous spaces.
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|no_compressed_oops|mmtk_gc-Compressor"
 
 benchmarks:
   dacapo-23.9-RC3-chopin-ci:
