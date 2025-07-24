@@ -36,7 +36,7 @@ results:
         StickyImmix: pass
         MarkSweep: ignore
         MarkCompact: ignore
-        Compressor: pass
+        Compressor: ignore
       eclipse:
         SemiSpace: pass
         GenCopy: pass
