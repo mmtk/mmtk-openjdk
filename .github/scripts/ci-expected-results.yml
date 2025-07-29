@@ -180,6 +180,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       zxing:
         SemiSpace: pass
         GenCopy: pass
