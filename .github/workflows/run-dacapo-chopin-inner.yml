@@ -151,7 +151,7 @@ jobs:
       - name: Upload running artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }}
+          name: linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }}-${{ inputs.heap-factor }}
           path: /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
       - name: Check for test failures
         run: |
