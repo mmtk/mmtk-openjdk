@@ -6,6 +6,7 @@ suites:
     type: DaCapo
     # Need running-ng to support 23.9
     release: evaluation
+    # This is expanded in CI when we run with the config.
     path: "DACAPO_PATH/dacapo-23.9-RC3-chopin.jar"
     minheap: mmtk-openjdk-11-MarkCompact
     # Min heap values are from dacapo-evaluation-git-04132797
@@ -90,19 +91,3 @@ runtimes:
     type: OpenJDK
     release: 11
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
-
-configs:
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  # TODO: We need to disable compressed oops for Compressor temporarily until it supports
-  # discontiguous spaces.
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|no_compressed_oops|mmtk_gc-Compressor"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|no_compressed_oops|mmtk_gc-ConcurrentImmix"
-
-benchmarks:
-  dacapo-23.9-RC3-chopin-ci:
