@@ -4,13 +4,13 @@ on:
   workflow_call:
 
 jobs:
-  heap-2500:
+  normal-heap:
     uses: ./.github/workflows/run-dacapo-chopin-inner.yml
     with:
       config-file: "normal-heap.yml"
       heap-factor: "2.5"
 
-  heap-4000:
+  large-heap:
     uses: ./.github/workflows/run-dacapo-chopin-inner.yml
     with:
       config-file: "large-heap.yml"
