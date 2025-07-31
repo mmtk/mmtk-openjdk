@@ -14,4 +14,4 @@ jobs:
     uses: ./.github/workflows/run-dacapo-chopin-inner.yml
     with:
       config-file: "large-heap.yml"
-      heap-factor: "6"
+      heap-factor: "7"

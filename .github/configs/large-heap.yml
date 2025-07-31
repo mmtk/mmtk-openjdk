@@ -2,7 +2,7 @@ includes:
   - "./base.yml"
 
 configs:
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|no_compressed_oops|mmtk_gc-ConcurrentImmix"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-ConcurrentImmix"
 
 # This will be expanded in CI when we run with the config. Keep a new line at the end.
 benchmarks:
