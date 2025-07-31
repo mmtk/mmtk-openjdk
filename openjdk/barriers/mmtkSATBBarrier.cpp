@@ -9,7 +9,7 @@
 constexpr int kUnloggedValue = 1;
 
 static inline intptr_t side_metadata_base_address() {
-  return UseCompressedOops ? SATB_METADATA_BASE_ADDRESS : SATB_METADATA_BASE_ADDRESS;
+  return SATB_METADATA_BASE_ADDRESS;
 }
 
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
@@ -29,8 +29,8 @@ void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, o
   // oop pre_val = *slot;
   // if (pre_val == NULL) return;
   intptr_t addr = ((intptr_t) (void*) src);
-  const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> (UseCompressedOops ? 5 : 6)));
-  intptr_t shift = (addr >> (UseCompressedOops ? 2 : 3)) & 0b111;
+  const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> 6));
+  intptr_t shift = (addr >> 3) & 0b111;
   uint8_t byte_val = *meta_addr;
   if (((byte_val >> shift) & 1) == kUnloggedValue) {
     object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
@@ -90,13 +90,13 @@ void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* mas
   // __ cmpptr(tmp3, (int32_t) NULL_WORD);
   // __ jcc(Assembler::equal, done);
 
-  __ shrptr(tmp3, UseCompressedOops ? 5 : 6);
+  __ shrptr(tmp3, 6);
   __ movptr(tmp5, side_metadata_base_address());
   __ movzbl(tmp5, Address(tmp5, tmp3));
 
   // tmp3 = (obj >> 3) & 7
   __ mov(tmp3, obj);
-  __ shrptr(tmp3, UseCompressedOops ? 2 : 3);
+  __ shrptr(tmp3, 3);
   __ andptr(tmp3, 7);
   // tmp5 = tmp5 >> tmp3
   __ movptr(tmp4, rcx);
@@ -329,7 +329,7 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
     // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
     LIR_Opr offset = gen->new_pointer_register();
     __ move(addr, offset);
-    __ unsigned_shift_right(offset, UseCompressedOops ? 5 : 6, offset);
+    __ unsigned_shift_right(offset, 6, offset);
     LIR_Opr base = gen->new_pointer_register();
     __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
     LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
@@ -340,7 +340,7 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
     // intptr_t shift = (addr >> 3) & 0b111;
     LIR_Opr shift = gen->new_register(T_INT);
     __ move(addr, shift);
-    __ unsigned_shift_right(shift, UseCompressedOops ? 2 : 3, shift);
+    __ unsigned_shift_right(shift, 3, shift);
     __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
     // if (((byte_val >> shift) & 1) == 1) slow;
     LIR_Opr result = byte_val;
@@ -371,10 +371,10 @@ void MMTkSATBBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, 
 
   Node* zero  = __ ConI(0);
   Node* addr = __ CastPX(__ ctrl(), src);
-  Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(UseCompressedOops ? 5 : 6)));
+  Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(6)));
   Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
 
-  Node* shift = __ URShiftX(addr, __ ConI(UseCompressedOops ? 2 : 3));
+  Node* shift = __ URShiftX(addr, __ ConI(3));
   shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
   Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
   __ if_then(result, BoolTest::ne, zero, unlikely); {
