@@ -385,7 +385,7 @@ pub extern "C" fn executable() -> bool {
 
 #[no_mangle]
 pub extern "C" fn mmtk_load_reference(mutator: *mut libc::c_void, o: ObjectReference) {
-    with_mutator!(|mutator| mutator.barrier().load_reference(o))
+    with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
 #[no_mangle]
