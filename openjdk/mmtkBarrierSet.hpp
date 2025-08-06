@@ -85,11 +85,9 @@ public:
   }
 
   /// Full pre-barrier
-  template<DecoratorSet decorators>
-  void object_reference_write_pre(oop src, oop* slot, oop target) const {}
+  virtual void object_reference_write_pre(oop src, oop* slot, oop target) const {};
   /// Full post-barrier
-  template<DecoratorSet decorators>
-  void object_reference_write_post(oop src, oop* slot, oop target) const {}
+  virtual void object_reference_write_post(oop src, oop* slot, oop target) const {};
   /// Full arraycopy pre-barrier
   virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) const {};
   /// Full arraycopy post-barrier
@@ -221,9 +219,9 @@ public:
     }
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
-      runtime()->template object_reference_write_pre<decorators>(base, (oop*) (size_t((void*) base) + offset), value);
+      runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), value);
       Raw::oop_store_at(base, offset, value);
-      runtime()->template object_reference_write_post<decorators>(base, (oop*) (size_t((void*) base) + offset), value);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), value);
     }
 
     template <typename T>
@@ -233,9 +231,9 @@ public:
     }
 
     static oop oop_atomic_cmpxchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset, oop compare_value) {
-      runtime()->template object_reference_write_pre<decorators>(base, (oop*) (size_t((void*) base) + offset), new_value);
+      runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), new_value);
       oop result = Raw::oop_atomic_cmpxchg_at(new_value, base, offset, compare_value);
-      runtime()->template object_reference_write_post<decorators>(base, (oop*) (size_t((void*) base) + offset), new_value);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), new_value);
       return result;
     }
 
@@ -246,9 +244,9 @@ public:
     }
 
     static oop oop_atomic_xchg_in_heap_at(oop new_value, oop base, ptrdiff_t offset) {
-      runtime()->template object_reference_write_pre<decorators>(base, (oop*) (size_t((void*) base) + offset), new_value);
+      runtime()->object_reference_write_pre(base, (oop*) (size_t((void*) base) + offset), new_value);
       oop result = Raw::oop_atomic_xchg_at(new_value, base, offset);
-      runtime()->template object_reference_write_post<decorators>(base, (oop*) (size_t((void*) base) + offset), new_value);
+      runtime()->object_reference_write_post(base, (oop*) (size_t((void*) base) + offset), new_value);
       return result;
     }
 
