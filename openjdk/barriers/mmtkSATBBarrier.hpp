@@ -21,7 +21,27 @@ const intptr_t SATB_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 class MMTkSATBBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
-  virtual void object_reference_write_pre(oop src, oop* slot, oop target) const override;
+  template<DecoratorSet decorators>
+  void object_reference_write_pre(oop src, oop* slot, oop target) const {
+    if (HasDecorator<decorators, IS_DEST_UNINITIALIZED>::value ||
+        HasDecorator<decorators, AS_NO_KEEPALIVE>::value) {
+      return;
+    }
+
+#if MMTK_ENABLE_BARRIER_FASTPATH
+    // oop pre_val = *slot;
+    // if (pre_val == NULL) return;
+    intptr_t addr = ((intptr_t) (void*) src);
+    const volatile uint8_t * meta_addr = (const volatile uint8_t *) (SATB_METADATA_BASE_ADDRESS + (addr >> 6));
+    intptr_t shift = (addr >> 3) & 0b111;
+    uint8_t byte_val = *meta_addr;
+    if (((byte_val >> shift) & 1) == 1) { // kUnloggedValue
+      object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
+    }
+#else
+    object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
+#endif
+  }
   virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) const override {
     if (count == 0) return;
     ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) dst, count);

@@ -24,21 +24,7 @@ void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
   mmtk_object_probable_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) new_obj);
 }
 
-void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  // oop pre_val = *slot;
-  // if (pre_val == NULL) return;
-  intptr_t addr = ((intptr_t) (void*) src);
-  const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> 6));
-  intptr_t shift = (addr >> 3) & 0b111;
-  uint8_t byte_val = *meta_addr;
-  if (((byte_val >> shift) & 1) == kUnloggedValue) {
-    object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
-  }
-#else
-  object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
-#endif
-}
+// Template implementation moved to header file
 
 #define __ masm->
 

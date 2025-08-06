@@ -21,7 +21,21 @@ const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_B
 class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
-  virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
+  template<DecoratorSet decorators>
+  void object_reference_write_post(oop src, oop* slot, oop target) const {
+#if MMTK_ENABLE_BARRIER_FASTPATH
+    intptr_t addr = (intptr_t) (void*) src;
+    uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
+    intptr_t shift = (addr >> 3) & 0b111;
+    uint8_t byte_val = *meta_addr;
+    if (((byte_val >> shift) & 1) == 1) {
+      // MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
+      object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
+    }
+#else
+    object_reference_write_post_call((void*) src, (void*) slot, (void*) target);
+#endif
+  }
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
     object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
