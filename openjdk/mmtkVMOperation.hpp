@@ -39,7 +39,9 @@ private:
 
 public:
   VM_MMTkSTWOperation(MMTkVMCompanionThread *companion_thread);
+  virtual bool doit_prologue() override;
   virtual void doit() override;
+  virtual void doit_epilogue() override;
 };
 
 #endif // MMTK_OPENJDK_MMTK_VM_OPERATION_HPP
