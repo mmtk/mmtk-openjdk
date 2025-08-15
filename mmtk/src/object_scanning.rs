@@ -132,11 +132,9 @@ impl OopIterate for InstanceRefKlass {
                 ReferenceType::Weak => add_weak_candidate(reference),
                 ReferenceType::Soft => add_soft_candidate(reference),
                 ReferenceType::Phantom => add_phantom_candidate(reference),
-                // Process these two types normally (as if they are strong refs)
+                // Process final reference normally.
                 // We will handle final reference later
-                ReferenceType::Final | ReferenceType::Other => {
-                    Self::process_ref_as_strong(oop, closure)
-                }
+                ReferenceType::Final => Self::process_ref_as_strong(oop, closure),
             }
         } else {
             Self::process_ref_as_strong(oop, closure);
