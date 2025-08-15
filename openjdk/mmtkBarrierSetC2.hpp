@@ -49,30 +49,35 @@ protected:
   /// Barrier elision test
   virtual bool can_remove_barrier(GraphKit* kit, PhaseTransform* phase, Node* src, Node* slot, Node* val, bool skip_const_null) const;
   /// Full pre-barrier
-  virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
+  virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* pre_val, Node* val) const {}
   /// Full post-barrier
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
 
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), val.node());
+    if (access.is_oop()) {
+      IdealKit ideal(access.kit(), true);
+      uint alias_idx = access.kit()->C->get_alias_index(access.addr().type());
+      Node* pre_val = ideal.load(ideal.ctrl(), access.addr().node(), static_cast<const TypeOopPtr*>(val.type()), access.type(), alias_idx);
+      object_reference_write_pre(access.kit(), access.base(), access.addr().node(), pre_val, val.node());
+    }
     Node* store = BarrierSetC2::store_at_resolved(access, val);
     if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), val.node());
     return store;
   }
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop())  object_reference_write_pre(access.kit(), access.base(), access.addr().node(), expected_val, new_val);
     Node* result = BarrierSetC2::atomic_cmpxchg_val_at_resolved(access, expected_val, new_val, value_type);
     if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
     return result;
   }
   virtual Node* atomic_cmpxchg_bool_at_resolved(C2AtomicAccess& access, Node* expected_val, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), expected_val, new_val);
     Node* load_store = BarrierSetC2::atomic_cmpxchg_bool_at_resolved(access, expected_val, new_val, value_type);
     if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
     return load_store;
   }
   virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const {
-    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
+    if (access.is_oop()) object_reference_write_pre(access.kit(), access.base(), access.addr().node(), NULL, new_val);
     Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
     if (access.is_oop()) object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
     return result;
