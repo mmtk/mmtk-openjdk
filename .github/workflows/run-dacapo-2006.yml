@@ -73,6 +73,8 @@ jobs:
           BIN_DIR=`find . -name bin`
           mv `dirname $BIN_DIR` jdk
           popd
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Test ${{ matrix.test-script }}
         run: |
           export TEST_JAVA_BIN=$GITHUB_WORKSPACE/bundles/jdk/bin/java
