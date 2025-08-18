@@ -11,6 +11,8 @@ MINHEAP_HSQLDB=117
 MINHEAP_ECLIPSE=23
 MINHEAP_XALAN=21
 
+export MMTK_NO_REFERENCE_TYPES=true
+
 # ensure_env 'var_name'
 ensure_env() {
     env_var=$1
