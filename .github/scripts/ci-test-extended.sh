@@ -19,6 +19,7 @@ $cur/ci-build.sh
 # Test
 $cur/ci-test-only-normal.sh
 $cur/ci-test-only-normal-no-compressed-oops.sh
+$cur/ci-test-only-weak-ref.sh
 
 # Build with extreme assertions
 MMTK_EXTREME_ASSERTIONS=1 $cur/ci-build.sh

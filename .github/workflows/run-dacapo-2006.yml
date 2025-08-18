@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-script: ["ci-test-only-normal", "ci-test-only-normal-no-compressed-oops"]
+        test-script: ["ci-test-only-normal", "ci-test-only-normal-no-compressed-oops", "ci-test-only-weak-ref"]
     steps:
       # We need to check out the binding repo to get the running configs and test scripts
       - name: Checkout MMTk OpenJDK binding
