@@ -87,6 +87,15 @@ static void mmtk_resume_mutators(void *tls) {
     MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
+
+  log_debug(gc)("Notifying mutators blocking on Heap_lock for reference pending list...");
+  // Note: That's the ReferenceHandler thread.
+  {
+    MutexLockerEx x(Heap_lock, Mutex::_no_safepoint_check_flag);
+    if (Universe::has_reference_pending_list()) {
+      Heap_lock->notify_all();
+    }
+  }
 }
 
 static const int GC_THREAD_KIND_WORKER = 1;
@@ -293,6 +302,8 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
     return;
   }
 
+  MutexLocker x(Heap_lock);
+
   oop first = (oop) objects[0]; // This points to the first node of the linked list.
   oop last = first; // This points to the last node of the linked list.
 
@@ -313,6 +324,7 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 
   oop old_first = Universe::swap_reference_pending_list(first);
   HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, old_first);
+  assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
