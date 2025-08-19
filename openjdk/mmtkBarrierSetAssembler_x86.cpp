@@ -39,7 +39,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, var_size_in_bytes, t1);
 
-  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) {
+  if (!mmtk_enable_allocation_fastpath) {
     __ jmp(slow_case);
   } else {
     // MMTk size check. If the alloc size is larger than the allowed max size for non los,
@@ -164,11 +164,11 @@ void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembl
 
   __ save_live_registers_no_oop_map(true);
 
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-#else
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
-#endif
+  if (mmtk_enable_barrier_fastpath) {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+  } else {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+  }
 
   __ restore_live_registers(true);
 
