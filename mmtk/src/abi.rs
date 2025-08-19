@@ -79,6 +79,8 @@ pub struct Klass {
     pub next_sibling: &'static Klass,
     pub next_link: &'static Klass,
     pub class_loader_data: OpaquePointer, // ClassLoaderData*
+    pub bitmap: usize,
+    pub hash_slot: u8,
     pub vtable_len: i32,
     pub access_flags: i32, // AccessFlags
     #[cfg(feature = "jfr")]
@@ -134,10 +136,10 @@ pub struct InstanceKlass {
     pub this_class_index: u16,
     pub static_oop_field_count: u16,
     pub idnum_allocated_count: u16,
+    pub is_marked_dependent: bool,
     pub init_state: u8,
     pub reference_type: ReferenceType,
     pub misc_flags: u16,
-    pub init_monitor: OpaquePointer,        // Monitor*
     pub init_thread: OpaquePointer,         // Thread*
     pub oop_map_cache: OpaquePointer,       // OopMapCache*
     pub jni_ids: OpaquePointer,             // JNIid*
