@@ -102,7 +102,7 @@ public:
   bool supports_tlab_allocation() const;
 
   bool supports_inline_contig_alloc() const {
-    return MMTK_ENABLE_ALLOCATION_FASTPATH;
+    return mmtk_enable_allocation_fastpath;
   }
 
   // The amount of space available for thread-local allocation buffers.

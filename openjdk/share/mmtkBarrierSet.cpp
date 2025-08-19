@@ -36,6 +36,9 @@
 #include "mmtkBarrierSetC2.hpp"
 #endif
 
+bool mmtk_enable_allocation_fastpath = true;
+bool mmtk_enable_barrier_fastpath = true;
+
 MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
   int tlab_top_offset, tlab_end_offset;
   int allocators_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())

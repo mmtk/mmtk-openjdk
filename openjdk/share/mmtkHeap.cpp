@@ -106,9 +106,26 @@ MMTkHeap::MMTkHeap() :
   _heap = this;
 }
 
+static void set_bool_option_from_env_var(const char *name, bool *var) {
+  const char *env_var = getenv(name);
+  if (env_var != NULL) {
+    if (strcmp(env_var, "true") == 0 || strcmp(env_var, "yes") == 0 || strcmp(env_var, "on") == 0 || strcmp(env_var, "1") == 0) {
+      *var = true;
+    } else if (strcmp(env_var, "false") == 0 || strcmp(env_var, "no") == 0 || strcmp(env_var, "off") == 0 || strcmp(env_var, "0") == 0) {
+      *var = false;
+    } else {
+      fprintf(stderr, "Unexpected value for env var %s: %s\n", name, env_var);
+      abort();
+    }
+  }
+}
+
 jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
   assert(AllocateHeapAt == nullptr, "MMTk does not support file-backed heap.");
+
+  set_bool_option_from_env_var("MMTK_ENABLE_ALLOCATION_FASTPATH", &mmtk_enable_allocation_fastpath);
+  set_bool_option_from_env_var("MMTK_ENABLE_BARRIER_FASTPATH", &mmtk_enable_barrier_fastpath);
 
   const size_t min_heap_size = MinHeapSize;
   const size_t max_heap_size = MaxHeapSize;

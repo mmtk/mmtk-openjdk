@@ -39,8 +39,8 @@
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
 
-#define MMTK_ENABLE_ALLOCATION_FASTPATH true
-#define MMTK_ENABLE_BARRIER_FASTPATH true
+extern bool mmtk_enable_allocation_fastpath;
+extern bool mmtk_enable_barrier_fastpath;
 
 const intptr_t VO_BIT_BASE_ADDRESS = VO_BIT_ADDRESS;
 

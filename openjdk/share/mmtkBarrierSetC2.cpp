@@ -132,7 +132,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     }
   }
 
-  if (!MMTK_ENABLE_ALLOCATION_FASTPATH
+  if (!mmtk_enable_allocation_fastpath
       // Malloc allocator has no fastpath
       || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)) {
     // Force slow-path allocation
@@ -608,7 +608,7 @@ bool MMTkBarrierSetC2::can_remove_barrier(GraphKit* kit, PhaseTransform* phase, 
     return true;
   }
   // Barrier elision based on allocation node does not working well with slowpath-only allocation.
-  if (!MMTK_ENABLE_ALLOCATION_FASTPATH) return false;
+  if (!mmtk_enable_allocation_fastpath) return false;
   // No barrier required for newly allocated objects.
   if (src == kit->just_allocated_object(kit->control())) return true;
 
