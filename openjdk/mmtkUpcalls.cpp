@@ -298,12 +298,24 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 
   for (size_t i = 1; i < len; i++) {
     oop reff = (oop) objects[i];
+
+    // Note that the `objects[]` array may contain duplicated elements.
+    // References live after the previous collection will remain in the `ReferenceProcessor` in mmtk-core,
+    // which live in the from-space in the current collection.
+    // When the OpenJDK binding gradually discovers references during transitive closure,
+    // it will add new pointers to the reference processor, pointing to `Reference` instances in the to-space.
+    // After processing references, all references will be forwarded and become to-space references,
+    // but a former from-space pointer may become the same as one of the newly added to-space references,
+    // and the mmtk-core does not deduplicate them.
+    // We need to deduplicate the `objects[]` array.
+
+    if (reff == last) {
+      // The `discovered` field of `last` is still NULL,
+      // but we skip the current `reff` if it happens to be the same as `last`.
+      continue;
+    }
     oop old_discovered = HeapAccess<AS_NO_KEEPALIVE>::oop_load_at(reff, java_lang_ref_Reference::discovered_offset);
-    if (old_discovered != NULL || old_discovered == last) {
-      // Note that `objects` may contain duplicated elements.
-      // Because we gradually discover references during tracing,
-      // the ReferenceProcessor in mmtk-core may contain both from-space and to-space references of the same object.
-      // After processing references, they will be forwarded and become to-space references.
+    if (old_discovered != NULL) {
       // We skip references that already have the `discovered` field set because they have already been visited.
       continue;
     }
