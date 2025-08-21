@@ -117,6 +117,7 @@ void MMTkBarrierSet::on_thread_destroy(Thread* thread) {
 
 void MMTkBarrierSet::on_thread_attach(Thread* thread) {
   thread->third_party_heap_mutator.flush();
+  BarrierSet::on_thread_attach(thread);
 }
 
 void MMTkBarrierSet::on_thread_detach(Thread* thread) {
