@@ -87,15 +87,6 @@ static void mmtk_resume_mutators(void *tls) {
     MutexLockerEx locker(MMTkHeap::heap()->gc_lock(), Mutex::_no_safepoint_check_flag);
     MMTkHeap::heap()->gc_lock()->notify_all();
   }
-
-  log_debug(gc)("Notifying mutators blocking on Heap_lock for reference pending list...");
-  // Note: That's the ReferenceHandler thread.
-  {
-    MutexLockerEx x(Heap_lock, Mutex::_no_safepoint_check_flag);
-    if (Universe::has_reference_pending_list()) {
-      Heap_lock->notify_all();
-    }
-  }
 }
 
 static const int GC_THREAD_KIND_WORKER = 1;
@@ -302,19 +293,29 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
     return;
   }
 
-  MutexLocker x(Heap_lock);
-
   oop first = (oop) objects[0]; // This points to the first node of the linked list.
   oop last = first; // This points to the last node of the linked list.
 
   for (size_t i = 1; i < len; i++) {
     oop reff = (oop) objects[i];
+
+    // Note that the `objects[]` array may contain duplicated elements.
+    // References live after the previous collection will remain in the `ReferenceProcessor` in mmtk-core,
+    // which live in the from-space in the current collection.
+    // When the OpenJDK binding gradually discovers references during transitive closure,
+    // it will add new pointers to the reference processor, pointing to `Reference` instances in the to-space.
+    // After processing references, all references will be forwarded and become to-space references,
+    // but a former from-space pointer may become the same as one of the newly added to-space references,
+    // and the mmtk-core does not deduplicate them.
+    // We need to deduplicate the `objects[]` array.
+
+    if (reff == last) {
+      // The `discovered` field of `last` is still NULL,
+      // but we skip the current `reff` if it happens to be the same as `last`.
+      continue;
+    }
     oop old_discovered = HeapAccess<AS_NO_KEEPALIVE>::oop_load_at(reff, java_lang_ref_Reference::discovered_offset);
-    if (old_discovered != NULL || old_discovered == last) {
-      // Note that `objects` may contain duplicated elements.
-      // Because we gradually discover references during tracing,
-      // the ReferenceProcessor in mmtk-core may contain both from-space and to-space references of the same object.
-      // After processing references, they will be forwarded and become to-space references.
+    if (old_discovered != NULL) {
       // We skip references that already have the `discovered` field set because they have already been visited.
       continue;
     }
@@ -324,7 +325,6 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 
   oop old_first = Universe::swap_reference_pending_list(first);
   HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, old_first);
-  assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {

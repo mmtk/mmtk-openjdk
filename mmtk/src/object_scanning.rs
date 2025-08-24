@@ -123,6 +123,14 @@ impl OopIterate for InstanceRefKlass {
         use crate::api::{add_phantom_candidate, add_soft_candidate, add_weak_candidate};
         self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
 
+        // Unlike OpenJDK's built-in collectors, we do not use the `discovered` field for
+        // recording discovered references (we use `add_{soft,weak,phantom}_candidate`).
+        // The `discovered` field links all `Reference` instances that are either in the
+        // global "reference pending list" or given to the `ReferenceHandler` thread.
+        // We treat it as a strong field.
+        let discovered_addr: OpenJDKSlot<COMPRESSED> = Self::discovered_address::<COMPRESSED>(oop);
+        closure.visit_slot(discovered_addr);
+
         if Self::should_scan_weak_refs::<COMPRESSED>() {
             let reference = ObjectReference::from(oop);
             match self.instance_klass.reference_type {
@@ -156,8 +164,6 @@ impl InstanceRefKlass {
     ) {
         let referent_addr = Self::referent_address::<COMPRESSED>(oop);
         closure.visit_slot(referent_addr);
-        let discovered_addr = Self::discovered_address::<COMPRESSED>(oop);
-        closure.visit_slot(discovered_addr);
     }
 }
 
