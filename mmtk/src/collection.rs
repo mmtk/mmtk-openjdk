@@ -24,6 +24,17 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn resume_mutators(tls: VMWorkerThread) {
+        if *crate::singleton::<COMPRESSED>().get_options().plan == mmtk::util::options::PlanSelector::ConcurrentImmix {
+            // For concurrent Immix, we need to check if SATB is active
+            use mmtk::vm::ActivePlan;
+            use mmtk::MutatorContext;
+
+            // Just get the first mutator: we assume all mutators have the same barrier active state.
+            let mutator: &mut Mutator<OpenJDK<COMPRESSED>> = crate::active_plan::VMActivePlan::mutators().next().unwrap();
+            unsafe { crate::CONCURRENT_MARKING_ACTIVE = if mutator.barrier().is_active() { 1 } else { 0 }; }
+            log::debug!("Use mutator: {:?}", mutator as *mut _);
+            log::debug!("Set CONCURRENT_MARKING_ACTIVE to {}", unsafe { crate::CONCURRENT_MARKING_ACTIVE });
+        }
         unsafe {
             ((*UPCALLS).resume_mutators)(tls);
         }
@@ -56,9 +67,5 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
         unsafe {
             ((*UPCALLS).schedule_finalizer)();
         }
-    }
-
-    fn set_concurrent_marking_state(active: bool) {
-        unsafe { crate::CONCURRENT_MARKING_ACTIVE = if active { 1 } else { 0 } }
     }
 }
