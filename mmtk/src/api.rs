@@ -388,14 +388,6 @@ pub extern "C" fn mmtk_load_reference(mutator: *mut libc::c_void, o: ObjectRefer
     with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
-#[no_mangle]
-pub extern "C" fn mmtk_object_reference_clone_pre(
-    mutator: *mut libc::c_void,
-    obj: ObjectReference,
-) {
-    with_mutator!(|mutator| mutator.barrier().object_reference_clone_pre(obj))
-}
-
 /// Full pre barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(

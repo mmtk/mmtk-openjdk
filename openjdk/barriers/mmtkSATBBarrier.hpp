@@ -28,8 +28,6 @@ public:
   }
   virtual void object_probable_write(oop new_obj) const override;
   virtual void load_reference(DecoratorSet decorators, oop value) const override;
-  virtual void clone_pre(DecoratorSet decorators, oop value) const override {
-  };
 };
 
 class MMTkSATBBarrierSetAssembler: public MMTkBarrierSetAssembler {
