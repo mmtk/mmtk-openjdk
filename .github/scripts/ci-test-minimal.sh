@@ -23,9 +23,7 @@ MMTK_PLAN=GenImmix runbms_dacapo2006_with_heap_multiplier fop 4
 MMTK_PLAN=StickyImmix runbms_dacapo2006_with_heap_multiplier fop 4
 MMTK_PLAN=GenCopy runbms_dacapo2006_with_heap_multiplier fop 4
 MMTK_PLAN=MarkCompact runbms_dacapo2006_with_heap_multiplier fop 4
-# TODO: Need to temporarily disable compressed oops for the Compressor until it supports
-# discontiguous spaces.
-MMTK_PLAN=Compressor runbms_dacapo2006_with_heap_multiplier fop 4 -XX:-UseCompressedOops -XX:-UseCompressedClassPointers
+MMTK_PLAN=Compressor runbms_dacapo2006_with_heap_multiplier fop 4
 MMTK_PLAN=MarkSweep runbms_dacapo2006_with_heap_multiplier fop 8
 MMTK_PLAN=NoGC runbms_dacapo2006_with_heap_size fop 1000 1000
 # Test heap resizing
