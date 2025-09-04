@@ -12,7 +12,6 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   Label done;
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
-    fprintf(stderr, "ObjectBarrierSetAssembler compiling fast path\n");
     Register tmp3 = rscratch1;
     Register tmp4 = rscratch2;
     assert_different_registers(obj, tmp2, tmp3);
