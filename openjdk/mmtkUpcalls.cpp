@@ -314,17 +314,17 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
       // but we skip the current `reff` if it happens to be the same as `last`.
       continue;
     }
-    oop old_discovered = HeapAccess<AS_NO_KEEPALIVE>::oop_load_at(reff, java_lang_ref_Reference::discovered_offset);
+    oop old_discovered = HeapAccess<AS_RAW>::oop_load_at(reff, java_lang_ref_Reference::discovered_offset);
     if (old_discovered != NULL) {
       // We skip references that already have the `discovered` field set because they have already been visited.
       continue;
     }
-    HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, reff);
+    HeapAccess<AS_RAW>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, reff);
     last = reff;
   }
 
   oop old_first = Universe::swap_reference_pending_list(first);
-  HeapAccess<AS_NO_KEEPALIVE>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, old_first);
+  HeapAccess<AS_RAW>::oop_store_at(last, java_lang_ref_Reference::discovered_offset, old_first);
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {
