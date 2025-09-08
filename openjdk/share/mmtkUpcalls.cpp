@@ -75,10 +75,6 @@ static void mmtk_resume_mutators(void *tls) {
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
-  {
-    CodeBlobFixRelocationClosure cb_cl;
-    CodeCache::blobs_do(&cb_cl);
-  }
 
   // Note: we don't have to hold gc_lock to increment the counter.
   // The increment has to be done before mutators can be resumed (from `block_for_gc` or yieldpoints).
@@ -338,6 +334,11 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
   HeapAccess<AS_RAW>::oop_store_at(last, java_lang_ref_Reference::discovered_offset(), old_first);
 }
 
+void mmtk_fix_oop_relocations(void *nmptr) {
+  nmethod* nm = (nmethod*)nmptr;
+  nm->fix_oop_relocations();
+}
+
 OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -368,5 +369,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_number_of_mutators,
   mmtk_schedule_finalizer,
   mmtk_prepare_for_roots_re_scanning,
-  mmtk_enqueue_references
+  mmtk_enqueue_references,
+  mmtk_fix_oop_relocations,
 };

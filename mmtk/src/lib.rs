@@ -112,6 +112,7 @@ pub struct OpenJDK_Upcalls {
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
+    pub fix_oop_relocations: extern "C" fn(nmethod: *mut libc::c_void),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();

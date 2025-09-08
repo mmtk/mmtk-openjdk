@@ -61,7 +61,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
 {
     fn do_work(
         &mut self,
-        _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
+        worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
         mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
     ) {
         let is_current_gc_nursery = mmtk
@@ -84,14 +84,24 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             }
         };
 
+        let moves_object = mmtk.get_plan().current_gc_may_move_object();
+
+        // nmethods which we need to fix relocations.
+        // That includes all nmethods with moved children.
+        // In nursery GCs, that means nmethods added since the previous GC.
+        let mut nmethods_to_fix = Vec::new();
+
         {
             let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
 
             // Only scan mature roots in full-heap collections.
             if !is_current_gc_nursery {
-                for roots in mature.values() {
+                for (key, roots) in mature.iter() {
                     mature_slots += roots.len();
                     add_roots(roots);
+                    if moves_object {
+                        nmethods_to_fix.push(*key);
+                    }
                 }
             }
 
@@ -101,11 +111,21 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                     nursery_slots += roots.len();
                     add_roots(&roots);
                     mature.insert(key, roots);
+                    if moves_object {
+                        nmethods_to_fix.push(key);
+                    }
                 }
             }
         }
 
-        probe!(mmtk_openjdk, code_cache_roots, nursery_slots, mature_slots);
+        let num_nmethods = nmethods_to_fix.len();
+        probe!(
+            mmtk_openjdk,
+            code_cache_roots,
+            nursery_slots,
+            mature_slots,
+            num_nmethods
+        );
 
         if !slots.is_empty() {
             self.factory.create_process_roots_work(slots);
@@ -114,5 +134,62 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         // unsafe {
         //     ((*UPCALLS).scan_code_cache_roots)(to_slots_closure(&mut self.factory));
         // }
+
+        if moves_object {
+            // Note: If the current GC doesn't move objects at all, we don't need to fix relocation.
+            // FIXME: Even during copying GC, some GC algorithms (such as Immix) don't move every
+            // single object.  We only need to call `fix_oop_relocations` on nmethods that actually
+            // have moved children.
+
+            let packets = nmethods_to_fix
+                .chunks(FixRelocations::NMETHODS_PER_PACKET)
+                .map(|chunk| {
+                    let nmethods = chunk.to_vec();
+                    Box::new(FixRelocations { nmethods }) as _
+                })
+                .collect();
+
+            // fix_oop_relocations copies the forwarded oops from the nmethod headers back to
+            // immediate operands in the machine code.  This can only be done after all fields of an
+            // nmethod have been forwarded.
+            let stage = if mmtk.get_plan().constraints().needs_forward_after_liveness {
+                // For MarkCompact, we forward the children of nmethods in the transitive closure
+                // starting with SecondRoots.  RefForwarding is the first safe place to call
+                // fix_oop_relocations.
+                WorkBucketStage::RefForwarding
+            } else {
+                // For scavenging GCs, the mmtk-openjdk binding reports the *slots* of nmethods as
+                // roots. They will be traced at unspecified times during the Closure stage.
+                // SoftRefClosure is the first safe place to call fix_oop_relocations.
+                WorkBucketStage::SoftRefClosure
+            };
+            worker.scheduler().work_buckets[stage].bulk_add(packets);
+        }
+    }
+}
+
+struct FixRelocations {
+    nmethods: Vec<Address>,
+}
+
+impl FixRelocations {
+    /// The number of nmethods per packet. This value is selected for load-balancing.  Processing
+    /// one nmethod is significantly more expensive than processing one slot.
+    pub const NMETHODS_PER_PACKET: usize = 64;
+}
+
+impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
+    fn do_work(
+        &mut self,
+        _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
+        _mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
+    ) {
+        let num_nmethods = self.nmethods.len();
+        for nmethod in self.nmethods.iter().copied() {
+            unsafe {
+                ((*UPCALLS).fix_oop_relocations)(nmethod.to_mut_ptr());
+            }
+        }
+        probe!(mmtk_openjdk, fix_relocations, num_nmethods);
     }
 }
