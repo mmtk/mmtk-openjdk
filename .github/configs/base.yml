@@ -102,9 +102,7 @@ configs:
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  # TODO: We need to disable compressed oops for Compressor temporarily until it supports
-  # discontiguous spaces.
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|no_compressed_oops|mmtk_gc-Compressor"
+  - "jdk11-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
 
 benchmarks:
   dacapochopin:
