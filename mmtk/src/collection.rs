@@ -3,7 +3,7 @@ use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::Mutator;
 
-use crate::UPCALLS;
+use crate::{singleton, UPCALLS};
 use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
@@ -24,16 +24,17 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn resume_mutators(tls: VMWorkerThread) {
-        if *crate::singleton::<COMPRESSED>().get_options().plan == mmtk::util::options::PlanSelector::ConcurrentImmix {
+        if *crate::singleton::<COMPRESSED>().get_options().plan
+            == mmtk::util::options::PlanSelector::ConcurrentImmix
+        {
             // For concurrent Immix, we need to check if SATB is active
-            use mmtk::vm::ActivePlan;
-            use mmtk::MutatorContext;
+            let concurrent_plan = singleton::<COMPRESSED>().get_plan().concurrent().unwrap();
+            let concurrent_marking_active = concurrent_plan.concurrent_work_in_progress();
 
-            // Just get the first mutator: we assume all mutators have the same barrier active state.
-            let mutator: &mut Mutator<OpenJDK<COMPRESSED>> = crate::active_plan::VMActivePlan::mutators().next().unwrap();
-            unsafe { crate::CONCURRENT_MARKING_ACTIVE = if mutator.barrier().is_active() { 1 } else { 0 }; }
-            log::debug!("Use mutator: {:?}", mutator as *mut _);
-            log::debug!("Set CONCURRENT_MARKING_ACTIVE to {}", unsafe { crate::CONCURRENT_MARKING_ACTIVE });
+            unsafe {
+                crate::CONCURRENT_MARKING_ACTIVE = if concurrent_marking_active { 1 } else { 0 };
+            }
+            log::debug!("Set CONCURRENT_MARKING_ACTIVE to {concurrent_marking_active}");
         }
         unsafe {
             ((*UPCALLS).resume_mutators)(tls);
