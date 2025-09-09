@@ -47,6 +47,7 @@ macro_rules! with_mutator {
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
+static SATB_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("SATBBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn get_mmtk_version() -> *const c_char {
@@ -59,6 +60,7 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
         match singleton.get_plan().constraints().barrier {
             BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
             BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+            BarrierSelector::SATBBarrier => SATB_BARRIER.as_ptr(),
             // In case we have more barriers in mmtk-core.
             #[allow(unreachable_patterns)]
             _ => unimplemented!(),
@@ -379,6 +381,11 @@ pub extern "C" fn openjdk_max_capacity() -> usize {
 #[no_mangle]
 pub extern "C" fn executable() -> bool {
     true
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_load_reference(mutator: *mut libc::c_void, o: ObjectReference) {
+    with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
 /// Full pre barrier

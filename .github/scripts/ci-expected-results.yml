@@ -10,6 +10,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       batik:
         SemiSpace: pass
         GenCopy: pass
@@ -19,6 +20,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       biojava:
         SemiSpace: pass
         GenCopy: pass
@@ -28,6 +30,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       cassandra:
         SemiSpace: pass
         GenCopy: pass
@@ -37,6 +40,7 @@ results:
         MarkSweep: ignore
         MarkCompact: ignore
         Compressor: ignore
+        ConcurrentImmix: ignore
       eclipse:
         SemiSpace: pass
         GenCopy: pass
@@ -46,6 +50,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       fop:
         SemiSpace: pass
         GenCopy: pass
@@ -55,6 +60,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       graphchi:
         SemiSpace: pass
         GenCopy: pass
@@ -64,6 +70,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       h2:
         SemiSpace: pass
         GenCopy: pass
@@ -73,6 +80,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       h2o:
         SemiSpace: pass
         GenCopy: pass
@@ -82,6 +90,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       jme:
         SemiSpace: pass
         GenCopy: pass
@@ -91,6 +100,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       jython:
         SemiSpace: pass
         GenCopy: pass
@@ -100,6 +110,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       kafka:
         SemiSpace: pass
         GenCopy: pass
@@ -109,6 +120,7 @@ results:
         MarkSweep: pass
         MarkCompact: ignore
         Compressor: pass
+        ConcurrentImmix: pass
       luindex:
         SemiSpace: pass
         GenCopy: pass
@@ -118,6 +130,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       lusearch:
         SemiSpace: pass
         GenCopy: pass
@@ -127,6 +140,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       pmd:
         SemiSpace: pass
         GenCopy: pass
@@ -136,6 +150,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       sunflow:
         SemiSpace: pass
         GenCopy: pass
@@ -145,6 +160,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       tomcat:
         SemiSpace: pass
         GenCopy: pass
@@ -154,6 +170,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       xalan:
         SemiSpace: pass
         GenCopy: pass
@@ -163,6 +180,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       zxing:
         SemiSpace: pass
         GenCopy: pass
@@ -172,6 +190,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
 
     release:
       avrora:
@@ -183,6 +202,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       batik:
         SemiSpace: pass
         GenCopy: pass
@@ -192,6 +212,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       biojava:
         SemiSpace: pass
         GenCopy: pass
@@ -201,6 +222,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       cassandra:
         SemiSpace: pass
         GenCopy: pass
@@ -210,6 +232,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       eclipse:
         SemiSpace: pass
         GenCopy: pass
@@ -219,6 +242,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       fop:
         SemiSpace: pass
         GenCopy: pass
@@ -228,6 +252,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       graphchi:
         SemiSpace: pass
         GenCopy: pass
@@ -237,6 +262,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       h2:
         SemiSpace: pass
         GenCopy: pass
@@ -246,6 +272,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       h2o:
         SemiSpace: pass
         GenCopy: pass
@@ -255,6 +282,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       jme:
         SemiSpace: pass
         GenCopy: pass
@@ -264,6 +292,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       jython:
         SemiSpace: pass
         GenCopy: pass
@@ -273,6 +302,7 @@ results:
         MarkSweep: ignore
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       kafka:
         SemiSpace: pass
         GenCopy: pass
@@ -282,6 +312,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       luindex:
         SemiSpace: pass
         GenCopy: pass
@@ -291,6 +322,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       lusearch:
         SemiSpace: pass
         GenCopy: pass
@@ -300,6 +332,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       pmd:
         SemiSpace: pass
         GenCopy: pass
@@ -309,6 +342,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       sunflow:
         SemiSpace: pass
         GenCopy: pass
@@ -318,6 +352,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       tomcat:
         SemiSpace: pass
         GenCopy: pass
@@ -327,6 +362,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       xalan:
         SemiSpace: ignore
         GenCopy: ignore
@@ -336,6 +372,7 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
       zxing:
         SemiSpace: pass
         GenCopy: pass
@@ -345,3 +382,4 @@ results:
         MarkSweep: pass
         MarkCompact: pass
         Compressor: pass
+        ConcurrentImmix: pass
