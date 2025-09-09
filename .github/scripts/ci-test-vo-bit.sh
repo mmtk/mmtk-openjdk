@@ -46,9 +46,7 @@ run_subset 8
 # --- Compressor ---
 export MMTK_PLAN=Compressor
 
-# TODO: Need to temporarily disable compressed oops for the Compressor until it
-# supports discontiguous spaces.
-run_subset 4 "-XX:-UseCompressedOops -XX:-UseCompressedClassPointers"
+run_subset 4
 
 # --- NoGC ---
 

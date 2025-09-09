@@ -333,13 +333,13 @@ GrowableArray<MemoryPool*> MMTkHeap::memory_pools() {//may cause error
 
 // Iterate over all objects, calling "cl.do_object" on each.
 void MMTkHeap::object_iterate(ObjectClosure* cl) { //No need to implement.Traced whole path.Only other heaps call it.
-  guarantee(false, "object iterate not supported");
+  fprintf(stderr, "WARNING: MMTkHeap::object_iterate is not implemented, yet.\n");
 }
 
 // Similar to object_iterate() except iterates only
 // over live objects.
 void MMTkHeap::safe_object_iterate(ObjectClosure* cl) { //not sure..many dependencies from vm
-  guarantee(false, "safe object iterate not supported");
+  fprintf(stderr, "WARNING: MMTkHeap::safe_object_iterate is not implemented, yet.\n");
 }
 
 HeapWord* MMTkHeap::block_start(const void* addr) const {//OK
