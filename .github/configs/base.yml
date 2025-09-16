@@ -6,7 +6,6 @@ suites:
     type: DaCapo
     # Need running-ng to support 23.9
     release: evaluation
-    # This is expanded in CI when we run with the config.
     path: "DACAPO_PATH/dacapo-23.9-RC3-chopin.jar"
     minheap: mmtk-openjdk-11-MarkCompact
     # Min heap values are from dacapo-evaluation-git-04132797
@@ -91,3 +90,7 @@ runtimes:
     type: OpenJDK
     release: 11
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
+
+# We don't include `configs` or `benchmarks` here.
+# This file will be included by `large-heap.yml` and `normal-heap.yml`
+# so that we can test different plans with different heap sizes.
