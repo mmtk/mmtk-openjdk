@@ -155,11 +155,11 @@ void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_runtime_stub(
 
   __ save_live_registers_no_oop_map(true);
 
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-#else
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
-#endif
+  if (mmtk_enable_barrier_fastpath) {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+  } else {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+  }
 
   __ restore_live_registers(true);
 
