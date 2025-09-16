@@ -1,4 +1,5 @@
-#define private public // too lazy to change openjdk... 
+// Workaround the fact that LIR_Assembler::as_Address is private.
+#define private public
 
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
