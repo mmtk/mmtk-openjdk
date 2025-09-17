@@ -61,18 +61,6 @@ public:
     return false;
   }
   virtual Node* load_at_resolved(C2Access& access, const Type* val_type) const override;
-  virtual void clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const override;
-
-  virtual Node* atomic_xchg_at_resolved(C2AtomicAccess& access, Node* new_val, const Type* value_type) const override {
-    if (access.is_oop()) {
-      object_reference_write_pre(access.kit(), access.base(), access.addr().node(), new_val);
-    }
-    Node* result = BarrierSetC2::atomic_xchg_at_resolved(access, new_val, value_type);
-    if (access.is_oop()) {
-      object_reference_write_post(access.kit(), access.base(), access.addr().node(), new_val);
-    }
-    return result;
-  }
 };
 
 struct MMTkSATBBarrier: MMTkBarrierImpl<

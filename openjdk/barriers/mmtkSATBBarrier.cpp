@@ -528,8 +528,4 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
   return load;
 }
 
-void MMTkSATBBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
-  BarrierSetC2::clone(kit, src, dst, size, is_array);
-}
-
 #undef __
