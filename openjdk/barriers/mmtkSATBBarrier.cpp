@@ -460,27 +460,27 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
   Node* referent_off = __ ConX(java_lang_ref_Reference::referent_offset);
 
   __ if_then(offset, BoolTest::eq, referent_off, unlikely); {
-      // Update graphKit memory and control from IdealKit.
+    // Update graphKit memory and control from IdealKit.
+    kit->sync_kit(ideal);
+    Node* ref_klass_con = kit->makecon(TypeKlassPtr::make(kit->env()->Reference_klass()));
+    Node* is_instof = kit->gen_instanceof(base_oop, ref_klass_con);
+    // Update IdealKit memory and control from graphKit.
+    __ sync_kit(kit);
+    Node* one = __ ConI(1);
+    // is_instof == 0 if base_oop == NULL
+    __ if_then(is_instof, BoolTest::eq, one, unlikely); {
+      // Update graphKit from IdeakKit.
       kit->sync_kit(ideal);
-      Node* ref_klass_con = kit->makecon(TypeKlassPtr::make(kit->env()->Reference_klass()));
-      Node* is_instof = kit->gen_instanceof(base_oop, ref_klass_con);
-      // Update IdealKit memory and control from graphKit.
+      // Use the pre-barrier to record the value in the referent field
+      reference_load_barrier(kit, slot, val, false);
+      if (need_mem_bar) {
+        // Add memory barrier to prevent commoning reads from this field
+        // across safepoint since GC can change its value.
+        kit->insert_mem_bar(Op_MemBarCPUOrder);
+      }
+      // Update IdealKit from graphKit.
       __ sync_kit(kit);
-      Node* one = __ ConI(1);
-      // is_instof == 0 if base_oop == NULL
-      __ if_then(is_instof, BoolTest::eq, one, unlikely); {
-        // Update graphKit from IdeakKit.
-        kit->sync_kit(ideal);
-        // Use the pre-barrier to record the value in the referent field
-        reference_load_barrier(kit, slot, val, false);
-        if (need_mem_bar) {
-          // Add memory barrier to prevent commoning reads from this field
-          // across safepoint since GC can change its value.
-          kit->insert_mem_bar(Op_MemBarCPUOrder);
-        }
-        // Update IdealKit from graphKit.
-        __ sync_kit(kit);
-      } __ end_if(); // _ref_type != ref_none
+    } __ end_if(); // _ref_type != ref_none
   } __ end_if(); // offset == referent_offset
 
   // Final sync IdealKit and GraphKit.
@@ -531,7 +531,5 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
 void MMTkSATBBarrierSetC2::clone(GraphKit* kit, Node* src, Node* dst, Node* size, bool is_array) const {
   BarrierSetC2::clone(kit, src, dst, size, is_array);
 }
-
-
 
 #undef __

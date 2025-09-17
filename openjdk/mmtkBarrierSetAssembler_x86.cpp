@@ -176,7 +176,7 @@ void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_runtime_stub(StubAsse
 #define __ ce->masm()->
 
 void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub) {
-   MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*)BarrierSet::barrier_set()->barrier_set_c1();
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*)BarrierSet::barrier_set()->barrier_set_c1();
 
   __ bind(*stub->entry());
   assert(stub->val->is_register(), "Precondition.");

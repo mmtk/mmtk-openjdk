@@ -80,15 +80,16 @@ struct MMTkC1PreBarrierStub: CodeStub {
   LIR_PatchCode patch_code; // Enable code patching?
   LIR_Opr scratch = NULL; // Scratch register for the resolved field
 
-MMTkC1PreBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {}
+  MMTkC1PreBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {}
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
   virtual void visit(LIR_OpVisitState* visitor) override {
-    if (info != NULL)
-        visitor->do_slow_case(info);
-      else
-        visitor->do_slow_case();
+    if (info != NULL) {
+      visitor->do_slow_case(info);
+    } else {
+      visitor->do_slow_case();
+    }
     if (src != NULL) visitor->do_input(src);
     if (slot != NULL) visitor->do_input(slot);
     if (new_val != NULL) visitor->do_input(new_val);
@@ -107,17 +108,15 @@ MMTkC1PreBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* i
 struct MMTkC1PostBarrierStub: CodeStub {
   LIR_Opr src, slot, new_val;
 
-MMTkC1PostBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {}
+  MMTkC1PostBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {}
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
   virtual void visit(LIR_OpVisitState* visitor) override {
-
     visitor->do_slow_case();
     if (src != NULL) visitor->do_input(src);
     if (slot != NULL) visitor->do_input(slot);
     if (new_val != NULL) visitor->do_input(new_val);
-
   }
 
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1PostBarrierStub"); });
@@ -132,10 +131,11 @@ struct MMTkC1ReferenceLoadBarrierStub: CodeStub {
   virtual void emit_code(LIR_Assembler* ce) override;
 
   virtual void visit(LIR_OpVisitState* visitor) override {
-    if (info != NULL)
-        visitor->do_slow_case(info);
-      else
-        visitor->do_slow_case();
+    if (info != NULL) {
+      visitor->do_slow_case(info);
+    } else {
+      visitor->do_slow_case();
+    }
     if (val != NULL) visitor->do_input(val);
   }
 
