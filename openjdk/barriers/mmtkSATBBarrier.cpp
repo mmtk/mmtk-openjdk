@@ -21,8 +21,10 @@ void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop valu
 };
 
 void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
- // The slow-call will do the unlog bit check again (same as the above fast-path check)
-  mmtk_object_probable_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) new_obj);
+  // We intentionally leave this method blank.
+  // This method is called after slowpath allocation exits.
+  // Because the new_obj is just allocated,
+  // it does not have any fields holding old values for the SATB barrier to remember.
 }
 
 void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
