@@ -5,7 +5,9 @@
 #include "gc/shared/barrierSetAssembler.hpp"
 
 class MMTkBarrierSetC1;
-class MMTkC1BarrierStub;
+class MMTkC1PreBarrierStub;
+class MMTkC1PostBarrierStub;
+class MMTkC1ReferenceLoadBarrierStub;
 class LIR_Assembler;
 class StubAssembler;
 
@@ -27,8 +29,11 @@ protected:
     return !in_heap || (skip_const_null && val == noreg);
   }
 
-  /// Generate C1 write barrier slow-call assembly code
-  virtual void generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const;
+  /// Generate C1 pre write barrier slow-call assembly code
+  virtual void generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm) const {};
+  /// Generate C1 post write barrier slow-call assembly code
+  virtual void generate_c1_post_write_barrier_runtime_stub(StubAssembler* sasm) const {};
+  virtual void generate_c1_ref_load_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
   virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) override;
@@ -41,6 +46,8 @@ public:
   }
 
   /// Generate C1 write barrier slow-call stub
-  static void generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub);
+  virtual void generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {};
+  virtual void generate_c1_post_write_barrier_stub(LIR_Assembler* ce, MMTkC1PostBarrierStub* stub) const {};
+  static void generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

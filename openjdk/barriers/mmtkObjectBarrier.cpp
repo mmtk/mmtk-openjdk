@@ -135,6 +135,57 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 
 #undef __
 
+#define __ sasm->
+
+void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_runtime_stub(StubAssembler* sasm) const {
+  __ prologue("mmtk_object_barrier", false);
+
+  Label done, runtime;
+
+  __ push(c_rarg0);
+  __ push(c_rarg1);
+  __ push(c_rarg2);
+  __ push(rax);
+
+  __ load_parameter(0, c_rarg0);
+  __ load_parameter(1, c_rarg1);
+  __ load_parameter(2, c_rarg2);
+
+  __ bind(runtime);
+
+  __ save_live_registers_no_oop_map(true);
+
+  if (mmtk_enable_barrier_fastpath) {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+  } else {
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+  }
+
+  __ restore_live_registers(true);
+
+  __ bind(done);
+  __ pop(rax);
+  __ pop(c_rarg2);
+  __ pop(c_rarg1);
+  __ pop(c_rarg0);
+
+  __ epilogue();
+}
+
+#undef __
+#define __ ce->masm()->
+
+void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_stub(LIR_Assembler* ce, MMTkC1PostBarrierStub* stub) const {
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+  __ bind(*stub->entry());
+  ce->store_parameter(stub->src->as_pointer_register(), 0);
+  ce->store_parameter(stub->slot->as_pointer_register(), 1);
+  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
+  __ call(RuntimeAddress(bs->post_barrier_c1_runtime_code_blob()->code_begin()));
+  __ jmp(*stub->continuation());
+}
+#undef __
+
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -175,7 +226,7 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  CodeStub* slow = new MMTkC1BarrierStub(src, slot, new_val);
+  CodeStub* slow = new MMTkC1PostBarrierStub(src, slot, new_val);
 
   if (mmtk_enable_barrier_fastpath) {
     LIR_Opr addr = src;
