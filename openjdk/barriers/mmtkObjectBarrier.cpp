@@ -6,11 +6,7 @@ void MMTkObjectBarrierSetRuntime::object_probable_write(oop new_obj) const {
   if (mmtk_enable_barrier_fastpath) {
     // Do fast-path check before entering mmtk rust code, to improve mutator performance.
     // This is identical to calling `mmtk_object_probable_write` directly without a fast-path.
-    intptr_t addr = (intptr_t) (void*) new_obj;
-    uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
-    intptr_t shift = (addr >> 3) & 0b111;
-    uint8_t byte_val = *meta_addr;
-    if (((byte_val >> shift) & 1) == 1) {
+    if (is_unlog_bit_set(new_obj)) {
       // Only promoted objects will reach here.
       // The duplicated unlog bit check inside slow-path still remains correct.
       mmtk_object_probable_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) new_obj);
@@ -23,11 +19,7 @@ void MMTkObjectBarrierSetRuntime::object_probable_write(oop new_obj) const {
 
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
-    intptr_t addr = (intptr_t) (void*) src;
-    uint8_t* meta_addr = (uint8_t*) (SIDE_METADATA_BASE_ADDRESS + (addr >> 6));
-    intptr_t shift = (addr >> 3) & 0b111;
-    uint8_t byte_val = *meta_addr;
-    if (((byte_val >> shift) & 1) == 1) {
+    if (is_unlog_bit_set(src)) {
       // MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
       object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
