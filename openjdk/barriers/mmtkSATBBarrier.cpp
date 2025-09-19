@@ -70,55 +70,40 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
 }
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
-  if (can_remove_barrier(decorators, val, /* skip_const_null */ false)) return;
+  if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
 
+  Label done;
+  Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
-    Label done;
-
-    Register obj = dst.base();
+    // For some instructions in the template table, such as aastore,
+    // we observed that dst.base() == tmp1 && dst.index() == tmp2.
+    // We can't afford overwriting any of those registers.
+    // We steal two scratch register to use.
     Register tmp3 = rscratch1;
     Register tmp4 = rscratch2;
-    Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
+    assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
 
-    // tmp5 = load-byte (side_metadata_base_address() + (obj >> 6));
-    __ movptr(tmp3, obj);
-    // __ load_heap_oop(tmp3, dst, noreg, noreg, AS_RAW);
-    // // Is the previous value null?
-    // __ cmpptr(tmp3, (int32_t) NULL_WORD);
-    // __ jcc(Assembler::equal, done);
+    emit_check_unlog_bit_fast_path(masm, done, obj, tmp3, tmp4);
+  }
 
-    __ shrptr(tmp3, 6);
-    __ movptr(tmp5, side_metadata_base_address());
-    __ movzbl(tmp5, Address(tmp5, tmp3));
+  // This is a pre-barrier.  Preserve caller-saved regs for the actual write operation.
+  __ pusha();
 
-    // tmp3 = (obj >> 3) & 7
-    __ mov(tmp3, obj);
-    __ shrptr(tmp3, 3);
-    __ andptr(tmp3, 7);
-    // tmp5 = tmp5 >> tmp3
-    __ movptr(tmp4, rcx);
-    __ movl(rcx, tmp3);
-    __ shrptr(tmp5);
-    __ movptr(rcx, tmp4);
-    // if ((tmp5 & 1) == 1) goto slowpath;
-    __ andptr(tmp5, 1);
-    __ cmpptr(tmp5, kUnloggedValue);
-    __ jcc(Assembler::notEqual, done);
+  __ movptr(c_rarg0, obj);
+  __ xorptr(c_rarg1, c_rarg1);
+  // Note: If `compensate_val_reg == true && UseCompressedOops === true`, the `val` register will be
+  // holding a compressed pointer to the target object. If the write barrier needs to know the
+  // target, we will need to decompress it before passing it to the barrier slow path. However,
+  // since we know the semantics of `mmtk::plan::barriers::ObjectBarrier`, i.e. it logs the object
+  // without looking at the `slot` or the `target` parameter at all, we simply pass nullptr to both
+  // parameters.
+  __ xorptr(c_rarg2, c_rarg2);
 
-    // TODO: Spill fewer registers
-    __ pusha();
-    __ movptr(c_rarg0, dst.base());
-    __ lea(c_rarg1, dst);
-    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+  if (mmtk_enable_barrier_fastpath) {
     __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
     __ popa();
-
     __ bind(done);
   } else {
-    __ pusha();
-    __ movptr(c_rarg0, dst.base());
-    __ lea(c_rarg1, dst);
-    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
     __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
     __ popa();
   }

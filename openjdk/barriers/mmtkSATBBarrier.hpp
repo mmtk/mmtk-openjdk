@@ -31,7 +31,7 @@ public:
   virtual void load_reference(DecoratorSet decorators, oop value) const override;
 };
 
-class MMTkSATBBarrierSetAssembler: public MMTkBarrierSetAssembler {
+class MMTkSATBBarrierSetAssembler: public MMTkUnlogBitBarrierSetAssembler {
 protected:
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
   /// Generate C1 write barrier slow-call assembly code
