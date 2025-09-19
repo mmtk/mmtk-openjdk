@@ -25,4 +25,53 @@ void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssemb
   __ jcc(Assembler::zero, done);
 }
 
+void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, bool pre) {
+  Label done;
+  Register obj = dst.base();
+  if (mmtk_enable_barrier_fastpath) {
+    // For some instructions in the template table, such as aastore,
+    // we observed that in BarrierSetAssembler::store_at
+    // which calls `object_reference_write_pre` or `object_reference_write_post`,
+    // dst.base() == tmp1 && dst.index() == tmp2.
+    // We can't overwrite those registers,
+    // so we don't use tmp1 or tmp2 passed to store_at.
+    // Instead, we steal two scratch register to use.
+    Register tmp3 = rscratch1;
+    Register tmp4 = rscratch2;
+    assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
+
+    emit_check_unlog_bit_fast_path(masm, done, obj, tmp3, tmp4);
+  }
+
+  if (pre) {
+    // This is a pre-barrier.  Preserve caller-saved regs for the actual write operation.
+    __ pusha();
+  }
+
+  __ movptr(c_rarg0, obj);
+  // Neither the ObjectBarrier nor the SATBBarrier need to know the slot or the value.
+  // We just set both args to nullptr.
+  // We may need to pass actual arguments if we support other barriers.
+  //
+  // Note: If the `compensate_val_reg` parameter in the post barrier is true, and we are using
+  // compressed oops, the `val` register will be holding a compressed pointer to the target object
+  // due to the way `BarrierSetAssembler::store_at` works. If the write barrier needs to know the
+  // target, we will need to decompress it before passing it to the barrier slow path.
+  __ xorptr(c_rarg1, c_rarg1);
+  __ xorptr(c_rarg2, c_rarg2);
+
+  address entry_point = mmtk_enable_barrier_fastpath ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call)
+                      : pre                          ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
+                      :                                FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
+
+  __ call_VM_leaf_base(entry_point, 3);
+
+  if (pre) {
+    __ popa();
+  }
+
+  if (mmtk_enable_barrier_fastpath) {
+    __ bind(done);
+  }
+}
 #undef __

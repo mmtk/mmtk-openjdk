@@ -71,42 +71,7 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
-
-  Label done;
-  Register obj = dst.base();
-  if (mmtk_enable_barrier_fastpath) {
-    // For some instructions in the template table, such as aastore,
-    // we observed that dst.base() == tmp1 && dst.index() == tmp2.
-    // We can't afford overwriting any of those registers.
-    // We steal two scratch register to use.
-    Register tmp3 = rscratch1;
-    Register tmp4 = rscratch2;
-    assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
-
-    emit_check_unlog_bit_fast_path(masm, done, obj, tmp3, tmp4);
-  }
-
-  // This is a pre-barrier.  Preserve caller-saved regs for the actual write operation.
-  __ pusha();
-
-  __ movptr(c_rarg0, obj);
-  __ xorptr(c_rarg1, c_rarg1);
-  // Note: If `compensate_val_reg == true && UseCompressedOops === true`, the `val` register will be
-  // holding a compressed pointer to the target object. If the write barrier needs to know the
-  // target, we will need to decompress it before passing it to the barrier slow path. However,
-  // since we know the semantics of `mmtk::plan::barriers::ObjectBarrier`, i.e. it logs the object
-  // without looking at the `slot` or the `target` parameter at all, we simply pass nullptr to both
-  // parameters.
-  __ xorptr(c_rarg2, c_rarg2);
-
-  if (mmtk_enable_barrier_fastpath) {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-    __ popa();
-    __ bind(done);
-  } else {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
-    __ popa();
-  }
+  object_reference_write_pre_or_post(masm, decorators, dst, val, /* pre = */ true);
 }
 
 void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
