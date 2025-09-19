@@ -21,7 +21,10 @@ protected:
   }
 };
 
-class MMTkUnlogBitBarrierSetAssembler: public MMTkBarrierSetAssembler {};
+class MMTkUnlogBitBarrierSetAssembler: public MMTkBarrierSetAssembler {
+protected:
+  static void emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2);
+};
 
 class MMTkUnlogBitBarrierSetC1: public MMTkBarrierSetC1 {};
 

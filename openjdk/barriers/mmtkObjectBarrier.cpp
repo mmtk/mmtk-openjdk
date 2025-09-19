@@ -20,7 +20,6 @@ void MMTkObjectBarrierSetRuntime::object_probable_write(oop new_obj) const {
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
     if (is_unlog_bit_set(src)) {
-      // MMTkObjectBarrierSetRuntime::object_reference_write_pre_slow()((void*) src);
       object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
@@ -33,8 +32,6 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
 
-  bool is_not_null = (decorators & IS_NOT_NULL) != 0;
-
   Label done;
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
@@ -46,22 +43,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
     Register tmp4 = rscratch2;
     assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
 
-    // tmp4 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
-    __ movptr(tmp3, obj);
-    __ shrptr(tmp3, 6);
-    __ movptr(tmp4, SIDE_METADATA_BASE_ADDRESS);
-    __ movb(tmp4, Address(tmp4, tmp3));
-    // tmp3 = (obj >> 3) & 7
-    __ movptr(tmp3, obj);
-    __ shrptr(tmp3, 3);
-    __ andptr(tmp3, 7);
-    // tmp4 = tmp4 >> tmp3
-    __ xchgptr(tmp3, rcx);
-    __ shrptr(tmp4);
-    __ xchgptr(tmp3, rcx);
-    // if ((tmp4 & 1) == 0) goto done;
-    __ testptr(tmp4, 1);
-    __ jcc(Assembler::zero, done);
+    emit_check_unlog_bit_fast_path(masm, done, obj, tmp3, tmp4);
   }
 
   __ movptr(c_rarg0, obj);

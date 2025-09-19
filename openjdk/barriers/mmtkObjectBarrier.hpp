@@ -29,7 +29,7 @@ public:
   virtual void object_probable_write(oop new_obj) const override;
 };
 
-class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
+class MMTkObjectBarrierSetAssembler: public MMTkUnlogBitBarrierSetAssembler {
 protected:
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const override;
   /// Generate C1 write barrier slow-call assembly code
