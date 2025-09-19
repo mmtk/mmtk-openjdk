@@ -39,26 +39,28 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
     // For some instructions in the template table, such as aastore,
-    // we observed that dst.base() == tmp1.
-    // We steal one more scratch register because one tmp2 is not enough.
+    // we observed that dst.base() == tmp1 && dst.index() == tmp2.
+    // We can't afford overwriting any of those registers.
+    // We steal two scratch register to use.
     Register tmp3 = rscratch1;
-    assert_different_registers(obj, tmp2, tmp3);
+    Register tmp4 = rscratch2;
+    assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
 
-    // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
+    // tmp4 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
     __ movptr(tmp3, obj);
     __ shrptr(tmp3, 6);
-    __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
-    __ movb(tmp2, Address(tmp2, tmp3));
+    __ movptr(tmp4, SIDE_METADATA_BASE_ADDRESS);
+    __ movb(tmp4, Address(tmp4, tmp3));
     // tmp3 = (obj >> 3) & 7
     __ movptr(tmp3, obj);
     __ shrptr(tmp3, 3);
     __ andptr(tmp3, 7);
-    // tmp2 = tmp2 >> tmp3
+    // tmp4 = tmp4 >> tmp3
     __ xchgptr(tmp3, rcx);
-    __ shrptr(tmp2);
+    __ shrptr(tmp4);
     __ xchgptr(tmp3, rcx);
-    // if ((tmp2 & 1) == 0) goto done;
-    __ testptr(tmp2, 1);
+    // if ((tmp4 & 1) == 0) goto done;
+    __ testptr(tmp4, 1);
     __ jcc(Assembler::zero, done);
   }
 
