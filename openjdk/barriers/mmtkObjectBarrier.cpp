@@ -38,10 +38,11 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   Label done;
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
+    // For some instructions in the template table, such as aastore,
+    // we observed that dst.base() == tmp1.
+    // We steal one more scratch register because one tmp2 is not enough.
     Register tmp3 = rscratch1;
-    Register tmp4 = rscratch2;
     assert_different_registers(obj, tmp2, tmp3);
-    assert_different_registers(tmp4, rcx);
 
     // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
     __ movptr(tmp3, obj);
@@ -53,14 +54,12 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
     __ shrptr(tmp3, 3);
     __ andptr(tmp3, 7);
     // tmp2 = tmp2 >> tmp3
-    __ movptr(tmp4, rcx);
-    __ movl(rcx, tmp3);
+    __ xchgptr(tmp3, rcx);
     __ shrptr(tmp2);
-    __ movptr(rcx, tmp4);
-    // if ((tmp2 & 1) == 1) goto slowpath;
-    __ andptr(tmp2, 1);
-    __ cmpptr(tmp2, 1);
-    __ jcc(Assembler::notEqual, done);
+    __ xchgptr(tmp3, rcx);
+    // if ((tmp2 & 1) == 0) goto done;
+    __ testptr(tmp2, 1);
+    __ jcc(Assembler::zero, done);
   }
 
   __ movptr(c_rarg0, obj);
