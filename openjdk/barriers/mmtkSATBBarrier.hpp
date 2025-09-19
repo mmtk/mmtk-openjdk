@@ -6,6 +6,7 @@
 #include "../mmtkBarrierSetAssembler_x86.hpp"
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
+#include "mmtkUnlogBitBarrier.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "gc/shared/barrierSet.hpp"
@@ -18,7 +19,7 @@
 
 const intptr_t SATB_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 
-class MMTkSATBBarrierSetRuntime: public MMTkBarrierSetRuntime {
+class MMTkSATBBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
   virtual void object_reference_write_pre(oop src, oop* slot, oop target) const override;

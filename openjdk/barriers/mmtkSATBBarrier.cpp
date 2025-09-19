@@ -29,13 +29,7 @@ void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
 
 void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
-    // oop pre_val = *slot;
-    // if (pre_val == NULL) return;
-    intptr_t addr = ((intptr_t) (void*) src);
-    const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> 6));
-    intptr_t shift = (addr >> 3) & 0b111;
-    uint8_t byte_val = *meta_addr;
-    if (((byte_val >> shift) & 1) == kUnloggedValue) {
+    if (is_unlog_bit_set(src)) {
       object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
