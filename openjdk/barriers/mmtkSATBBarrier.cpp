@@ -198,43 +198,36 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
   MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
 
   if (mmtk_enable_barrier_fastpath) {
-    if (needs_patching) {
-      // At this stage, slot address is not available, so cannot do the fast-path check until 
-      // its address get resolved
-      // FIXME: Jump to a medium-path for code patching without entering slow-path
-      __ jump(slow);
-    } else {
-      // // load pre_val 
-      // LIR_Address* slot_addr = new LIR_Address(slot, T_OBJECT);
-      // LIR_Opr addr = slot;
-      // __ load(slot_addr, addr);
-      // // if pre_val == NULL skip the barrier
-      // __ cmp(lir_cond_equal, addr, LIR_OprFact::oopConst(NULL));
-      // __ branch(lir_cond_equal, T_OBJECT, slow->continuation());
-      LIR_Opr addr = src;
-      // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
-      LIR_Opr offset = gen->new_pointer_register();
-      __ move(addr, offset);
-      __ unsigned_shift_right(offset, 6, offset);
-      LIR_Opr base = gen->new_pointer_register();
-      __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
-      LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
-      // uint8_t byte_val = *meta_addr;
-      LIR_Opr byte_val = gen->new_register(T_INT);
-      __ move(meta_addr, byte_val);
+    // // load pre_val 
+    // LIR_Address* slot_addr = new LIR_Address(slot, T_OBJECT);
+    // LIR_Opr addr = slot;
+    // __ load(slot_addr, addr);
+    // // if pre_val == NULL skip the barrier
+    // __ cmp(lir_cond_equal, addr, LIR_OprFact::oopConst(NULL));
+    // __ branch(lir_cond_equal, T_OBJECT, slow->continuation());
+    LIR_Opr addr = src;
+    // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
+    LIR_Opr offset = gen->new_pointer_register();
+    __ move(addr, offset);
+    __ unsigned_shift_right(offset, 6, offset);
+    LIR_Opr base = gen->new_pointer_register();
+    __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
+    LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
+    // uint8_t byte_val = *meta_addr;
+    LIR_Opr byte_val = gen->new_register(T_INT);
+    __ move(meta_addr, byte_val);
 
-      // intptr_t shift = (addr >> 3) & 0b111;
-      LIR_Opr shift = gen->new_register(T_INT);
-      __ move(addr, shift);
-      __ unsigned_shift_right(shift, 3, shift);
-      __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
-      // if (((byte_val >> shift) & 1) == 1) slow;
-      LIR_Opr result = byte_val;
-      __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
-      __ logical_and(result, LIR_OprFact::intConst(1), result);
-      __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
-      __ branch(lir_cond_equal, T_BYTE, slow);
-    }
+    // intptr_t shift = (addr >> 3) & 0b111;
+    LIR_Opr shift = gen->new_register(T_INT);
+    __ move(addr, shift);
+    __ unsigned_shift_right(shift, 3, shift);
+    __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
+    // if (((byte_val >> shift) & 1) == 1) slow;
+    LIR_Opr result = byte_val;
+    __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
+    __ logical_and(result, LIR_OprFact::intConst(1), result);
+    __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
+    __ branch(lir_cond_equal, T_BYTE, slow);
   } else {
     __ jump(slow);
   }
