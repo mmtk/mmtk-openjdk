@@ -25,6 +25,10 @@ void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssemb
   __ jcc(Assembler::zero, done);
 }
 
+#undef __
+
+#define __ masm->
+
 void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, bool pre) {
   Label done;
   Register obj = dst.base();
@@ -74,4 +78,5 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
     __ bind(done);
   }
 }
+
 #undef __
