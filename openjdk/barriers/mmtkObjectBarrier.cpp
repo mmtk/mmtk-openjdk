@@ -80,13 +80,6 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 
 #undef __
 
-#define __ sasm->
-
-void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_runtime_stub(StubAssembler* sasm) const {
-  generate_c1_pre_or_post_write_barrier_runtime_stub(sasm, "mmtk_object_barrier", /* pre = */ false);
-}
-
-#undef __
 #define __ ce->masm()->
 
 void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_stub(LIR_Assembler* ce, MMTkC1PostBarrierStub* stub) const {

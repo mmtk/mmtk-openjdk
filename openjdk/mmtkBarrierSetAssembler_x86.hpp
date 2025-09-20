@@ -14,6 +14,12 @@ class StubAssembler;
 class MMTkBarrierSetAssembler: public BarrierSetAssembler {
   friend class MMTkBarrierSetC1;
 
+private:
+  /// Generate C1 pre or post write barrier slow-call assembly code
+  void generate_c1_pre_or_post_write_barrier_runtime_stub(StubAssembler* sasm, bool pre);
+  /// Generate C1 weak reference load slow-call assembly code
+  void generate_c1_ref_load_barrier_runtime_stub(StubAssembler* sasm) const;
+
 protected:
   /// Full pre-barrier
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
@@ -28,12 +34,6 @@ protected:
     assert((decorators & IS_DEST_UNINITIALIZED) == 0, "unsupported");
     return !in_heap || (skip_const_null && val == noreg);
   }
-
-  /// Generate C1 pre write barrier slow-call assembly code
-  virtual void generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm) const {};
-  /// Generate C1 post write barrier slow-call assembly code
-  virtual void generate_c1_post_write_barrier_runtime_stub(StubAssembler* sasm) const {};
-  virtual void generate_c1_ref_load_barrier_runtime_stub(StubAssembler* sasm) const;
 
 public:
   virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) override;

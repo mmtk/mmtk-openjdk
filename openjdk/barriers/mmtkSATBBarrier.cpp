@@ -96,13 +96,6 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
 #undef __
 
-#define __ sasm->
-
-void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm) const {
-  generate_c1_pre_or_post_write_barrier_runtime_stub(sasm, "mmtk_satb_barrier", /* pre = */ true);
-}
-
-#undef __
 #define __ ce->masm()->
 
 void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {
