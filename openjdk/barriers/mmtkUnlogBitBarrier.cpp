@@ -80,3 +80,40 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
 }
 
 #undef __
+
+#define __ sasm->
+
+void MMTkUnlogBitBarrierSetAssembler::generate_c1_pre_or_post_write_barrier_runtime_stub(StubAssembler* sasm, const char* name, bool pre) {
+  __ prologue(name, false);
+
+  Label done, runtime;
+
+  __ push(c_rarg0);
+  __ push(c_rarg1);
+  __ push(c_rarg2);
+  __ push(rax);
+
+  __ load_parameter(0, c_rarg0);
+  __ load_parameter(1, c_rarg1);
+  __ load_parameter(2, c_rarg2);
+
+  __ bind(runtime);
+
+  __ save_live_registers_no_oop_map(true);
+
+  address entry_point = mmtk_enable_barrier_fastpath ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call)
+                      : pre                          ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
+                      :                                FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
+
+  __ call_VM_leaf_base(entry_point, 3);
+
+  __ restore_live_registers(true);
+
+  __ bind(done);
+  __ pop(rax);
+  __ pop(c_rarg2);
+  __ pop(c_rarg1);
+  __ pop(c_rarg0);
+
+  __ epilogue();
+}
