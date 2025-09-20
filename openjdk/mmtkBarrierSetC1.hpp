@@ -7,13 +7,12 @@
 class MMTkBarrierSetAssembler;
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
-  friend class MMTkBarrierSetAssembler;
-
-protected:
+private:
   CodeBlob* _pre_barrier_c1_runtime_code_blob;
   CodeBlob* _post_barrier_c1_runtime_code_blob;
   CodeBlob* _ref_load_barrier_c1_runtime_code_blob;
 
+protected:
   /// Full pre-barrier
   virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const {}
   /// Full post-barrier
@@ -66,6 +65,7 @@ public:
 
   CodeBlob* pre_barrier_c1_runtime_code_blob() { return _pre_barrier_c1_runtime_code_blob; }
   CodeBlob* post_barrier_c1_runtime_code_blob() { return _post_barrier_c1_runtime_code_blob; }
+  CodeBlob* ref_load_barrier_c1_runtime_code_blob() { return _ref_load_barrier_c1_runtime_code_blob; }
 
   /// Generate C1 write barrier slow-call C1-LIR code
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
