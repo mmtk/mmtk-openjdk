@@ -114,9 +114,11 @@ struct MMTkC1PostBarrierStub: CodeStub {
 
   virtual void visit(LIR_OpVisitState* visitor) override {
     visitor->do_slow_case();
-    if (src != NULL) visitor->do_input(src);
-    if (slot != NULL) visitor->do_input(slot);
-    if (new_val != NULL) visitor->do_input(new_val);
+    assert(src->is_valid(), "src must be valid");
+    visitor->do_input(src);
+    // Some post barrier stubs (such as object barrier and SATB barrier) don't use slot or new_val.
+    if (slot->is_valid()) visitor->do_input(slot);
+    if (slot->is_valid()) visitor->do_input(new_val);
   }
 
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1PostBarrierStub"); });

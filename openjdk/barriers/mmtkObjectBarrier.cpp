@@ -86,8 +86,10 @@ void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_stub(LIR_Asse
   MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
   ce->store_parameter(stub->src->as_pointer_register(), 0);
-  ce->store_parameter(stub->slot->as_pointer_register(), 1);
-  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
+  assert(stub->slot->is_illegal(), "The slot arg must be illegal");
+  assert(stub->new_val->is_illegal(), "The new_val arg must be illegal");
+  ce->store_parameter(0, 1);
+  ce->store_parameter(0, 2);
   __ call(RuntimeAddress(bs->post_barrier_c1_runtime_code_blob()->code_begin()));
   __ jmp(*stub->continuation());
 }
@@ -113,26 +115,12 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
     src = reg;
   }
   assert(src->is_register(), "must be a register at this point");
-  if (!slot->is_register()) {
-    LIR_Opr reg = gen->new_pointer_register();
-    if (slot->is_constant()) {
-      __ move(slot, reg);
-    } else {
-      __ leal(slot, reg);
-    }
-    slot = reg;
-  }
-  assert(slot->is_register(), "must be a register at this point");
-  if (!new_val->is_register()) {
-    LIR_Opr new_val_reg = gen->new_register(T_OBJECT);
-    if (new_val->is_constant()) {
-      __ move(new_val, new_val_reg);
-    } else {
-      __ leal(new_val, new_val_reg);
-    }
-    new_val = new_val_reg;
-  }
-  assert(new_val->is_register(), "must be a register at this point");
+
+  // The object barrier doesn't need the slot or the new_val arguments.
+  // We won't bother preparing those registers.
+  slot = LIR_OprFact::illegal();
+  new_val = LIR_OprFact::illegal();
+
   CodeStub* slow = new MMTkC1PostBarrierStub(src, slot, new_val);
 
   if (mmtk_enable_barrier_fastpath) {
