@@ -101,31 +101,9 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {
   MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
-
-  // For pre-barriers, stub->slot may not be a resolved address.
-  // Manually patch the address 
-  address runtime_address;
-  if (stub->patch_code != lir_patch_none) {
-    // Patch
-    assert(stub->scratch->is_single_cpu(), "must be");
-    assert(stub->scratch->is_register(), "Precondition.");
-    ce->mem2reg(stub->slot, stub->scratch, T_OBJECT, stub->patch_code, stub->info, false /*wide*/, false /*unaligned*/);
-    // Now stub->scratch contains the pre_val instead of the slot address
-    // So the following is to load the slot address into scrach register
-    // Resolve address 
-    auto masm = ce->masm();
-    LIR_Address* addr = stub->slot->as_address_ptr();
-    Address from_addr = ce->as_Address(addr);
-    __ lea(stub->scratch->as_register(), from_addr);
-    // Store parameter
-    ce->store_parameter(stub->scratch->as_pointer_register(), 1);
-  } else {
-    // Store parameter
-    ce->store_parameter(stub->slot->as_pointer_register(), 1);
-  }
-
   ce->store_parameter(stub->src->as_pointer_register(), 0);
-  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
+  ce->store_parameter(0, 1);
+  ce->store_parameter(0, 2);
   __ call(RuntimeAddress(bs->pre_barrier_c1_runtime_code_blob()->code_begin()));
   __ jmp(*stub->continuation());
 }
@@ -217,8 +195,7 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src, slot, new_val, info, needs_patching ? lir_patch_normal : lir_patch_none);
-  if (needs_patching) slow->scratch = gen->new_register(T_OBJECT);
+  MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
 
   if (mmtk_enable_barrier_fastpath) {
     if (needs_patching) {
