@@ -185,16 +185,6 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
     slot = LIR_OprFact::address(new LIR_Address(slot, T_OBJECT));
   }
   assert(needs_patching || slot->is_register(), "must be a register at this point unless needs_patching");
-  if (!new_val->is_register()) {
-    LIR_Opr new_val_reg = gen->new_register(T_OBJECT);
-    if (new_val->is_constant()) {
-      __ move(new_val, new_val_reg);
-    } else {
-      __ leal(new_val, new_val_reg);
-    }
-    new_val = new_val_reg;
-  }
-  assert(new_val->is_register(), "must be a register at this point");
   MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
 
   if (mmtk_enable_barrier_fastpath) {
