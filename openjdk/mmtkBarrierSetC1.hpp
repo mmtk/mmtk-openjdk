@@ -20,24 +20,24 @@ protected:
 
   /// Substituting write barrier
   virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) override {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value, access.patch_emit_info());
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), LIR_OprFact::illegal(), value, access.patch_emit_info());
     BarrierSetC1::store_at_resolved(access, value);
-    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), access.resolved_addr(), value);
+    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), LIR_OprFact::illegal(), value);
   }
 
   /// Substituting write barrier (cmpxchg)
   virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value) override {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), new_value.result(), NULL);
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), LIR_OprFact::illegal(), new_value.result(), NULL);
     LIR_Opr result = BarrierSetC1::atomic_cmpxchg_at_resolved(access, cmp_value, new_value);
-    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), access.resolved_addr(), new_value.result());
+    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), LIR_OprFact::illegal(), new_value.result());
     return result;
   }
 
   /// Substituting write barrier (xchg)
   virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value) override {
-    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value.result(), NULL);
+    if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), LIR_OprFact::illegal(), value.result(), NULL);
     LIR_Opr result = BarrierSetC1::atomic_xchg_at_resolved(access, value);
-    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), access.resolved_addr(), value.result());
+    if (access.is_oop()) object_reference_write_post(access, access.base().opr(), LIR_OprFact::illegal(), value.result());
     return result;
   }
 

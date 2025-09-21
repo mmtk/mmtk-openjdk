@@ -1,5 +1,5 @@
 // Workaround the fact that LIR_Assembler::as_Address is private.
-#define private public
+//#define private public
 
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
@@ -159,43 +159,25 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return; // Not sure if this line is sound
   bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
-  if (!src->is_register()) {
-    LIR_Opr reg = gen->new_pointer_register();
-    if (src->is_constant()) {
-      __ move(src, reg);
-    } else {
-      __ leal(src, reg);
-    }
-    src = reg;
-  }
-  assert(src->is_register(), "must be a register at this point");
 
-  if (!slot->is_register() && !needs_patching) {
-    LIR_Address* address = slot->as_address_ptr();
-    LIR_Opr ptr = gen->new_pointer_register();
-    if (!address->index()->is_valid() && address->disp() == 0) {
-      __ move(address->base(), ptr);
-    } else {
-      assert(address->disp() != max_jint, "lea doesn't support patched addresses!");
-      __ leal(slot, ptr);
-    }
-    slot = ptr;
-  } else if (needs_patching && !slot->is_address()) {
-    assert(slot->is_register(), "must be");
-    slot = LIR_OprFact::address(new LIR_Address(slot, T_OBJECT));
-  }
-  assert(needs_patching || slot->is_register(), "must be a register at this point unless needs_patching");
   MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
 
   if (mmtk_enable_barrier_fastpath) {
-    // // load pre_val 
-    // LIR_Address* slot_addr = new LIR_Address(slot, T_OBJECT);
-    // LIR_Opr addr = slot;
-    // __ load(slot_addr, addr);
-    // // if pre_val == NULL skip the barrier
-    // __ cmp(lir_cond_equal, addr, LIR_OprFact::oopConst(NULL));
-    // __ branch(lir_cond_equal, T_OBJECT, slow->continuation());
-    LIR_Opr addr = src;
+    // We need to do bit operations on the address of `src`. In order to move `src` (`T_OBJECT` or
+    // `T_ARRAY`) to a pointer regiseter (`T_LONG` on 64 bit), the source operand must be in
+    // register, in which case `LIR_Assembler::reg2reg` works as expected.  Otherwise `stack2ref`
+    // will complain that the source (`T_OBJECT` or `T_ARRAY` is single-cpu while the destination
+    // `T_LONG` is double-cpu).
+    //
+    // However, checking `src.is_register()` won't work because the same LIR code may be compiled
+    // again. Even it is register the first time, `src.is_stack()` may instead be true at the second
+    // time.
+    //
+    // So we introduce an intermediate step.  We move `src` into `addr` which is a `T_OBJECT`
+    // register first to make sure it is in register.  Then we move `addr` to newly created pointer
+    // registers.
+    LIR_Opr addr = gen->new_register(T_OBJECT);
+    __ move(src, addr);
     // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
     LIR_Opr offset = gen->new_pointer_register();
     __ move(addr, offset);
