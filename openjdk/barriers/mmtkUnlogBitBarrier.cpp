@@ -1,6 +1,9 @@
 #include "precompiled.hpp"
 #include "mmtkUnlogBitBarrier.hpp"
+
 #include "runtime/interfaceSupport.inline.hpp"
+#include "c1/c1_LIRAssembler.hpp"
+#include "c1/c1_MacroAssembler.hpp"
 
 #define __ masm->
 
@@ -81,6 +84,27 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
 
 #undef __
 
+#define __ ce->masm()->
+
+void MMTkUnlogBitBarrierSetAssembler::generate_c1_unlog_bit_barrier_slow_path_stub(LIR_Assembler* ce, MMTkC1UnlogBitBarrierSlowPathStub* stub) const {
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+  __ bind(*stub->entry());
+  ce->store_parameter(stub->src->as_pointer_register(), 0);
+  ce->store_parameter(0, 1);
+  ce->store_parameter(0, 2);
+  CodeBlob* code_blob = stub->pre ? bs->pre_barrier_c1_runtime_code_blob()
+                      :             bs->post_barrier_c1_runtime_code_blob();
+  __ call(RuntimeAddress(code_blob->code_begin()));
+  __ jmp(*stub->continuation());
+}
+
+void MMTkC1UnlogBitBarrierSlowPathStub::emit_code(LIR_Assembler* ce) {
+  MMTkUnlogBitBarrierSetAssembler* bs = (MMTkUnlogBitBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+  bs->generate_c1_unlog_bit_barrier_slow_path_stub(ce, this);
+}
+
+#undef __
+
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -125,6 +149,24 @@ void MMTkUnlogBitBarrierSetC1::emit_check_unlog_bit_fast_path(LIRGenerator* gen,
   __ logical_and(result, LIR_OprFact::intConst(1), result);
   __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
   __ branch(lir_cond_equal, T_BYTE, slow);
+}
+
+void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& access, bool pre) {
+  LIRGenerator* gen = access.gen();
+  DecoratorSet decorators = access.decorators();
+  if ((decorators & IN_HEAP) == 0) return;
+
+  LIR_Opr src = access.base().opr();
+
+  CodeStub* slow = new MMTkC1UnlogBitBarrierSlowPathStub(src, pre);
+
+  if (mmtk_enable_barrier_fastpath) {
+    emit_check_unlog_bit_fast_path(gen, src, slow);
+  } else {
+    __ jump(slow);
+  }
+
+  __ branch_destination(slow->continuation());
 }
 
 #undef __

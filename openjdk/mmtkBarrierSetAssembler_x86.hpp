@@ -5,8 +5,6 @@
 #include "gc/shared/barrierSetAssembler.hpp"
 
 class MMTkBarrierSetC1;
-class MMTkC1PreBarrierStub;
-class MMTkC1PostBarrierStub;
 class MMTkC1ReferenceLoadBarrierStub;
 class LIR_Assembler;
 class StubAssembler;
@@ -45,9 +43,6 @@ public:
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2, true);
   }
 
-  /// Generate C1 write barrier slow-call stub
-  virtual void generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {};
-  virtual void generate_c1_post_write_barrier_stub(LIR_Assembler* ce, MMTkC1PostBarrierStub* stub) const {};
   static void generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

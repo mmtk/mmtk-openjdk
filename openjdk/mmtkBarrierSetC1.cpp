@@ -38,16 +38,6 @@ void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
   _ref_load_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "load_code_gen_cl", false, &load_code_gen_cl);
 }
 
-void MMTkC1PostBarrierStub::emit_code(LIR_Assembler* ce) {
-  MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->generate_c1_post_write_barrier_stub(ce, this);
-}
-
-void MMTkC1PreBarrierStub::emit_code(LIR_Assembler* ce) {
-  MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->generate_c1_pre_write_barrier_stub(ce, this);
-}
-
 void MMTkC1ReferenceLoadBarrierStub::emit_code(LIR_Assembler* ce) {
   MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
   bs->generate_c1_ref_load_barrier_stub_call(ce, this);

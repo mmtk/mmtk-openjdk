@@ -71,47 +71,6 @@ public:
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
 };
 
-/// C1 pre write barrier slow-call stub.
-/// The default behaviour is to call `MMTkBarrierSetRuntime::object_reference_write_pre_call` and pass all the three args.
-/// Barrier implementations may inherit from this class, and override `emit_code` to perform a specialized slow-path call.
-struct MMTkC1PreBarrierStub: CodeStub {
-  LIR_Opr src;
-
-  MMTkC1PreBarrierStub(LIR_Opr src): src(src) {}
-
-  virtual void emit_code(LIR_Assembler* ce) override;
-
-  virtual void visit(LIR_OpVisitState* visitor) override {
-    visitor->do_slow_case();
-    assert(src->is_valid(), "src must be valid");
-    visitor->do_input(src);
-  }
-
-  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1PreBarrierStub"); });
-};
-
-/// C1 post write barrier slow-call stub.
-/// The default behaviour is to call `MMTkBarrierSetRuntime::object_reference_write_post_call` and pass all the three args.
-/// Barrier implementations may inherit from this class, and override `emit_code` to perform a specialized slow-path call.
-struct MMTkC1PostBarrierStub: CodeStub {
-  LIR_Opr src, slot, new_val;
-
-  MMTkC1PostBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {}
-
-  virtual void emit_code(LIR_Assembler* ce) override;
-
-  virtual void visit(LIR_OpVisitState* visitor) override {
-    visitor->do_slow_case();
-    assert(src->is_valid(), "src must be valid");
-    visitor->do_input(src);
-    // Some post barrier stubs (such as object barrier and SATB barrier) don't use slot or new_val.
-    if (slot->is_valid()) visitor->do_input(slot);
-    if (slot->is_valid()) visitor->do_input(new_val);
-  }
-
-  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1PostBarrierStub"); });
-};
-
 struct MMTkC1ReferenceLoadBarrierStub: CodeStub {
   LIR_Opr val;
   CodeEmitInfo* info; // Code patching info

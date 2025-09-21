@@ -96,20 +96,6 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
 #undef __
 
-#define __ ce->masm()->
-
-void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {
-  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
-  __ bind(*stub->entry());
-  ce->store_parameter(stub->src->as_pointer_register(), 0);
-  ce->store_parameter(0, 1);
-  ce->store_parameter(0, 2);
-  __ call(RuntimeAddress(bs->pre_barrier_c1_runtime_code_blob()->code_begin()));
-  __ jmp(*stub->continuation());
-}
-
-#undef __
-
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -155,22 +141,10 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 }
 
 void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access) const {
-  LIRGenerator* gen = access.gen();
-  DecoratorSet decorators = access.decorators();
-  if ((decorators & IN_HEAP) == 0) return; // Not sure if this line is sound
-  bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
+  // TODO: Should be able to skip weak field writes, too, because that doesn't change strong
+  // reachability during concurrent marking.
 
-  LIR_Opr src = access.base().opr();
-
-  MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
-
-  if (mmtk_enable_barrier_fastpath) {
-    emit_check_unlog_bit_fast_path(gen, src, slow);
-  } else {
-    __ jump(slow);
-  }
-
-  __ branch_destination(slow->continuation());
+  object_reference_write_pre_or_post(access, true);
 }
 
 #undef __
