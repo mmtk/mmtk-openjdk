@@ -154,11 +154,13 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 #endif
 }
 
-void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const {
+void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access) const {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return; // Not sure if this line is sound
   bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
+
+  LIR_Opr src = access.base().opr();
 
   MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src);
 

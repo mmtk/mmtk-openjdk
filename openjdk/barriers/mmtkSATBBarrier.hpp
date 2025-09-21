@@ -42,7 +42,7 @@ public:
 
 class MMTkSATBBarrierSetC1: public MMTkBarrierSetC1 {
 protected:
-  virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const override;
+  virtual void object_reference_write_pre(LIRAccess& access) const override;
 
   virtual void load_at_resolved(LIRAccess& access, LIR_Opr result) override;
 

@@ -101,10 +101,11 @@ void MMTkObjectBarrierSetAssembler::generate_c1_post_write_barrier_stub(LIR_Asse
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
+void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access) const {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
+  LIR_Opr src = access.base().opr();
   if (!src->is_register()) {
     LIR_Opr reg = gen->new_pointer_register();
     if (src->is_constant()) {
@@ -118,8 +119,8 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
 
   // The object barrier doesn't need the slot or the new_val arguments.
   // We won't bother preparing those registers.
-  slot = LIR_OprFact::illegal();
-  new_val = LIR_OprFact::illegal();
+  LIR_Opr slot = LIR_OprFact::illegal();
+  LIR_Opr new_val = LIR_OprFact::illegal();
 
   CodeStub* slow = new MMTkC1PostBarrierStub(src, slot, new_val);
 

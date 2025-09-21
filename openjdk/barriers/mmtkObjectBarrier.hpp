@@ -40,7 +40,7 @@ public:
 
 class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
 protected:
-  virtual void object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
+  virtual void object_reference_write_post(LIRAccess& access) const override;
 
   virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register) override {
     return MMTkBarrierSetC1::resolve_address_in_register(access, resolve_in_register);
