@@ -5,6 +5,8 @@
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 
+//////////////////// Assembler ////////////////////
+
 #define __ masm->
 
 void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2) {
@@ -84,6 +86,8 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
 
 #undef __
 
+//////////////////// Assembler/C1 ////////////////////
+
 #define __ ce->masm()->
 
 void MMTkUnlogBitBarrierSetAssembler::generate_c1_unlog_bit_barrier_slow_path_stub(LIR_Assembler* ce, MMTkC1UnlogBitBarrierSlowPathStub* stub) const {
@@ -104,6 +108,8 @@ void MMTkC1UnlogBitBarrierSlowPathStub::emit_code(LIR_Assembler* ce) {
 }
 
 #undef __
+
+//////////////////// C1 ////////////////////
 
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
