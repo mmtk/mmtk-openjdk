@@ -80,3 +80,51 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
 }
 
 #undef __
+
+#ifdef ASSERT
+#define __ gen->lir(__FILE__, __LINE__)->
+#else
+#define __ gen->lir()->
+#endif
+
+void MMTkUnlogBitBarrierSetC1::emit_check_unlog_bit_fast_path(LIRGenerator* gen, LIR_Opr src, CodeStub* slow) {
+  // We need to do bit operations on the address of `src`. In order to move `src` (`T_OBJECT` or
+  // `T_ARRAY`) to a pointer regiseter (`T_LONG` on 64 bit), the source operand must be in
+  // register, in which case `LIR_Assembler::reg2reg` works as expected.  Otherwise `stack2ref`
+  // will complain that the source (`T_OBJECT` or `T_ARRAY` is single-cpu while the destination
+  // `T_LONG` is double-cpu).
+  //
+  // However, checking `src.is_register()` won't work because the same LIR code may be compiled
+  // again. Even it is register the first time, `src.is_stack()` may instead be true at the second
+  // time.
+  //
+  // So we introduce an intermediate step.  We move `src` into `addr` which is a `T_OBJECT`
+  // register first to make sure it is in register.  Then we move `addr` to newly created pointer
+  // registers.
+  LIR_Opr addr = gen->new_register(T_OBJECT);
+  __ move(src, addr);
+  // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
+  LIR_Opr offset = gen->new_pointer_register();
+  __ move(addr, offset);
+  __ unsigned_shift_right(offset, 6, offset);
+  LIR_Opr base = gen->new_pointer_register();
+  __ move(LIR_OprFact::longConst(UNLOG_BIT_BASE_ADDRESS), base);
+  LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
+  // uint8_t byte_val = *meta_addr;
+  LIR_Opr byte_val = gen->new_register(T_INT);
+  __ move(meta_addr, byte_val);
+
+  // intptr_t shift = (addr >> 3) & 0b111;
+  LIR_Opr shift = gen->new_register(T_INT);
+  __ move(addr, shift);
+  __ unsigned_shift_right(shift, 3, shift);
+  __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
+  // if (((byte_val >> shift) & 1) == 1) slow;
+  LIR_Opr result = byte_val;
+  __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
+  __ logical_and(result, LIR_OprFact::intConst(1), result);
+  __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
+  __ branch(lir_cond_equal, T_BYTE, slow);
+}
+
+#undef __

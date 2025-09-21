@@ -27,7 +27,10 @@ protected:
   static void object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, bool pre);
 };
 
-class MMTkUnlogBitBarrierSetC1: public MMTkBarrierSetC1 {};
+class MMTkUnlogBitBarrierSetC1: public MMTkBarrierSetC1 {
+protected:
+  static void emit_check_unlog_bit_fast_path(LIRGenerator* gen, LIR_Opr addr, CodeStub* slow);
+};
 
 class MMTkUnlogBitBarrierSetC2: public MMTkBarrierSetC2 {};
 

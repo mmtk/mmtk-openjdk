@@ -40,7 +40,7 @@ public:
   virtual void load_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Address src, Register tmp1, Register tmp_thread) override;
 };
 
-class MMTkSATBBarrierSetC1: public MMTkBarrierSetC1 {
+class MMTkSATBBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
   virtual void object_reference_write_pre(LIRAccess& access) const override;
 

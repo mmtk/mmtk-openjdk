@@ -38,7 +38,7 @@ public:
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
 };
 
-class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
+class MMTkObjectBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
   virtual void object_reference_write_post(LIRAccess& access) const override;
 
