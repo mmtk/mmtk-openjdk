@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "c1/c1_CodeStubs.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
 #include "mmtkBarrierSetAssembler_x86.hpp"

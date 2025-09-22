@@ -8,6 +8,11 @@ class MMTkBarrierSetAssembler;
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
 private:
+  // Code blobs for runtime functions.
+  // Here we have one code blob for every runtime function we call,
+  // i.e. MMTkBarrierSetRuntime::*_call
+  // There is no general rules for this in OpenJDK,
+  // except that these code blobs are 
   CodeBlob* _pre_barrier_c1_runtime_code_blob;
   CodeBlob* _post_barrier_c1_runtime_code_blob;
   CodeBlob* _ref_load_barrier_c1_runtime_code_blob;
