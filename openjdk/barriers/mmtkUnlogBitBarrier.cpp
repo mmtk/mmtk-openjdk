@@ -138,22 +138,25 @@ void MMTkUnlogBitBarrierSetC1::emit_check_unlog_bit_fast_path(LIRGenerator* gen,
   // registers.
   LIR_Opr addr = gen->new_register(T_OBJECT);
   __ move(src, addr);
-  // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
+
+  // uint8_t* meta_addr = (uint8_t*) (UNLOG_BIT_BASE_ADDRESS + (addr >> 6));
   LIR_Opr offset = gen->new_pointer_register();
   __ move(addr, offset);
   __ unsigned_shift_right(offset, 6, offset);
   LIR_Opr base = gen->new_pointer_register();
   __ move(LIR_OprFact::longConst(UNLOG_BIT_BASE_ADDRESS), base);
   LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
+
   // uint8_t byte_val = *meta_addr;
   LIR_Opr byte_val = gen->new_register(T_INT);
   __ move(meta_addr, byte_val);
 
-  // intptr_t shift = (addr >> 3) & 0b111;
+  // uint32_t shift = ((uint32_t)addr >> 3) & 0b111;
   LIR_Opr shift = gen->new_register(T_INT);
   __ move(addr, shift);
   __ unsigned_shift_right(shift, 3, shift);
   __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
+
   // if (((byte_val >> shift) & 1) == 1) slow;
   LIR_Opr result = byte_val;
   __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
