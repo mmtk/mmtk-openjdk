@@ -1,6 +1,3 @@
-// Workaround the fact that LIR_Assembler::as_Address is private.
-//#define private public
-
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
