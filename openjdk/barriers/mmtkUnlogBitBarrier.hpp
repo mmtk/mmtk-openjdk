@@ -58,9 +58,11 @@ protected:
 /// stub(s).
 struct MMTkC1UnlogBitBarrierSlowPathStub: CodeStub {
   LIR_Opr src;
+  bool fast_path_enabled;
   bool pre;
 
-  MMTkC1UnlogBitBarrierSlowPathStub(LIR_Opr src, bool pre): src(src), pre(pre) {}
+  MMTkC1UnlogBitBarrierSlowPathStub(LIR_Opr src, bool fast_path_enabled, bool pre):
+    fast_path_enabled(fast_path_enabled), src(src), pre(pre) {}
 
   virtual void emit_code(LIR_Assembler* ce) override;
 

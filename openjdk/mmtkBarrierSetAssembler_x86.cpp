@@ -142,6 +142,10 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
 #undef __
 
+//////////////////// Assembler for C1 ////////////////////
+
+// Generate code stubs
+
 #define __ ce->masm()->
 
 void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub) {
@@ -155,16 +159,18 @@ void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembl
   __ cmpptr(val_reg, (int32_t) NULL_WORD);
   __ jcc(Assembler::equal, *stub->continuation());
   ce->store_parameter(stub->val->as_register(), 0);
-  __ call(RuntimeAddress(bs->ref_load_barrier_c1_runtime_code_blob()->code_begin()));
+  __ call(RuntimeAddress(bs->load_reference_c1_runtime_code_blob()->code_begin()));
   __ jmp(*stub->continuation());
 }
 
 #undef __
 
+// Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
+
 #define __ sasm->
 
-void MMTkBarrierSetAssembler::generate_c1_pre_or_post_write_barrier_runtime_stub(StubAssembler* sasm, bool pre) {
-  __ prologue(pre ? "mmtk_pre_write_barrier" : "mmtk_post_write_barrier", false);
+void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc) {
+  __ prologue(name, false);
 
   Label done, runtime;
 
@@ -181,10 +187,6 @@ void MMTkBarrierSetAssembler::generate_c1_pre_or_post_write_barrier_runtime_stub
 
   __ save_live_registers_no_oop_map(true);
 
-  address entry_point = mmtk_enable_barrier_fastpath ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call)
-                      : pre                          ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
-                      :                                FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
-
   __ call_VM_leaf_base(entry_point, 3);
 
   __ restore_live_registers(true);
@@ -198,35 +200,20 @@ void MMTkBarrierSetAssembler::generate_c1_pre_or_post_write_barrier_runtime_stub
   __ epilogue();
 }
 
-#undef __
+void MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_load_reference_runtime_stub", FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
+}
 
-#define __ sasm->
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+}
 
-void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_runtime_stub(StubAssembler* sasm) const {
-  __ prologue("mmtk_ref_load_barrier", false);
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_post_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+}
 
-  // Address store_addr(rbp, 2*BytesPerWord);
-
-  Label done, runtime;
-
-  __ push(c_rarg0);
-  __ push(rax);
-
-  __ load_parameter(0, c_rarg0);
-
-  __ bind(runtime);
-
-  __ save_live_registers_no_oop_map(true);
-
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
-
-  __ restore_live_registers(true);
-
-  __ bind(done);
-  __ pop(rax);
-  __ pop(c_rarg0);
-
-  __ epilogue();
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_slow_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
 }
 
 #undef __

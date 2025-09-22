@@ -8,14 +8,20 @@ class MMTkBarrierSetAssembler;
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
 private:
-  // Code blobs for runtime functions.
-  // Here we have one code blob for every runtime function we call,
-  // i.e. MMTkBarrierSetRuntime::*_call
-  // There is no general rules for this in OpenJDK,
-  // except that these code blobs are 
-  CodeBlob* _pre_barrier_c1_runtime_code_blob;
-  CodeBlob* _post_barrier_c1_runtime_code_blob;
-  CodeBlob* _ref_load_barrier_c1_runtime_code_blob;
+  // Code blobs for calling into runtime functions.
+  // Here in MMTkBarrierSetC1,
+  // we have one "runtime code blob" for every runtime function we call,
+  // i.e. `MMTkBarrierSetRuntime::*_call`
+  // There is no general rules that enfoce this in OpenJDK,
+  // except that these code blobs are global and implemented in machine-specific assembly.
+  // Our barrier slow paths are relatively simple, i.e. calling into MMTk-core.
+  // So we only need such "runtime code blobs" for calling MMTk functions.
+  // If we want to implement medium paths in machine-specific ways,
+  // we may consider defining new code blobs for specific barriers.
+  CodeBlob* _load_reference_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_pre_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_post_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_slow_c1_runtime_code_blob;
 
 protected:
   /// Full pre-barrier
@@ -64,13 +70,12 @@ protected:
 
 public:
 
-  MMTkBarrierSetC1()
-    : _pre_barrier_c1_runtime_code_blob(NULL),
-      _post_barrier_c1_runtime_code_blob(NULL) {}
+  MMTkBarrierSetC1() {}
 
-  CodeBlob* pre_barrier_c1_runtime_code_blob() { return _pre_barrier_c1_runtime_code_blob; }
-  CodeBlob* post_barrier_c1_runtime_code_blob() { return _post_barrier_c1_runtime_code_blob; }
-  CodeBlob* ref_load_barrier_c1_runtime_code_blob() { return _ref_load_barrier_c1_runtime_code_blob; }
+  CodeBlob* load_reference_c1_runtime_code_blob() { return _load_reference_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_pre_c1_runtime_code_blob() { return _object_reference_write_pre_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_post_c1_runtime_code_blob() { return _object_reference_write_post_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_slow_c1_runtime_code_blob() { return _object_reference_write_slow_c1_runtime_code_blob; }
 
   /// Generate C1 write barrier slow-call C1-LIR code
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;

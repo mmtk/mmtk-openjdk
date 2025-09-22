@@ -5,38 +5,27 @@
 #include "mmtkBarrierSetC1.hpp"
 
 void MMTkBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* buffer_blob) {
-  class MMTkPreBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
+  using GenStubFunc = void(*)(StubAssembler*);
+  class RuntimeCodeBlobCodeGenClosure : public StubAssemblerCodeGenClosure {
+    GenStubFunc gen_stub;
+  public:
+    RuntimeCodeBlobCodeGenClosure(GenStubFunc gen_stub): gen_stub(gen_stub) {}
+
     virtual OopMapSet* generate_code(StubAssembler* sasm) override {
-      MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-      bs->generate_c1_pre_or_post_write_barrier_runtime_stub(sasm, true);
-      return NULL;
+      gen_stub(sasm);
+      return nullptr;
     }
   };
 
-  class MMTkPostBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
-    virtual OopMapSet* generate_code(StubAssembler* sasm) override {
-      MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-      bs->generate_c1_pre_or_post_write_barrier_runtime_stub(sasm, false);
-      return NULL;
-    }
+  auto do_code_blob = [buffer_blob](const char* name, GenStubFunc gen_stub) {
+    RuntimeCodeBlobCodeGenClosure closure(gen_stub);
+    return Runtime1::generate_blob(buffer_blob, -1, name, false, &closure);
   };
 
-  class MMTkRefLoadBarrierCodeGenClosure : public StubAssemblerCodeGenClosure {
-    virtual OopMapSet* generate_code(StubAssembler* sasm) override {
-      MMTkBarrierSetAssembler* bs = (MMTkBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
-      bs->generate_c1_ref_load_barrier_runtime_stub(sasm);
-      return NULL;
-    }
-  };
-
-  MMTkPreBarrierCodeGenClosure pre_write_code_gen_cl;
-  _pre_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "mmtk_pre_write_code_gen_cl", false, &pre_write_code_gen_cl);
-
-  MMTkPostBarrierCodeGenClosure post_write_code_gen_cl;
-  _post_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "mmtk_post_write_code_gen_cl", false, &post_write_code_gen_cl);
-
-  MMTkRefLoadBarrierCodeGenClosure load_code_gen_cl;
-  _ref_load_barrier_c1_runtime_code_blob = Runtime1::generate_blob(buffer_blob, -1, "load_code_gen_cl", false, &load_code_gen_cl);
+  _load_reference_c1_runtime_code_blob              = do_code_blob("load_reference",              &MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub);
+  _object_reference_write_pre_c1_runtime_code_blob  = do_code_blob("object_reference_write_pre",  &MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub);
+  _object_reference_write_post_c1_runtime_code_blob = do_code_blob("object_reference_write_post", &MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub);
+  _object_reference_write_slow_c1_runtime_code_blob = do_code_blob("object_reference_write_slow", &MMTkBarrierSetAssembler::generate_c1_object_reference_write_slow_runtime_stub);
 }
 
 void MMTkC1ReferenceLoadBarrierStub::emit_code(LIR_Assembler* ce) {

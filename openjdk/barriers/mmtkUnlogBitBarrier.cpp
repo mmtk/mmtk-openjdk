@@ -101,8 +101,9 @@ void MMTkUnlogBitBarrierSetAssembler::generate_c1_unlog_bit_barrier_slow_path_st
   ce->store_parameter(stub->src->as_pointer_register(), 0);
   ce->store_parameter(0, 1);
   ce->store_parameter(0, 2);
-  CodeBlob* code_blob = stub->pre ? bs->pre_barrier_c1_runtime_code_blob()
-                      :             bs->post_barrier_c1_runtime_code_blob();
+  CodeBlob* code_blob = stub->fast_path_enabled ? bs->object_reference_write_slow_c1_runtime_code_blob()
+                      : stub->pre               ? bs->object_reference_write_pre_c1_runtime_code_blob()
+                      :                           bs->object_reference_write_post_c1_runtime_code_blob();
   __ call(RuntimeAddress(code_blob->code_begin()));
   __ jmp(*stub->continuation());
 }
@@ -172,7 +173,7 @@ void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& acc
 
   LIR_Opr src = access.base().opr();
 
-  CodeStub* slow = new MMTkC1UnlogBitBarrierSlowPathStub(src, pre);
+  CodeStub* slow = new MMTkC1UnlogBitBarrierSlowPathStub(src, mmtk_enable_barrier_fastpath, pre);
 
   if (mmtk_enable_barrier_fastpath) {
     emit_check_unlog_bit_fast_path(gen, src, slow);

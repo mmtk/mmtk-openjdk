@@ -10,14 +10,6 @@ class LIR_Assembler;
 class StubAssembler;
 
 class MMTkBarrierSetAssembler: public BarrierSetAssembler {
-  friend class MMTkBarrierSetC1;
-
-private:
-  /// Generate C1 pre or post write barrier slow-call assembly code
-  void generate_c1_pre_or_post_write_barrier_runtime_stub(StubAssembler* sasm, bool pre);
-  /// Generate C1 weak reference load slow-call assembly code
-  void generate_c1_ref_load_barrier_runtime_stub(StubAssembler* sasm) const;
-
 protected:
   /// Full pre-barrier
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {}
@@ -43,6 +35,19 @@ public:
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_post(masm, decorators, dst, val, tmp1, tmp2, true);
   }
 
+  //////////////////// Assembler for C1 ////////////////////
+
+  // Generate code stubs
+public:
   static void generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub);
+
+  // Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
+private:
+  static void generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address func, int argc);
+public:
+  static void generate_c1_load_reference_runtime_stub(StubAssembler* sasm);
+  static void generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm);
+  static void generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm);
+  static void generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP
