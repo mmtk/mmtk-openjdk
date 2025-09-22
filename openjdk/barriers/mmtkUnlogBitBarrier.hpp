@@ -72,7 +72,7 @@ struct MMTkC1UnlogBitBarrierSlowPathStub: CodeStub {
     visitor->do_input(src);
   }
 
-  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1PreBarrierStub"); });
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1UnlogBitBarrierSlowPathStub"); });
 };
 
 //////////////////// C2 ////////////////////

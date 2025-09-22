@@ -81,6 +81,9 @@ public:
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
 };
 
+/// The code stub for (weak) reference loading barrier slow path.
+/// It will call `MMTkBarrierSetRuntime::load_reference_call` if `val` is not null.
+/// Currently only the SATB barrier uses this code stub.
 struct MMTkC1ReferenceLoadBarrierStub: CodeStub {
   LIR_Opr val;
 
