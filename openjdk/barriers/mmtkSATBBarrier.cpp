@@ -78,10 +78,6 @@ void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* mas
 }
 
 void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
-  // `count` or `dst` register values may get overwritten after the array copy, and `arraycopy_epilogue` can receive invalid addresses.
-  // Save the register values here and restore them in `arraycopy_epilogue`.
-  // See https://github.com/openjdk/jdk/blob/jdk-11%2B19/src/hotspot/cpu/x86/gc/shared/modRefBarrierSetAssembler_x86.cpp#L37-L50
-
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
     // Skip the runtime call if count is zero.
