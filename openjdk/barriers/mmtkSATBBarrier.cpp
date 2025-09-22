@@ -41,21 +41,27 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
   bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
   bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
   bool on_reference = on_weak || on_phantom;
+
   BarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
+
 #if SOFT_REFERENCE_LOAD_BARRIER
   if (on_oop && on_reference) {
     Label done;
+
+    assert_different_registers(dst, tmp1);
+
     // No slow-call if SATB is not active
-    Register tmp = rscratch1;
-    Register tmp2 = rscratch2;
-    __ movptr(tmp, intptr_t(&CONCURRENT_MARKING_ACTIVE));
-    __ xorq(tmp2, tmp2);
-    __ movb(tmp2, Address(tmp, 0));
-    __ cmpptr(tmp2, 1);
-    __ jcc(Assembler::notEqual, done);
-    // No slow-call if dst is NULL
-    __ cmpptr(dst, 0);
-    __ jcc(Assembler::equal, done);
+    // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
+    __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
+    // Load with zero extension to 32 bits.
+    // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
+    __ movzbl(tmp1, Address(tmp1, 0));
+    // if (tmp1_l == 0) goto done;
+    __ testl(tmp1, tmp1);
+    __ jcc(Assembler::zero, done);
+    // if (dst == 0) goto done;
+    __ testptr(dst, dst);
+    __ jcc(Assembler::zero, done);
     // Do slow-call
     __ pusha();
     __ mov(c_rarg0, dst);
@@ -78,9 +84,9 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
-    // // Bailout if count is zero
-    __ cmpptr(count, 0);
-    __ jcc(Assembler::equal, done);
+    // Skip the runtime call if count is zero.
+    __ testptr(count, count);
+    __ jcc(Assembler::zero, done);
     __ pusha();
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
@@ -98,7 +104,6 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 #else
 #define __ gen->lir()->
 #endif
-
 
 void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
   DecoratorSet decorators = access.decorators();
