@@ -120,7 +120,7 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
     }
     assert(result->is_register(), "must be");
     assert(result->type() == T_OBJECT, "must be an object");
-    auto slow = new MMTkC1ReferenceLoadBarrierStub(result, access.patch_emit_info());
+    auto slow = new MMTkC1ReferenceLoadBarrierStub(result);
     // Call slow-path only when concurrent marking is active
     LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
     __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);

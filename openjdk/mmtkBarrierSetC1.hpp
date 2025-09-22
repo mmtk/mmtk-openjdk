@@ -83,19 +83,15 @@ public:
 
 struct MMTkC1ReferenceLoadBarrierStub: CodeStub {
   LIR_Opr val;
-  CodeEmitInfo* info; // Code patching info
 
-  MMTkC1ReferenceLoadBarrierStub(LIR_Opr val, CodeEmitInfo* info = NULL): val(val), info(info) {}
+  MMTkC1ReferenceLoadBarrierStub(LIR_Opr val): val(val) {}
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
   virtual void visit(LIR_OpVisitState* visitor) override {
-    if (info != NULL) {
-      visitor->do_slow_case(info);
-    } else {
-      visitor->do_slow_case();
-    }
-    if (val != NULL) visitor->do_input(val);
+    visitor->do_slow_case();
+    assert(val->is_valid(), "val must be valid");
+    visitor->do_input(val);
   }
 
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1ReferenceLoadBarrierStub"); });
