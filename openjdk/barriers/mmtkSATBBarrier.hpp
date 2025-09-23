@@ -13,11 +13,11 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
-#define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
-#define LOG_BYTES_IN_CHUNK 22
-#define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
-
-const intptr_t SATB_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+// Debug flag for enabling/disabling all weak reference loading barriers.
+// Note that the progran can't run correctly without weak reference load barrier,
+// unless we disable reference process, too,
+// in which case all references are considered strong.
+#define WEAK_REFERENCE_LOAD_BARRIER true
 
 class MMTkSATBBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:

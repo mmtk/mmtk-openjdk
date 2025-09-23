@@ -2,16 +2,8 @@
 #include "mmtkSATBBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-#define SOFT_REFERENCE_LOAD_BARRIER true
-
-constexpr int kUnloggedValue = 1;
-
-static inline intptr_t side_metadata_base_address() {
-  return SATB_METADATA_BASE_ADDRESS;
-}
-
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
-#if SOFT_REFERENCE_LOAD_BARRIER
+#if WEAK_REFERENCE_LOAD_BARRIER
   if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
     ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
 #endif
@@ -44,7 +36,7 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
 
   BarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
 
-#if SOFT_REFERENCE_LOAD_BARRIER
+#if WEAK_REFERENCE_LOAD_BARRIER
   if (on_oop && on_reference) {
     Label done;
 
@@ -110,7 +102,7 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 
   BarrierSetC1::load_at_resolved(access, result);
 
-#if SOFT_REFERENCE_LOAD_BARRIER
+#if WEAK_REFERENCE_LOAD_BARRIER
   if (access.is_oop() && (is_weak || is_phantom || is_anonymous)) {
     // Register the value in the referent field with the pre-barrier
     LabelObj *Lcont_anonymous;
@@ -282,7 +274,7 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
     return load;
   }
 
-#if SOFT_REFERENCE_LOAD_BARRIER
+#if WEAK_REFERENCE_LOAD_BARRIER
   if (on_weak) {
     reference_load_barrier(kit, adr, load, true);
   } else if (unknown) {
