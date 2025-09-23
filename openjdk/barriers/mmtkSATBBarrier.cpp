@@ -3,10 +3,10 @@
 #include "runtime/interfaceSupport.inline.hpp"
 
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
-#if WEAK_REFERENCE_LOAD_BARRIER
-  if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
-    ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
-#endif
+  if (mmtk_enable_reference_load_barrier) {
+    if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
+      ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
+  }
 };
 
 void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
@@ -36,32 +36,32 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
 
   BarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
 
-#if WEAK_REFERENCE_LOAD_BARRIER
-  if (on_oop && on_reference) {
-    Label done;
+  if (mmtk_enable_reference_load_barrier) {
+    if (on_oop && on_reference) {
+      Label done;
 
-    assert_different_registers(dst, tmp1);
+      assert_different_registers(dst, tmp1);
 
-    // No slow-call if SATB is not active
-    // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
-    __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
-    // Load with zero extension to 32 bits.
-    // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
-    __ movzbl(tmp1, Address(tmp1, 0));
-    // if (tmp1_l == 0) goto done;
-    __ testl(tmp1, tmp1);
-    __ jcc(Assembler::zero, done);
-    // if (dst == 0) goto done;
-    __ testptr(dst, dst);
-    __ jcc(Assembler::zero, done);
-    // Do slow-call
-    __ pusha();
-    __ mov(c_rarg0, dst);
-    __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
-    __ popa();
-    __ bind(done);
+      // No slow-call if SATB is not active
+      // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
+      __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
+      // Load with zero extension to 32 bits.
+      // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
+      __ movzbl(tmp1, Address(tmp1, 0));
+      // if (tmp1_l == 0) goto done;
+      __ testl(tmp1, tmp1);
+      __ jcc(Assembler::zero, done);
+      // if (dst == 0) goto done;
+      __ testptr(dst, dst);
+      __ jcc(Assembler::zero, done);
+      // Do slow-call
+      __ pusha();
+      __ mov(c_rarg0, dst);
+      __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
+      __ popa();
+      __ bind(done);
+    }
   }
-#endif
 }
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
@@ -102,32 +102,32 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 
   BarrierSetC1::load_at_resolved(access, result);
 
-#if WEAK_REFERENCE_LOAD_BARRIER
-  if (access.is_oop() && (is_weak || is_phantom || is_anonymous)) {
-    // Register the value in the referent field with the pre-barrier
-    LabelObj *Lcont_anonymous;
-    if (is_anonymous) {
-      Lcont_anonymous = new LabelObj();
-      generate_referent_check(access, Lcont_anonymous);
-    }
-    assert(result->is_register(), "must be");
-    assert(result->type() == T_OBJECT, "must be an object");
-    auto slow = new MMTkC1ReferenceLoadBarrierStub(result);
-    // Call slow-path only when concurrent marking is active
-    LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
-    __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);
-    LIR_Address* cm_flag_addr = new LIR_Address(cm_flag_addr_opr, T_BYTE);
-    LIR_Opr cm_flag = gen->new_register(T_INT);
-    __ move(cm_flag_addr, cm_flag);
-    // No slow-call if SATB is not active
-    __ cmp(lir_cond_equal, cm_flag, LIR_OprFact::intConst(1));
-    __ branch(lir_cond_equal, T_BYTE, slow);
-    __ branch_destination(slow->continuation());
-    if (is_anonymous) {
-      __ branch_destination(Lcont_anonymous->label());
+  if (mmtk_enable_reference_load_barrier) {
+    if (access.is_oop() && (is_weak || is_phantom || is_anonymous)) {
+      // Register the value in the referent field with the pre-barrier
+      LabelObj *Lcont_anonymous;
+      if (is_anonymous) {
+        Lcont_anonymous = new LabelObj();
+        generate_referent_check(access, Lcont_anonymous);
+      }
+      assert(result->is_register(), "must be");
+      assert(result->type() == T_OBJECT, "must be an object");
+      auto slow = new MMTkC1ReferenceLoadBarrierStub(result);
+      // Call slow-path only when concurrent marking is active
+      LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
+      __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);
+      LIR_Address* cm_flag_addr = new LIR_Address(cm_flag_addr_opr, T_BYTE);
+      LIR_Opr cm_flag = gen->new_register(T_INT);
+      __ move(cm_flag_addr, cm_flag);
+      // No slow-call if SATB is not active
+      __ cmp(lir_cond_equal, cm_flag, LIR_OprFact::intConst(1));
+      __ branch(lir_cond_equal, T_BYTE, slow);
+      __ branch_destination(slow->continuation());
+      if (is_anonymous) {
+        __ branch_destination(Lcont_anonymous->label());
+      }
     }
   }
-#endif
 }
 
 void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access) const {
@@ -274,13 +274,13 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
     return load;
   }
 
-#if WEAK_REFERENCE_LOAD_BARRIER
-  if (on_weak) {
-    reference_load_barrier(kit, adr, load, true);
-  } else if (unknown) {
-    reference_load_barrier_for_unknown_load(kit, obj, offset, adr, load, !need_cpu_mem_bar);
+  if (mmtk_enable_reference_load_barrier) {
+    if (on_weak) {
+      reference_load_barrier(kit, adr, load, true);
+    } else if (unknown) {
+      reference_load_barrier_for_unknown_load(kit, obj, offset, adr, load, !need_cpu_mem_bar);
+    }
   }
-#endif
 
   return load;
 }

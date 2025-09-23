@@ -94,6 +94,14 @@ jint MMTkHeap::initialize() {
 
   set_bool_option_from_env_var("MMTK_ENABLE_ALLOCATION_FASTPATH", &mmtk_enable_allocation_fastpath);
   set_bool_option_from_env_var("MMTK_ENABLE_BARRIER_FASTPATH", &mmtk_enable_barrier_fastpath);
+  set_bool_option_from_env_var("MMTK_ENABLE_REFERENCE_LOAD_BARRIER", &mmtk_enable_reference_load_barrier);
+
+  if (!mmtk_enable_reference_load_barrier) {
+    fprintf(stderr,
+      "WARNING! Reference load barrier is disabled.  "
+      "The program cannot run correctly unless reference processing is disabled, "
+      "in which case all java.lang.ref.Reference instances are treated as strong.\n");
+  }
 
   const size_t min_heap_size = collector_policy()->min_heap_byte_size();
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();

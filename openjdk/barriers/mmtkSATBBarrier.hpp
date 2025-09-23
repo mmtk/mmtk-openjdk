@@ -13,12 +13,6 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
-// Debug flag for enabling/disabling all weak reference loading barriers.
-// Note that the progran can't run correctly without weak reference load barrier,
-// unless we disable reference process, too,
-// in which case all references are considered strong.
-#define WEAK_REFERENCE_LOAD_BARRIER true
-
 class MMTkSATBBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`

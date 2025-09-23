@@ -39,6 +39,7 @@
 
 extern bool mmtk_enable_allocation_fastpath;
 extern bool mmtk_enable_barrier_fastpath;
+extern bool mmtk_enable_reference_load_barrier;
 
 const intptr_t VO_BIT_BASE_ADDRESS = VO_BIT_ADDRESS;
 

@@ -38,6 +38,7 @@
 
 bool mmtk_enable_allocation_fastpath = true;
 bool mmtk_enable_barrier_fastpath = true;
+bool mmtk_enable_reference_load_barrier = true;
 
 MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
   int tlab_top_offset, tlab_end_offset;
