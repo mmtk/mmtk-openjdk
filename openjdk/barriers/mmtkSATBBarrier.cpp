@@ -154,30 +154,7 @@ void MMTkSATBBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, 
 
   MMTkIdealKit ideal(kit, true);
 
-  if (mmtk_enable_barrier_fastpath) {
-    Node* no_base = __ top();
-    float unlikely  = PROB_UNLIKELY(0.999);
-
-    Node* zero  = __ ConI(0);
-    Node* addr = __ CastPX(__ ctrl(), src);
-    Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(6)));
-    Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-
-    Node* shift = __ URShiftX(addr, __ ConI(3));
-    shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
-    Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
-    __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
-    } __ end_if();
-  } else {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
-    // Looks like this is necessary
-    // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
-    Node* call = __ ctrl()->in(0);
-    call->add_req(slot);
-  }
+  object_reference_write_pre_or_post(ideal, src, /* pre = */ true);
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }

@@ -50,7 +50,7 @@ protected:
   }
 };
 
-class MMTkSATBBarrierSetC2: public MMTkBarrierSetC2 {
+class MMTkSATBBarrierSetC2: public MMTkUnlogBitBarrierSetC2 {
 protected:
   virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 

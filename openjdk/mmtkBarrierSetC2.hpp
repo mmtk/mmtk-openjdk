@@ -113,6 +113,7 @@ public:
   inline Node* CastXP(Node* x) { return transform(new CastX2PNode(x)); }
   inline Node* URShiftI(Node* l, Node* r) { return transform(new URShiftINode(l, r)); }
   inline Node* ConP(intptr_t ptr) { return makecon(TypeRawPtr::make((address) ptr)); }
+  inline Node* NullP() { return makecon(TypePtr::NULL_PTR); }
 
   template<class... Types>
   inline const TypeFunc* func_type(Types... types) {

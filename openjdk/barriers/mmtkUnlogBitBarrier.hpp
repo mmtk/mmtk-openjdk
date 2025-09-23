@@ -77,6 +77,10 @@ struct MMTkC1UnlogBitBarrierSlowPathStub: CodeStub {
 
 //////////////////// C2 ////////////////////
 
-class MMTkUnlogBitBarrierSetC2: public MMTkBarrierSetC2 {};
+class MMTkUnlogBitBarrierSetC2: public MMTkBarrierSetC2 {
+protected:
+  static Node* emit_check_unlog_bit_fast_path(MMTkIdealKit& ideal, Node* obj);
+  static void object_reference_write_pre_or_post(MMTkIdealKit& ideal, Node* src, bool pre);
+};
 
 #endif // MMTK_OPENJDK_BARRIERS_MMTK_UNLOG_BIT_BARRIER_HPP

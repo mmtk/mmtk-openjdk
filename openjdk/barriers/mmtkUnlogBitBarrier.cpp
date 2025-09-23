@@ -185,3 +185,44 @@ void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& acc
 }
 
 #undef __
+
+//////////////////// C2 ////////////////////
+
+#define __ ideal.
+
+Node* MMTkUnlogBitBarrierSetC2::emit_check_unlog_bit_fast_path(MMTkIdealKit& ideal, Node* obj) {
+  Node* addr = __ CastPX(__ ctrl(), obj);
+  Node* no_base = __ top();
+  Node* meta_addr = __ AddP(no_base, __ ConP(UNLOG_BIT_BASE_ADDRESS), __ URShiftX(addr, __ ConI(6)));
+  Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+  Node* shift = __ URShiftX(addr, __ ConI(3));
+  shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
+  Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
+
+  return result;
+}
+
+void MMTkUnlogBitBarrierSetC2::object_reference_write_pre_or_post(MMTkIdealKit& ideal, Node* src, bool pre) {
+  if (mmtk_enable_barrier_fastpath) {
+    Node* result = emit_check_unlog_bit_fast_path(ideal, src);
+
+    Node* zero = __ ConI(0);
+    float unlikely = PROB_UNLIKELY(0.999);
+    __ if_then(result, BoolTest::ne, zero, unlikely); {
+      Node* result = emit_check_unlog_bit_fast_path(ideal, src);
+
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+      address entry_point = FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call);
+      Node* null_node = __ NullP();
+      Node* x = __ make_leaf_call(tf, entry_point, "mmtk_barrier_call", src, null_node, null_node);
+    } __ end_if();
+  } else {
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    address entry_point = pre ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
+                        :       FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
+    Node* null_node = __ NullP();
+    Node* x = __ make_leaf_call(tf, entry_point, "mmtk_barrier_call", src, null_node, null_node);
+  }
+}
+
+#undef __
