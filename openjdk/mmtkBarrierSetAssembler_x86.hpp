@@ -37,10 +37,6 @@ public:
 
   //////////////////// Assembler for C1 ////////////////////
 
-  // Generate code stubs
-public:
-  static void generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub);
-
   // Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
 private:
   static void generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address func, int argc);
@@ -49,5 +45,9 @@ public:
   static void generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm);
   static void generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm);
   static void generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm);
+
+  // Generate slow-path code stubs
+public:
+  static void generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub);
 };
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_ASSEMBLER_X86_HPP

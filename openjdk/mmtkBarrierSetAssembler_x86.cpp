@@ -144,27 +144,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
 //////////////////// Assembler for C1 ////////////////////
 
-// Generate code stubs
-
-#define __ ce->masm()->
-
-void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub) {
-  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*)BarrierSet::barrier_set()->barrier_set_c1();
-
-  __ bind(*stub->entry());
-  assert(stub->val->is_register(), "Precondition.");
-
-  Register val_reg = stub->val->as_register();
-
-  __ cmpptr(val_reg, (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, *stub->continuation());
-  ce->store_parameter(stub->val->as_register(), 0);
-  __ call(RuntimeAddress(bs->load_reference_c1_runtime_code_blob()->code_begin()));
-  __ jmp(*stub->continuation());
-}
-
-#undef __
-
 // Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
 
 #define __ sasm->
@@ -200,6 +179,27 @@ void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_st
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm) {
   generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_slow_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+}
+
+#undef __
+
+// Generate code stubs
+
+#define __ ce->masm()->
+
+void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub) {
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*)BarrierSet::barrier_set()->barrier_set_c1();
+
+  __ bind(*stub->entry());
+  assert(stub->val->is_register(), "Precondition.");
+
+  Register val_reg = stub->val->as_register();
+
+  __ cmpptr(val_reg, (int32_t) NULL_WORD);
+  __ jcc(Assembler::equal, *stub->continuation());
+  ce->store_parameter(stub->val->as_register(), 0);
+  __ call(RuntimeAddress(bs->load_reference_c1_runtime_code_blob()->code_begin()));
+  __ jmp(*stub->continuation());
 }
 
 #undef __
