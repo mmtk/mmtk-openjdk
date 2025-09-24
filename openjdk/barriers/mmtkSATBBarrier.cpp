@@ -137,9 +137,6 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 }
 
 void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
-  // TODO: Should be able to skip weak field writes, too, because that doesn't change strong
-  // reachability during concurrent marking.
-
   object_reference_write_pre_or_post(access, src, true);
 }
 
