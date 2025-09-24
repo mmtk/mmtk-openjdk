@@ -2,6 +2,8 @@
 #include "mmtkSATBBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
+//////////////////// Runtime ////////////////////
+
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
   if (mmtk_enable_reference_load_barrier) {
     if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
@@ -25,6 +27,8 @@ void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, o
     object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
   }
 }
+
+//////////////////// Assembler ////////////////////
 
 #define __ masm->
 
@@ -87,6 +91,8 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
 #undef __
 
+//////////////////// Assembler/C1 ////////////////////
+
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -138,6 +144,8 @@ void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr
 }
 
 #undef __
+
+//////////////////// C2 ////////////////////
 
 #define __ ideal.
 

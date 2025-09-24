@@ -13,6 +13,12 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
+/// This file supports the `SATBBarrier` in MMTk core,
+/// i.e. the barrier that remembers all children before it is first modified,
+/// and remembers the target of the weak reference field when loaded.
+
+//////////////////// Runtime ////////////////////
+
 class MMTkSATBBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
@@ -25,6 +31,8 @@ public:
   virtual void load_reference(DecoratorSet decorators, oop value) const override;
 };
 
+//////////////////// Assembler ////////////////////
+
 class MMTkSATBBarrierSetAssembler: public MMTkUnlogBitBarrierSetAssembler {
 protected:
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
@@ -32,6 +40,8 @@ public:
   virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   virtual void load_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Address src, Register tmp1, Register tmp_thread) override;
 };
+
+//////////////////// C1 ////////////////////
 
 class MMTkSATBBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
@@ -44,6 +54,8 @@ protected:
   }
 };
 
+//////////////////// C2 ////////////////////
+
 class MMTkSATBBarrierSetC2: public MMTkUnlogBitBarrierSetC2 {
 protected:
   virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
@@ -54,6 +66,8 @@ public:
   }
   virtual Node* load_at_resolved(C2Access& access, const Type* val_type) const override;
 };
+
+//////////////////// Impl ////////////////////
 
 struct MMTkSATBBarrier: MMTkBarrierImpl<
   MMTkSATBBarrierSetRuntime,

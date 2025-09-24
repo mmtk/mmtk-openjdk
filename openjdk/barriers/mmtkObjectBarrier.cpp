@@ -2,6 +2,8 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
+//////////////////// Runtime ////////////////////
+
 void MMTkObjectBarrierSetRuntime::object_probable_write(oop new_obj) const {
   if (mmtk_enable_barrier_fastpath) {
     // Do fast-path check before entering mmtk rust code, to improve mutator performance.
@@ -26,6 +28,8 @@ void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot
     object_reference_write_post_call((void*) src, (void*) slot, (void*) target);
   }
 }
+
+//////////////////// Assembler ////////////////////
 
 #define __ masm->
 
@@ -80,6 +84,8 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 
 #undef __
 
+//////////////////// C1 ////////////////////
+
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
@@ -91,6 +97,8 @@ void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_
 }
 
 #undef __
+
+//////////////////// C2 ////////////////////
 
 #define __ ideal.
 

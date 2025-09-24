@@ -13,6 +13,14 @@
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
+/// This file supports the `ObjectBarrier` in MMTk core,
+/// i.e. the barrier that remembers the object when it is first modified.
+/// Despite the name, `ObjectBarrier` is not the only barrier that uses the object-grained unlogging bit.
+/// `SATBBarrier` also uses the object-grained unlog bit.
+/// We keep the name in sync with the MMTk core.
+
+//////////////////// Runtime ////////////////////
+
 class MMTkObjectBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
@@ -23,6 +31,8 @@ public:
   virtual void object_probable_write(oop new_obj) const override;
 };
 
+//////////////////// Assembler ////////////////////
+
 class MMTkObjectBarrierSetAssembler: public MMTkUnlogBitBarrierSetAssembler {
 protected:
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const override;
@@ -30,6 +40,8 @@ public:
   virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
 };
+
+//////////////////// C1 ////////////////////
 
 class MMTkObjectBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
@@ -40,10 +52,14 @@ protected:
   }
 };
 
+//////////////////// C2 ////////////////////
+
 class MMTkObjectBarrierSetC2: public MMTkUnlogBitBarrierSetC2 {
 protected:
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 };
+
+//////////////////// Impl ////////////////////
 
 struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetRuntime,
