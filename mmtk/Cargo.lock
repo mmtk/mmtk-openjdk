@@ -430,9 +430,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.175"
+version = "0.2.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
+checksum = "58f929b4d672ea937a23a1ab494143d968337a5f47e56d0815df1e0890ddf174"
 
 [[package]]
 name = "libgit2-sys"
@@ -492,7 +492,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.31.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=27b4521ca73c2addbafe7ccf374c607d61f3ba51#27b4521ca73c2addbafe7ccf374c607d61f3ba51"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=a2cf101bc1841a6e3856262d6f757469ff2aa359#a2cf101bc1841a6e3856262d6f757469ff2aa359"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -531,7 +531,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.31.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=27b4521ca73c2addbafe7ccf374c607d61f3ba51#27b4521ca73c2addbafe7ccf374c607d61f3ba51"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=a2cf101bc1841a6e3856262d6f757469ff2aa359#a2cf101bc1841a6e3856262d6f757469ff2aa359"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
