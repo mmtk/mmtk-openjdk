@@ -166,12 +166,10 @@ void MMTkUnlogBitBarrierSetC1::emit_check_unlog_bit_fast_path(LIRGenerator* gen,
   __ branch(lir_cond_equal, T_BYTE, slow);
 }
 
-void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& access, bool pre) {
+void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& access, LIR_Opr src, bool pre) {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
-
-  LIR_Opr src = access.base().opr();
 
   CodeStub* slow = new MMTkC1UnlogBitBarrierSlowPathStub(src, mmtk_enable_barrier_fastpath, pre);
 

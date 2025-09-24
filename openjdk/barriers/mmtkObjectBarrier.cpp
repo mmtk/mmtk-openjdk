@@ -86,8 +86,8 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 #define __ gen->lir()->
 #endif
 
-void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access) const {
-  object_reference_write_pre_or_post(access, false);
+void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
+  object_reference_write_pre_or_post(access, src, false);
 }
 
 #undef __

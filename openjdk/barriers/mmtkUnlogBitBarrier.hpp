@@ -42,7 +42,7 @@ public:
 class MMTkUnlogBitBarrierSetC1: public MMTkBarrierSetC1 {
 protected:
   static void emit_check_unlog_bit_fast_path(LIRGenerator* gen, LIR_Opr addr, CodeStub* slow);
-  static void object_reference_write_pre_or_post(LIRAccess& access, bool pre);
+  static void object_reference_write_pre_or_post(LIRAccess& access, LIR_Opr src, bool pre);
 };
 
 /// C1 write barrier slow path stub.
