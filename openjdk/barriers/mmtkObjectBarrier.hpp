@@ -6,19 +6,22 @@
 #include "../mmtkBarrierSetAssembler_x86.hpp"
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
+#include "mmtkUnlogBitBarrier.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "opto/callnode.hpp"
 #include "opto/idealKit.hpp"
 
-#define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
-#define LOG_BYTES_IN_CHUNK 22
-#define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
+/// This file supports the `ObjectBarrier` in MMTk core,
+/// i.e. the barrier that remembers the object when it is first modified.
+/// Despite the name, `ObjectBarrier` is not the only barrier that uses the object-grained unlogging bit.
+/// `SATBBarrier` also uses the object-grained unlog bit.
+/// We keep the name in sync with the MMTk core.
 
-const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+//////////////////// Runtime ////////////////////
 
-class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
+class MMTkObjectBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
   virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
@@ -28,18 +31,19 @@ public:
   virtual void object_probable_write(oop new_obj) const override;
 };
 
-class MMTkObjectBarrierSetAssembler: public MMTkBarrierSetAssembler {
+//////////////////// Assembler ////////////////////
+
+class MMTkObjectBarrierSetAssembler: public MMTkUnlogBitBarrierSetAssembler {
 protected:
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const override;
-  /// Generate C1 write barrier slow-call assembly code
-  virtual void generate_c1_post_write_barrier_runtime_stub(StubAssembler* sasm) const override;
 public:
-  virtual void generate_c1_post_write_barrier_stub(LIR_Assembler* ce, MMTkC1PostBarrierStub* stub) const override;
   virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   virtual void arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
 };
 
-class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
+//////////////////// C1 ////////////////////
+
+class MMTkObjectBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
   virtual void object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
 
@@ -48,10 +52,14 @@ protected:
   }
 };
 
-class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
+//////////////////// C2 ////////////////////
+
+class MMTkObjectBarrierSetC2: public MMTkUnlogBitBarrierSetC2 {
 protected:
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 };
+
+//////////////////// Impl ////////////////////
 
 struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetRuntime,

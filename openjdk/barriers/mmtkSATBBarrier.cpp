@@ -1,23 +1,14 @@
-// Workaround the fact that LIR_Assembler::as_Address is private.
-#define private public
-
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-#define SOFT_REFERENCE_LOAD_BARRIER true
-
-constexpr int kUnloggedValue = 1;
-
-static inline intptr_t side_metadata_base_address() {
-  return SATB_METADATA_BASE_ADDRESS;
-}
+//////////////////// Runtime ////////////////////
 
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
-#if SOFT_REFERENCE_LOAD_BARRIER
-  if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
-    ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
-#endif
+  if (mmtk_enable_reference_load_barrier) {
+    if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
+      ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
+  }
 };
 
 void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
@@ -29,19 +20,15 @@ void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
 
 void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
-    // oop pre_val = *slot;
-    // if (pre_val == NULL) return;
-    intptr_t addr = ((intptr_t) (void*) src);
-    const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> 6));
-    intptr_t shift = (addr >> 3) & 0b111;
-    uint8_t byte_val = *meta_addr;
-    if (((byte_val >> shift) & 1) == kUnloggedValue) {
+    if (is_unlog_bit_set(src)) {
       object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
     object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
   }
 }
+
+//////////////////// Assembler ////////////////////
 
 #define __ masm->
 
@@ -50,96 +37,48 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
   bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
   bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
   bool on_reference = on_weak || on_phantom;
+
   BarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
-#if SOFT_REFERENCE_LOAD_BARRIER
-  if (on_oop && on_reference) {
-    Label done;
-    // No slow-call if SATB is not active
-    Register tmp = rscratch1;
-    Register tmp2 = rscratch2;
-    __ movptr(tmp, intptr_t(&CONCURRENT_MARKING_ACTIVE));
-    __ xorq(tmp2, tmp2);
-    __ movb(tmp2, Address(tmp, 0));
-    __ cmpptr(tmp2, 1);
-    __ jcc(Assembler::notEqual, done);
-    // No slow-call if dst is NULL
-    __ cmpptr(dst, 0);
-    __ jcc(Assembler::equal, done);
-    // Do slow-call
-    __ pusha();
-    __ mov(c_rarg0, dst);
-    __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
-    __ popa();
-    __ bind(done);
+
+  if (mmtk_enable_reference_load_barrier) {
+    if (on_oop && on_reference) {
+      Label done;
+
+      assert_different_registers(dst, tmp1);
+
+      // No slow-call if SATB is not active
+      // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
+      __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
+      // Load with zero extension to 32 bits.
+      // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
+      __ movzbl(tmp1, Address(tmp1, 0));
+      // if (tmp1_l == 0) goto done;
+      __ testl(tmp1, tmp1);
+      __ jcc(Assembler::zero, done);
+      // if (dst == 0) goto done;
+      __ testptr(dst, dst);
+      __ jcc(Assembler::zero, done);
+      // Do slow-call
+      __ pusha();
+      __ mov(c_rarg0, dst);
+      __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
+      __ popa();
+      __ bind(done);
+    }
   }
-#endif
 }
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
-  if (can_remove_barrier(decorators, val, /* skip_const_null */ false)) return;
-
-  if (mmtk_enable_barrier_fastpath) {
-    Label done;
-
-    Register obj = dst.base();
-    Register tmp3 = rscratch1;
-    Register tmp4 = rscratch2;
-    Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
-
-    // tmp5 = load-byte (side_metadata_base_address() + (obj >> 6));
-    __ movptr(tmp3, obj);
-    // __ load_heap_oop(tmp3, dst, noreg, noreg, AS_RAW);
-    // // Is the previous value null?
-    // __ cmpptr(tmp3, (int32_t) NULL_WORD);
-    // __ jcc(Assembler::equal, done);
-
-    __ shrptr(tmp3, 6);
-    __ movptr(tmp5, side_metadata_base_address());
-    __ movzbl(tmp5, Address(tmp5, tmp3));
-
-    // tmp3 = (obj >> 3) & 7
-    __ mov(tmp3, obj);
-    __ shrptr(tmp3, 3);
-    __ andptr(tmp3, 7);
-    // tmp5 = tmp5 >> tmp3
-    __ movptr(tmp4, rcx);
-    __ movl(rcx, tmp3);
-    __ shrptr(tmp5);
-    __ movptr(rcx, tmp4);
-    // if ((tmp5 & 1) == 1) goto slowpath;
-    __ andptr(tmp5, 1);
-    __ cmpptr(tmp5, kUnloggedValue);
-    __ jcc(Assembler::notEqual, done);
-
-    // TODO: Spill fewer registers
-    __ pusha();
-    __ movptr(c_rarg0, dst.base());
-    __ lea(c_rarg1, dst);
-    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-    __ popa();
-
-    __ bind(done);
-  } else {
-    __ pusha();
-    __ movptr(c_rarg0, dst.base());
-    __ lea(c_rarg1, dst);
-    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
-    __ popa();
-  }
+  if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+  object_reference_write_pre_or_post(masm, decorators, dst, val, /* pre = */ true);
 }
 
 void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
-  // `count` or `dst` register values may get overwritten after the array copy, and `arraycopy_epilogue` can receive invalid addresses.
-  // Save the register values here and restore them in `arraycopy_epilogue`.
-  // See https://github.com/openjdk/jdk/blob/jdk-11%2B19/src/hotspot/cpu/x86/gc/shared/modRefBarrierSetAssembler_x86.cpp#L37-L50
-
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
-    // // Bailout if count is zero
-    __ cmpptr(count, 0);
-    __ jcc(Assembler::equal, done);
+    // Skip the runtime call if count is zero.
+    __ testptr(count, count);
+    __ jcc(Assembler::zero, done);
     __ pusha();
     __ movptr(c_rarg0, src);
     __ movptr(c_rarg1, dst);
@@ -152,86 +91,13 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
 #undef __
 
-#define __ sasm->
-
-void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm) const {
-  __ prologue("mmtk_satb_barrier", false);
-
-  Label done, runtime;
-
-  __ push(c_rarg0);
-  __ push(c_rarg1);
-  __ push(c_rarg2);
-  __ push(rax);
-
-  __ load_parameter(0, c_rarg0);
-  __ load_parameter(1, c_rarg1);
-  __ load_parameter(2, c_rarg2);
-
-  __ bind(runtime);
-
-  __ save_live_registers_no_oop_map(true);
-
-  if (mmtk_enable_barrier_fastpath) {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-  } else {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
-  }
-
-  __ restore_live_registers(true);
-
-  __ bind(done);
-  __ pop(rax);
-  __ pop(c_rarg2);
-  __ pop(c_rarg1);
-  __ pop(c_rarg0);
-
-  __ epilogue();
-}
-
-#undef __
-#define __ ce->masm()->
-
-void MMTkSATBBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {
-  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
-  __ bind(*stub->entry());
-
-  // For pre-barriers, stub->slot may not be a resolved address.
-  // Manually patch the address 
-  address runtime_address;
-  if (stub->patch_code != lir_patch_none) {
-    // Patch
-    assert(stub->scratch->is_single_cpu(), "must be");
-    assert(stub->scratch->is_register(), "Precondition.");
-    ce->mem2reg(stub->slot, stub->scratch, T_OBJECT, stub->patch_code, stub->info, false /*wide*/, false /*unaligned*/);
-    // Now stub->scratch contains the pre_val instead of the slot address
-    // So the following is to load the slot address into scrach register
-    // Resolve address 
-    auto masm = ce->masm();
-    LIR_Address* addr = stub->slot->as_address_ptr();
-    Address from_addr = ce->as_Address(addr);
-    __ lea(stub->scratch->as_register(), from_addr);
-    // Store parameter
-    ce->store_parameter(stub->scratch->as_pointer_register(), 1);
-  } else {
-    // Store parameter
-    ce->store_parameter(stub->slot->as_pointer_register(), 1);
-  }
-
-  ce->store_parameter(stub->src->as_pointer_register(), 0);
-  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
-  __ call(RuntimeAddress(bs->pre_barrier_c1_runtime_code_blob()->code_begin()));
-  __ jmp(*stub->continuation());
-}
-
-#undef __
+//////////////////// C1 ////////////////////
 
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
 #else
 #define __ gen->lir()->
 #endif
-
 
 void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
   DecoratorSet decorators = access.decorators();
@@ -242,124 +108,41 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 
   BarrierSetC1::load_at_resolved(access, result);
 
-#if SOFT_REFERENCE_LOAD_BARRIER
-  if (access.is_oop() && (is_weak || is_phantom || is_anonymous)) {
-    // Register the value in the referent field with the pre-barrier
-    LabelObj *Lcont_anonymous;
-    if (is_anonymous) {
-      Lcont_anonymous = new LabelObj();
-      generate_referent_check(access, Lcont_anonymous);
-    }
-    assert(result->is_register(), "must be");
-    assert(result->type() == T_OBJECT, "must be an object");
-    auto slow = new MMTkC1ReferenceLoadBarrierStub(result, access.patch_emit_info());
-    // Call slow-path only when concurrent marking is active
-    LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
-    __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);
-    LIR_Address* cm_flag_addr = new LIR_Address(cm_flag_addr_opr, T_BYTE);
-    LIR_Opr cm_flag = gen->new_register(T_INT);
-    __ move(cm_flag_addr, cm_flag);
-    // No slow-call if SATB is not active
-    __ cmp(lir_cond_equal, cm_flag, LIR_OprFact::intConst(1));
-    __ branch(lir_cond_equal, T_BYTE, slow);
-    __ branch_destination(slow->continuation());
-    if (is_anonymous) {
-      __ branch_destination(Lcont_anonymous->label());
+  if (mmtk_enable_reference_load_barrier) {
+    if (access.is_oop() && (is_weak || is_phantom || is_anonymous)) {
+      // Register the value in the referent field with the pre-barrier
+      LabelObj *Lcont_anonymous;
+      if (is_anonymous) {
+        Lcont_anonymous = new LabelObj();
+        generate_referent_check(access, Lcont_anonymous);
+      }
+      assert(result->is_register(), "must be");
+      assert(result->type() == T_OBJECT, "must be an object");
+      auto slow = new MMTkC1ReferenceLoadBarrierStub(result);
+      // Call slow-path only when concurrent marking is active
+      LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
+      __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);
+      LIR_Address* cm_flag_addr = new LIR_Address(cm_flag_addr_opr, T_BYTE);
+      LIR_Opr cm_flag = gen->new_register(T_INT);
+      __ move(cm_flag_addr, cm_flag);
+      // No slow-call if SATB is not active
+      __ cmp(lir_cond_equal, cm_flag, LIR_OprFact::intConst(1));
+      __ branch(lir_cond_equal, T_BYTE, slow);
+      __ branch_destination(slow->continuation());
+      if (is_anonymous) {
+        __ branch_destination(Lcont_anonymous->label());
+      }
     }
   }
-#endif
 }
 
-void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const {
-  LIRGenerator* gen = access.gen();
-  DecoratorSet decorators = access.decorators();
-  if ((decorators & IN_HEAP) == 0) return; // Not sure if this line is sound
-  bool needs_patching = (decorators & C1_NEEDS_PATCHING) != 0;
-  if (!src->is_register()) {
-    LIR_Opr reg = gen->new_pointer_register();
-    if (src->is_constant()) {
-      __ move(src, reg);
-    } else {
-      __ leal(src, reg);
-    }
-    src = reg;
-  }
-  assert(src->is_register(), "must be a register at this point");
-
-  if (!slot->is_register() && !needs_patching) {
-    LIR_Address* address = slot->as_address_ptr();
-    LIR_Opr ptr = gen->new_pointer_register();
-    if (!address->index()->is_valid() && address->disp() == 0) {
-      __ move(address->base(), ptr);
-    } else {
-      assert(address->disp() != max_jint, "lea doesn't support patched addresses!");
-      __ leal(slot, ptr);
-    }
-    slot = ptr;
-  } else if (needs_patching && !slot->is_address()) {
-    assert(slot->is_register(), "must be");
-    slot = LIR_OprFact::address(new LIR_Address(slot, T_OBJECT));
-  }
-  assert(needs_patching || slot->is_register(), "must be a register at this point unless needs_patching");
-  if (!new_val->is_register()) {
-    LIR_Opr new_val_reg = gen->new_register(T_OBJECT);
-    if (new_val->is_constant()) {
-      __ move(new_val, new_val_reg);
-    } else {
-      __ leal(new_val, new_val_reg);
-    }
-    new_val = new_val_reg;
-  }
-  assert(new_val->is_register(), "must be a register at this point");
-  MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src, slot, new_val, info, needs_patching ? lir_patch_normal : lir_patch_none);
-  if (needs_patching) slow->scratch = gen->new_register(T_OBJECT);
-
-  if (mmtk_enable_barrier_fastpath) {
-    if (needs_patching) {
-      // At this stage, slot address is not available, so cannot do the fast-path check until 
-      // its address get resolved
-      // FIXME: Jump to a medium-path for code patching without entering slow-path
-      __ jump(slow);
-    } else {
-      // // load pre_val 
-      // LIR_Address* slot_addr = new LIR_Address(slot, T_OBJECT);
-      // LIR_Opr addr = slot;
-      // __ load(slot_addr, addr);
-      // // if pre_val == NULL skip the barrier
-      // __ cmp(lir_cond_equal, addr, LIR_OprFact::oopConst(NULL));
-      // __ branch(lir_cond_equal, T_OBJECT, slow->continuation());
-      LIR_Opr addr = src;
-      // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
-      LIR_Opr offset = gen->new_pointer_register();
-      __ move(addr, offset);
-      __ unsigned_shift_right(offset, 6, offset);
-      LIR_Opr base = gen->new_pointer_register();
-      __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
-      LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
-      // uint8_t byte_val = *meta_addr;
-      LIR_Opr byte_val = gen->new_register(T_INT);
-      __ move(meta_addr, byte_val);
-
-      // intptr_t shift = (addr >> 3) & 0b111;
-      LIR_Opr shift = gen->new_register(T_INT);
-      __ move(addr, shift);
-      __ unsigned_shift_right(shift, 3, shift);
-      __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
-      // if (((byte_val >> shift) & 1) == 1) slow;
-      LIR_Opr result = byte_val;
-      __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
-      __ logical_and(result, LIR_OprFact::intConst(1), result);
-      __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
-      __ branch(lir_cond_equal, T_BYTE, slow);
-    }
-  } else {
-    __ jump(slow);
-  }
-
-  __ branch_destination(slow->continuation());
+void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
+  object_reference_write_pre_or_post(access, src, /* pre = */ true);
 }
 
 #undef __
+
+//////////////////// C2 ////////////////////
 
 #define __ ideal.
 
@@ -368,30 +151,7 @@ void MMTkSATBBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, 
 
   MMTkIdealKit ideal(kit, true);
 
-  if (mmtk_enable_barrier_fastpath) {
-    Node* no_base = __ top();
-    float unlikely  = PROB_UNLIKELY(0.999);
-
-    Node* zero  = __ ConI(0);
-    Node* addr = __ CastPX(__ ctrl(), src);
-    Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(6)));
-    Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-
-    Node* shift = __ URShiftX(addr, __ ConI(3));
-    shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
-    Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
-    __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
-    } __ end_if();
-  } else {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
-    // Looks like this is necessary
-    // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
-    Node* call = __ ctrl()->in(0);
-    call->add_req(slot);
-  }
+  object_reference_write_pre_or_post(ideal, src, /* pre = */ true);
 
   kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
 }
@@ -416,6 +176,12 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
 }
 
 static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oop, Node* offset, Node* slot, Node* val, bool need_mem_bar) {
+  // Note: This function is copied from G1BarrierSetC2::insert_pre_barrier,
+  // and ShenandoahBarrierSetC2::insert_pre_barrier is probably copied from G1 as well.
+  // It basically implements BarrierSetC1::generate_referent_check in C2 IR.
+  // TODO: If another barrier needs weak reference load barrier,
+  // consider hoisting this function to a superclass.
+
   // We could be accessing the referent field of a reference object. If so, when G1
   // is enabled, we need to log the value in the referent field in an SATB buffer.
   // This routine performs some compile time filters and generates suitable
@@ -519,13 +285,13 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
     return load;
   }
 
-#if SOFT_REFERENCE_LOAD_BARRIER
-  if (on_weak) {
-    reference_load_barrier(kit, adr, load, true);
-  } else if (unknown) {
-    reference_load_barrier_for_unknown_load(kit, obj, offset, adr, load, !need_cpu_mem_bar);
+  if (mmtk_enable_reference_load_barrier) {
+    if (on_weak) {
+      reference_load_barrier(kit, adr, load, true);
+    } else if (unknown) {
+      reference_load_barrier_for_unknown_load(kit, obj, offset, adr, load, !need_cpu_mem_bar);
+    }
   }
-#endif
 
   return load;
 }
