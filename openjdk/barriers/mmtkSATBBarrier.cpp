@@ -176,6 +176,12 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
 }
 
 static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oop, Node* offset, Node* slot, Node* val, bool need_mem_bar) {
+  // Note: This function is copied from G1BarrierSetC2::insert_pre_barrier,
+  // and ShenandoahBarrierSetC2::insert_pre_barrier is probably copied from G1 as well.
+  // It basically implements BarrierSetC1::generate_referent_check in C2 IR.
+  // TODO: If another barrier needs weak reference load barrier,
+  // consider hoisting this function to a superclass.
+
   // We could be accessing the referent field of a reference object. If so, when G1
   // is enabled, we need to log the value in the referent field in an SATB buffer.
   // This routine performs some compile time filters and generates suitable
