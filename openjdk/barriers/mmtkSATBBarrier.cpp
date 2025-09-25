@@ -91,7 +91,7 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
 
 #undef __
 
-//////////////////// Assembler/C1 ////////////////////
+//////////////////// C1 ////////////////////
 
 #ifdef ASSERT
 #define __ gen->lir(__FILE__, __LINE__)->
