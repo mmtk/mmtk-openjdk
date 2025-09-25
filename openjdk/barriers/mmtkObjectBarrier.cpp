@@ -93,7 +93,7 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
 #endif
 
 void MMTkObjectBarrierSetC1::object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
-  object_reference_write_pre_or_post(access, src, false);
+  object_reference_write_pre_or_post(access, src, /* pre = */ false);
 }
 
 #undef __

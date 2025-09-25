@@ -137,7 +137,7 @@ void MMTkSATBBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
 }
 
 void MMTkSATBBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
-  object_reference_write_pre_or_post(access, src, true);
+  object_reference_write_pre_or_post(access, src, /* pre = */ true);
 }
 
 #undef __
