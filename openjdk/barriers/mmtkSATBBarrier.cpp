@@ -69,7 +69,7 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
 }
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
-  if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
+  if (can_remove_barrier(decorators, val, /* skip_const_null */ false)) return;
   object_reference_write_pre_or_post(masm, decorators, dst, val, /* pre = */ true);
 }
 
