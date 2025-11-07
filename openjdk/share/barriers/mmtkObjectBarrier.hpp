@@ -6,6 +6,7 @@
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
 #include CPU_HEADER(mmtkObjectBarrierSetAssembler)
+#include "mmtkUnlogBitBarrier.hpp"
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
 #include "c1/c1_LIRAssembler.hpp"
@@ -18,13 +19,15 @@
 #endif
 #include "gc/shared/barrierSet.hpp"
 
-#define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
-#define LOG_BYTES_IN_CHUNK 22
-#define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
+/// This file supports the `ObjectBarrier` in MMTk core,
+/// i.e. the barrier that remembers the object when it is first modified.
+/// Despite the name, `ObjectBarrier` is not the only barrier that uses the object-grained unlogging bit.
+/// `SATBBarrier` also uses the object-grained unlog bit.
+/// We keep the name in sync with the MMTk core.
 
-const intptr_t SIDE_METADATA_BASE_ADDRESS = (intptr_t) GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+//////////////////// Runtime ////////////////////
 
-class MMTkObjectBarrierSetRuntime: public MMTkBarrierSetRuntime {
+class MMTkObjectBarrierSetRuntime: public MMTkUnlogBitBarrierSetRuntime {
 public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
   virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
@@ -34,8 +37,10 @@ public:
   virtual void object_probable_write(oop new_obj) const override;
 };
 
+//////////////////// C1 ////////////////////
+
 #ifdef COMPILER1
-class MMTkObjectBarrierSetC1: public MMTkBarrierSetC1 {
+class MMTkObjectBarrierSetC1: public MMTkUnlogBitBarrierSetC1 {
 protected:
   virtual void object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
 
@@ -47,14 +52,18 @@ protected:
 class MMTkObjectBarrierSetC1;
 #endif
 
+//////////////////// C2 ////////////////////
+
 #ifdef COMPILER2
-class MMTkObjectBarrierSetC2: public MMTkBarrierSetC2 {
+class MMTkObjectBarrierSetC2: public MMTkUnlogBitBarrierSetC2 {
 protected:
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 };
 #else
 class MMTkObjectBarrierSetC2;
 #endif
+
+//////////////////// Impl ////////////////////
 
 struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetRuntime,

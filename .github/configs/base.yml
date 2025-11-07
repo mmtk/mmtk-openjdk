@@ -94,15 +94,6 @@ runtimes:
     release: 21
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
-configs:
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
-  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  - "jdk11-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
-
-benchmarks:
-  dacapochopin:
+# We don't include `configs` or `benchmarks` here.
+# This file will be included by `large-heap.yml` and `normal-heap.yml`
+# so that we can test different plans with different heap sizes.

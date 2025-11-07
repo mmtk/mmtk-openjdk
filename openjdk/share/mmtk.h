@@ -23,6 +23,7 @@ extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
+extern uint8_t CONCURRENT_MARKING_ACTIVE;
 
 extern const char* get_mmtk_version();
 
@@ -45,6 +46,9 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
 
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     size_t bytes, int allocator);
+
+/// java.lang.Reference load barrier
+extern void mmtk_load_reference(MMTk_Mutator mutator, void* obj);
 
 /// Full pre-barrier
 extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, void* slot, void* target);

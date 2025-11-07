@@ -41,6 +41,7 @@
 
 extern bool mmtk_enable_allocation_fastpath;
 extern bool mmtk_enable_barrier_fastpath;
+extern bool mmtk_enable_reference_load_barrier;
 
 const intptr_t VO_BIT_BASE_ADDRESS = VO_BIT_ADDRESS;
 
@@ -62,6 +63,8 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector);
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
+  /// Weak ref load barrier
+  static void load_reference_call(void* ref);
   /// Generic pre-write barrier. Called by fast-paths.
   static void object_reference_write_pre_call(void* src, void* slot, void* target);
   /// Generic post-write barrier. Called by fast-paths.
@@ -78,7 +81,8 @@ public:
         || call == CAST_FROM_FN_PTR(address, object_reference_write_post_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
-        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call);
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call)
+        || call == CAST_FROM_FN_PTR(address, load_reference_call);
   }
 
   /// Full pre-barrier
@@ -89,6 +93,8 @@ public:
   virtual void object_reference_array_copy_pre(oop* src, oop* dst, size_t count) const {};
   /// Full arraycopy post-barrier
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const {};
+  /// java.lang.Reference load barrier
+  virtual void load_reference(DecoratorSet decorators, oop value) const {};
   /// Called at the end of every C2 slowpath allocation.
   /// Deoptimization can happen after C2 slowpath allocation, and the newly allocated object can be promoted.
   /// So this callback is requierd for any generational collectors.
@@ -136,9 +142,9 @@ public:
     return ((MMTkBarrierSet*) BarrierSet::barrier_set())->_runtime;
   }
 
-  virtual void on_thread_destroy(Thread* thread);
-  virtual void on_thread_attach(Thread* thread);
-  virtual void on_thread_detach(Thread* thread);
+  virtual void on_thread_destroy(Thread* thread) override;
+  virtual void on_thread_attach(Thread* thread) override;
+  virtual void on_thread_detach(Thread* thread) override;
 
   virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) override {
     runtime()->object_probable_write(new_obj);
@@ -154,7 +160,7 @@ public:
   virtual bool is_aligned(HeapWord* addr);
 
   // Print a description of the memory for the barrier set
-  virtual void print_on(outputStream* st) const;
+  virtual void print_on(outputStream* st) const override;
 
 
   // The AccessBarrier of a BarrierSet subclass is called by the Access API
@@ -175,6 +181,37 @@ public:
   private:
     typedef BarrierSet::AccessBarrier<decorators, BarrierSetT> Raw;
   public:
+    // Needed for weak references
+    static oop oop_load_in_heap_at(oop base, ptrdiff_t offset) {
+      oop value = Raw::oop_load_in_heap_at(base, offset);
+      const bool on_strong_oop_ref = (decorators & ON_STRONG_OOP_REF) != 0;
+      const bool peek              = (decorators & AS_NO_KEEPALIVE) != 0;
+      const bool needs_enqueue     = (!peek && !on_strong_oop_ref);
+      if (needs_enqueue && value != NULL) {
+        runtime()->load_reference(decorators, value);
+      }
+      return value;
+    }
+
+    template <typename T>
+    static oop oop_load_not_in_heap(T* addr) {
+      oop value = Raw::template oop_load<oop>(addr);
+      const bool on_strong_oop_ref = (decorators & ON_STRONG_OOP_REF) != 0;
+      const bool peek              = (decorators & AS_NO_KEEPALIVE) != 0;
+      const bool needs_enqueue     = (!peek && !on_strong_oop_ref);
+      if (needs_enqueue && value != NULL) {
+        runtime()->load_reference(decorators, value);
+      }
+      return value;
+    }
+
+    // Defensive: will catch weak oops at addresses in heap
+    template <typename T>
+    static oop oop_load_in_heap(T* addr) {
+      UNREACHABLE();
+      return NULL;
+    }
+
     template <typename T>
     static void oop_store_in_heap(T* addr, oop value) {
       UNREACHABLE();

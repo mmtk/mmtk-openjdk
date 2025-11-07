@@ -2,57 +2,13 @@
 #include "mmtkObjectBarrier.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
+//////////////////// Assembler ////////////////////
+
 #define __ masm->
 
 void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, bool compensate_val_reg) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
-
-  bool is_not_null = (decorators & IS_NOT_NULL) != 0;
-
-  Label done;
-  Register obj = dst.base();
-  if (mmtk_enable_barrier_fastpath) {
-    Register tmp3 = rscratch1;
-    Register tmp4 = rscratch2;
-    assert_different_registers(obj, tmp2, tmp3);
-    assert_different_registers(tmp4, rcx);
-
-    // tmp2 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
-    __ movptr(tmp3, obj);
-    __ shrptr(tmp3, 6);
-    __ movptr(tmp2, SIDE_METADATA_BASE_ADDRESS);
-    __ movb(tmp2, Address(tmp2, tmp3));
-    // tmp3 = (obj >> 3) & 7
-    __ movptr(tmp3, obj);
-    __ shrptr(tmp3, 3);
-    __ andptr(tmp3, 7);
-    // tmp2 = tmp2 >> tmp3
-    __ movptr(tmp4, rcx);
-    __ movl(rcx, tmp3);
-    __ shrptr(tmp2);
-    __ movptr(rcx, tmp4);
-    // if ((tmp2 & 1) == 1) goto slowpath;
-    __ andptr(tmp2, 1);
-    __ cmpptr(tmp2, 1);
-    __ jcc(Assembler::notEqual, done);
-  }
-
-  __ movptr(c_rarg0, obj);
-  __ xorptr(c_rarg1, c_rarg1);
-  // Note: If `compensate_val_reg == true && UseCompressedOops === true`, the `val` register will be
-  // holding a compressed pointer to the target object. If the write barrier needs to know the
-  // target, we will need to decompress it before passing it to the barrier slow path. However,
-  // since we know the semantics of `mmtk::plan::barriers::ObjectBarrier`, i.e. it logs the object
-  // without looking at the `slot` or the `target` parameter at all, we simply pass nullptr to both
-  // parameters.
-  __ xorptr(c_rarg2, c_rarg2);
-
-  if (mmtk_enable_barrier_fastpath) {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-    __ bind(done);
-  } else {
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
-  }
+  object_reference_write_pre_or_post(masm, decorators, dst, val, /* pre = */ false);
 }
 
 void MMTkObjectBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {

@@ -7,11 +7,23 @@
 class MMTkBarrierSetAssembler;
 
 class MMTkBarrierSetC1 : public BarrierSetC1 {
-  friend class MMTkBarrierSetAssembler;
+private:
+  // Code blobs for calling into runtime functions.
+  // Here in MMTkBarrierSetC1,
+  // we have one "runtime code blob" for every runtime function we call,
+  // i.e. `MMTkBarrierSetRuntime::*_call`
+  // There is no general rules that enfoce this in OpenJDK,
+  // except that these code blobs are global and implemented in machine-specific assembly.
+  // Our barrier slow paths are relatively simple, i.e. calling into MMTk-core.
+  // So we only need such "runtime code blobs" for calling MMTk functions.
+  // If we want to implement medium paths in machine-specific ways,
+  // we may consider defining new code blobs for specific barriers.
+  CodeBlob* _load_reference_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_pre_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_post_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_slow_c1_runtime_code_blob;
 
 protected:
-  CodeBlob* _write_barrier_c1_runtime_code_blob;
-
   /// Full pre-barrier
   virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {}
   /// Full post-barrier
@@ -60,31 +72,35 @@ public:
 
   MMTkBarrierSetC1() {}
 
+  CodeBlob* load_reference_c1_runtime_code_blob() { return _load_reference_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_pre_c1_runtime_code_blob() { return _object_reference_write_pre_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_post_c1_runtime_code_blob() { return _object_reference_write_post_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_slow_c1_runtime_code_blob() { return _object_reference_write_slow_c1_runtime_code_blob; }
+
   /// Generate C1 write barrier slow-call C1-LIR code
   virtual void generate_c1_runtime_stubs(BufferBlob* buffer_blob) override;
 };
 
-/// C1 write barrier slow-call stub.
-/// The default behaviour is to call `MMTkBarrierSetRuntime::object_reference_write_post_call` and pass all the three args.
-/// Barrier implementations may inherit from this class, and override `emit_code` to perform a specialized slow-path call.
-struct MMTkC1BarrierStub: CodeStub {
-  LIR_Opr src, slot, new_val;
+/// The code stub for (weak) reference loading barrier slow path.
+/// It will call `MMTkBarrierSetRuntime::load_reference_call` if `val` is not null.
+/// Currently only the SATB barrier uses this code stub.
+struct MMTkC1ReferenceLoadBarrierStub: CodeStub {
+  LIR_Opr val;
 
-  MMTkC1BarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val): src(src), slot(slot), new_val(new_val) {
+  MMTkC1ReferenceLoadBarrierStub(LIR_Opr val): val(val) {
     FrameMap* f = Compilation::current()->frame_map();
-    f->update_reserved_argument_area_size(3 * BytesPerWord);
+    f->update_reserved_argument_area_size(1 * BytesPerWord);
   }
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
   virtual void visit(LIR_OpVisitState* visitor) override {
     visitor->do_slow_case();
-    if (src != NULL) visitor->do_input(src);
-    if (slot != NULL) visitor->do_input(slot);
-    if (new_val != NULL) visitor->do_input(new_val);
+    assert(val->is_valid(), "val must be valid");
+    visitor->do_input(val);
   }
 
-  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1BarrierStub"); });
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const override { out->print("MMTkC1ReferenceLoadBarrierStub"); });
 };
 #endif
 #endif // MMTK_OPENJDK_MMTK_BARRIER_SET_C1_HPP
