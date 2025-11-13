@@ -9,8 +9,8 @@
 
 class MMTkUnlogBitBarrierSetAssembler: public MMTkBarrierSetAssembler {
 protected:
-  static void emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2);
-  static void object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, bool pre);
+  static void emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2, Register tmp3);
+  static void object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3, bool pre);
 
 public:
   /// Generate C1 barrier slow path stub

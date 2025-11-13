@@ -9,10 +9,10 @@
 
 #define __ masm->
 
-void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2) {
+void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2, Register tmp3) {
   // Note that `tmp1` and `tmp2` are actual temporary registers available for use,
   // not the `tmp1` and `tmp2` from `store_at`.
-  assert_different_registers(obj, tmp1, tmp2);
+  assert_different_registers(obj, tmp1, tmp2, tmp3);
 
   // tmp2 = load-byte (UNLOG_BIT_BASE_ADDRESS + (obj >> 6));
   __ movptr(tmp1, obj);
@@ -36,25 +36,13 @@ void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssemb
 
 #define __ masm->
 
-void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, bool pre) {
+void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3, bool pre) {
   Label done;
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
-    // For some instructions in the template table,
-    // `tmp1` and `tmp2` may overlap with `dst`.
-    // For example, if the instruction is `aastore`,
-    // then `dst.base() == tmp1 && dst.index() == tmp2`.
-    // This is a bug that has been fixed upstream in OpenJDK 21.
-    // See https://bugs.openjdk.org/browse/JDK-8301371
-    //
-    // We can't overwrite those registers,
-    // so we steal two scratch register
-    // and assert they don't overlap with other registers.
-    Register tmp3 = rscratch1;
-    Register tmp4 = rscratch2;
-    assert_different_registers(dst.base(), dst.index(), val, tmp3, tmp4);
+    assert_different_registers(dst.base(), dst.index(), val, tmp1, tmp2, tmp3);
 
-    emit_check_unlog_bit_fast_path(masm, done, obj, tmp3, tmp4);
+    emit_check_unlog_bit_fast_path(masm, done, obj, tmp1, tmp2, tmp3);
   }
 
   if (pre) {

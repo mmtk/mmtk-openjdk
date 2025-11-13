@@ -195,8 +195,8 @@ void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembl
 
   Register val_reg = stub->val->as_register();
 
-  __ cmpptr(val_reg, (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, *stub->continuation());
+  __ testptr(val_reg, val_reg);
+  __ jcc(Assembler::zero, *stub->continuation());
   ce->store_parameter(stub->val->as_register(), 0);
   __ call(RuntimeAddress(bs->load_reference_c1_runtime_code_blob()->code_begin()));
   __ jmp(*stub->continuation());

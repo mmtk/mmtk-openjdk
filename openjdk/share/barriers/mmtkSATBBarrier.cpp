@@ -205,24 +205,25 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
 }
 
 Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) const {
-
+  // Mostly copied from G1.
   DecoratorSet decorators = access.decorators();
-  assert(access.is_parse_access(), "entry not supported at optimization time");
-  C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
-  GraphKit* kit = parse_access.kit();
-
   Node* adr = access.addr().node();
   Node* obj = access.base();
 
+  bool anonymous = (decorators & C2_UNSAFE_ACCESS) != 0;
   bool mismatched = (decorators & C2_MISMATCHED) != 0;
   bool unknown = (decorators & ON_UNKNOWN_OOP_REF) != 0;
   bool in_heap = (decorators & IN_HEAP) != 0;
+  bool in_native = (decorators & IN_NATIVE) != 0;
   bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
+  bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
   bool is_unordered = (decorators & MO_UNORDERED) != 0;
-  bool need_cpu_mem_bar = !is_unordered || mismatched || !in_heap;
+  bool no_keepalive = (decorators & AS_NO_KEEPALIVE) != 0;
+  bool is_mixed = !in_heap && !in_native;
+  bool need_cpu_mem_bar = !is_unordered || mismatched || is_mixed;
 
-  Node* offset = adr->is_AddP() ? adr->in(AddPNode::Offset) : kit->top();
-  Node* load = BarrierSetC2::load_at_resolved(access, val_type);
+  Node* top = Compile::current()->top();
+  Node* offset = adr->is_AddP() ? adr->in(AddPNode::Offset) : top;
 
   // If we are reading the value of the referent field of a Reference
   // object (either by using Unsafe directly or through reflection)
@@ -230,11 +231,20 @@ Node* MMTkSATBBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_t
   // SATB log buffer using the pre-barrier mechanism.
   // Also we need to add memory barrier to prevent commoning reads
   // from this field across safepoint since GC can change its value.
-  bool need_read_barrier = in_heap && (on_weak || (unknown && offset != kit->top() && obj != kit->top()));
+  bool need_read_barrier = (((on_weak || on_phantom) && !no_keepalive) ||
+                            (in_heap && unknown && offset != top && obj != top));
 
   if (!access.is_oop() || !need_read_barrier) {
-    return load;
+    return BarrierSetC2::load_at_resolved(access, val_type);
   }
+
+  // The other access "opt_access" is only used in arraycopy barriers.
+  // OpenJDK doesn't have weak arrays, so it must be "parse_access".
+  assert(access.is_parse_access(), "entry not supported at optimization time");
+
+  C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+  GraphKit* kit = parse_access.kit();
+  Node* load = BarrierSetC2::load_at_resolved(access, val_type);
 
   if (mmtk_enable_reference_load_barrier) {
     if (on_weak) {
