@@ -18,21 +18,15 @@ void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssemb
   assert_different_registers(obj, tmp1, tmp2, tmp3);
 
   // tmp2 = load-byte (UNLOG_BIT_BASE_ADDRESS + (obj >> 6));
-  __ movptr(tmp1, obj);
-  __ shrptr(tmp1, 6);
-  __ movptr(tmp2, (intptr_t)UNLOG_BIT_BASE_ADDRESS);
-  __ movb(tmp2, Address(tmp2, tmp1));
+  __ movptr(tmp1, (intptr_t)UNLOG_BIT_BASE_ADDRESS);
+  __ add(tmp2, tmp1, obj, Assembler::LSR, 6);
   // tmp1 = (obj >> 3) & 7
-  __ movptr(tmp1, obj);
-  __ shrptr(tmp1, 3);
-  __ andptr(tmp1, 7);
+  __ movz(tmp1, 7);
+  __ andr(tmp1, tmp1, obj, Assembler::LSR, 3);
   // tmp2 = tmp2 >> tmp1
-  __ xchgptr(tmp1, rcx);
-  __ shrptr(tmp2);
-  __ xchgptr(tmp1, rcx);
-  // if ((tmp2 & 1) == 0) goto done;
-  __ testptr(tmp2, 1);
-  __ jcc(Assembler::zero, done);
+  __ lsrv(tmp2, tmp2, tmp1);
+  // if ((tmp2 & (1 << 0)) == 0) goto done;
+  __ tbz(tmp2, 0, done);
 }
 
 #undef __
@@ -50,10 +44,10 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
 
   if (pre) {
     // This is a pre-barrier.  Preserve caller-saved regs for the actual write operation.
-    __ pusha();
+    __ push_call_clobbered_registers();
   }
 
-  __ movptr(c_rarg0, obj);
+  __ mov(c_rarg0, obj);
   // Neither the ObjectBarrier nor the SATBBarrier need to know the slot or the value.
   // We just set both args to nullptr.
   // We may need to pass actual arguments if we support other barriers.
@@ -62,17 +56,17 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
   // compressed oops, the `val` register will be holding a compressed pointer to the target object
   // due to the way `BarrierSetAssembler::store_at` works. If the write barrier needs to know the
   // target, we will need to decompress it before passing it to the barrier slow path.
-  __ xorptr(c_rarg1, c_rarg1);
-  __ xorptr(c_rarg2, c_rarg2);
+  __ mov(c_rarg1, zr);
+  __ mov(c_rarg2, zr);
 
   address entry_point = mmtk_enable_barrier_fastpath ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call)
                       : pre                          ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
                       :                                FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
 
-  __ call_VM_leaf_base(entry_point, 3);
+  __ call_VM_leaf(entry_point, 3);
 
   if (pre) {
-    __ popa();
+    __ pop_call_clobbered_registers();
   }
 
   if (mmtk_enable_barrier_fastpath) {
@@ -95,8 +89,8 @@ void MMTkUnlogBitBarrierSetAssembler::generate_c1_unlog_bit_barrier_slow_path_st
   CodeBlob* code_blob = stub->fast_path_enabled ? bs->object_reference_write_slow_c1_runtime_code_blob()
                       : stub->pre               ? bs->object_reference_write_pre_c1_runtime_code_blob()
                       :                           bs->object_reference_write_post_c1_runtime_code_blob();
-  __ call(RuntimeAddress(code_blob->code_begin()));
-  __ jmp(*stub->continuation());
+  __ far_call(RuntimeAddress(code_blob->code_begin()));
+  __ b(*stub->continuation());
 }
 
 void MMTkC1UnlogBitBarrierSlowPathStub::emit_code(LIR_Assembler* ce) {

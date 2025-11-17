@@ -25,13 +25,15 @@
 #include "asm/macroAssembler.inline.hpp"
 #include "interpreter/interp_masm.hpp"
 #include "mmtkBarrierSet.hpp"
-#include "mmtkBarrierSetAssembler_aarch64.hpp"
 #include "mmtkBarrierSetC1.hpp"
 #include "mmtkMutator.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
+
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 
 #define __ masm->
 
@@ -129,61 +131,95 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
 
 #undef __
 
+//////////////////// Assembler for C1 ////////////////////
+
+// Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
+
 #define __ sasm->
 
-void MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub(StubAssembler* sasm) const {
-  // printf("xxx MMTkBarrierSetAssembler::generate_c1_write_barrier_runtime_stub\n");
-  // See also void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler* sasm)
-  __ prologue("mmtk_write_barrier", false);
-
-  Label done, runtime;
-
-  // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
-  // ld(reg, Address(fp, offset_in_words * BytesPerWord));
-  // ra is free to use here, because call prologue/epilogue handles it
-  // Zheyuan: Code works by swaping rscratch2 and rscratch1, and I dont know why
-  const Register src = rscratch2;
-  const Register slot = rscratch1;
-  const Register new_val = lr;
-  __ load_parameter(0, src);
-  __ load_parameter(1, slot);
-  __ load_parameter(2, new_val);
-
-  __ bind(runtime);
-
-  // Push integer registers x7, x10-x17, x28-x31.
-  //                        t2, a0-a7,   t3-t6
+void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc) {
+  __ prologue(name, false);
   __ push_call_clobbered_registers();
 
-  if (mmtk_enable_barrier_fastpath) {
-    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), src, slot, new_val);
-  } else {
-    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), src, slot, new_val);
+  if (argc > 0) __ load_parameter(0, c_rarg0);
+  if (argc > 1) __ load_parameter(1, c_rarg1);
+  if (argc > 2) __ load_parameter(2, c_rarg2);
+  if (argc > 3) {
+    guarantee(false, "Too many args");
   }
 
+  __ call_VM_leaf(entry_point, 3);
+
   __ pop_call_clobbered_registers();
-
-  __ bind(done);
-
   __ epilogue();
+}
+
+// void foo(){
+//   Label done, runtime;
+
+//   // void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg)
+//   // ld(reg, Address(fp, offset_in_words * BytesPerWord));
+//   // ra is free to use here, because call prologue/epilogue handles it
+//   // Zheyuan: Code works by swaping rscratch2 and rscratch1, and I dont know why
+//   const Register src = rscratch2;
+//   const Register slot = rscratch1;
+//   const Register new_val = lr;
+//   __ load_parameter(0, src);
+//   __ load_parameter(1, slot);
+//   __ load_parameter(2, new_val);
+
+//   __ bind(runtime);
+
+//   // Push integer registers x7, x10-x17, x28-x31.
+//   //                        t2, a0-a7,   t3-t6
+//   __ push_call_clobbered_registers();
+
+//   if (mmtk_enable_barrier_fastpath) {
+//     __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), src, slot, new_val);
+//   } else {
+//     __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), src, slot, new_val);
+//   }
+
+//   __ pop_call_clobbered_registers();
+
+//   __ bind(done);
+
+//   __ epilogue();
+// }
+
+void MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_load_reference_runtime_stub", FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
+}
+
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+}
+
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_post_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+}
+
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_slow_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
 }
 
 #undef __
 
+// Generate code stubs
+
 #define __ ce->masm()->
 
-void MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call(LIR_Assembler* ce, MMTkC1BarrierStub* stub) {
-  // printf("xxx MMTkBarrierSetAssembler::generate_c1_write_barrier_stub_call\n");
-  // See also void G1BarrierSetAssembler::gen_post_barrier_stub(LIR_Assembler* ce, G1PostBarrierStub* stub)
-  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
+void MMTkBarrierSetAssembler::generate_c1_ref_load_barrier_stub_call(LIR_Assembler* ce, MMTkC1ReferenceLoadBarrierStub* stub) {
+  MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*)BarrierSet::barrier_set()->barrier_set_c1();
+
   __ bind(*stub->entry());
-  assert(stub->src->is_register(), "Precondition");
-  assert(stub->slot->is_register(), "Precondition");
-  assert(stub->new_val->is_register(), "Precondition");
-  ce->store_parameter(stub->src->as_pointer_register(), 0);
-  ce->store_parameter(stub->slot->as_pointer_register(), 1);
-  ce->store_parameter(stub->new_val->as_pointer_register(), 2);
-  __ far_call(RuntimeAddress(bs->_write_barrier_c1_runtime_code_blob->code_begin()));
+  assert(stub->val->is_register(), "Precondition.");
+
+  Register val_reg = stub->val->as_register();
+
+  __ cbz(val_reg, *stub->continuation());
+  ce->store_parameter(stub->val->as_register(), 0);
+  __ far_call(RuntimeAddress(bs->load_reference_c1_runtime_code_blob()->code_begin()));
   __ b(*stub->continuation());
 }
 

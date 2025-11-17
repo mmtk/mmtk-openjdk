@@ -1,7 +1,8 @@
 #ifndef MMTK_OPENJDK_MMTK_SATB_BARRIER_SET_ASSEMBLER_X86_HPP
 #define MMTK_OPENJDK_MMTK_SATB_BARRIER_SET_ASSEMBLER_X86_HPP
 
-#include "mmtkUnlogBitBarrierSetAssembler_x86.hpp"
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkUnlogBitBarrierSetAssembler)
 
 //////////////////// Assembler ////////////////////
 

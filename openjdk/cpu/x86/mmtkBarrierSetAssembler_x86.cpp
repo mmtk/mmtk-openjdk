@@ -25,13 +25,15 @@
 #include "asm/macroAssembler.inline.hpp"
 #include "interpreter/interp_masm.hpp"
 #include "mmtkBarrierSet.hpp"
-#include "mmtkBarrierSetAssembler_x86.hpp"
 #include "mmtkBarrierSetC1.hpp"
 #include "mmtkMutator.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
+
+#include "utilities/macros.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
 
 #define __ masm->
 
