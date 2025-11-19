@@ -35,7 +35,7 @@ Your working directory/
 ├─ mmtk-openjdk/
 │  ├─ openjdk/
 │  └─ mmtk/
-├─ jdk/
+├─ openjdk/
 └─ mmtk-core/ (optional)
 ```
 
@@ -52,13 +52,13 @@ The binding repo mainly consists of two folders, `mmtk` and `openjdk`.
 
 #### Checkout OpenJDK
 
-You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `jdk` as a sibling of `mmtk-openjdk`.
+You would need our OpenJDK fork which includes the support for a third party heap (like MMTk). We assume you put `openjdk` as a sibling of `mmtk-openjdk`.
 [`Cargo.toml`](mmtk/Cargo.toml) defines the version of OpenJDK that works with the version of `mmtk-openjdk`.
 
 Assuming your current working directory is the parent folder of `mmtk-openjdk`, you can checkout out OpenJDK and the correct version using:
 ```console
-$ git clone https://github.com/mmtk/jdk.git
-$ git -C jdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' < mmtk-openjdk/mmtk/Cargo.toml`
+$ git clone https://github.com/mmtk/openjdk.git
+$ git -C openjdk checkout `sed -n 's/^openjdk_version.=."\(.*\)"$/\1/p' mmtk-openjdk/mmtk/Cargo.toml`
 ```
 
 #### Checkout MMTk core (optional)
@@ -86,7 +86,7 @@ _**Note:** MMTk is only tested with the `server` build variant._
 After cloned the OpenJDK repo, cd into the root directiory:
 
 ```console
-$ cd jdk
+$ cd openjdk
 ```
 
 Then select a `DEBUG_LEVEL`, can be one of `release`, `fastdebug`, `slowdebug` and `optimized`.
@@ -117,11 +117,11 @@ Then build OpenJDK (this will build MMTk as well):
 $ make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 ```
 
-The output jdk is then found at `./build/linux-x86_64-server-release/images/jdk`.
+The output JDK is then found at `./build/linux-x86_64-server-release/images/jdk`.
 
 > **Note:** The above `make` command will build the `images` target, which is a proper release build of OpenJDK. It is **essential** that you use this target if you are planning on evaluating your build (e.g. measuring performance, gathering minimum heap values, etc). However, if you are simply developing and building incremental changes often, you may want to use the [`default` target or "exploded image"](https://github.com/openjdk/jdk21u/blob/master/doc/building.md#Running-make), which has a marginally shorter build time. However, be wary, as the exploded image is the (roughly) minimal set of outputs required to run the built JDK and is not guaranteed to run all benchmarks. It may have bloated minimum heap values as well.
-> 
-> The exploded image can be built as follows. The output jdk can be found at `./build/linux-x86_64-server-$DEBUG_LEVEL/jdk`.
+
+> The exploded image can be built as follows. The output JDK can be found at `./build/linux-x86_64-server-$DEBUG_LEVEL/jdk`.
 >
 > ```console
 > $ make CONF=linux-x86_64-server-$DEBUG_LEVEL THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk
