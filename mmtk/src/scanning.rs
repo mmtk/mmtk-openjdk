@@ -77,16 +77,9 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
             crate::singleton::<COMPRESSED>(),
             WorkBucketStage::Prepare,
             vec![
-                Box::new(ScanUniverseRoots::new(factory.clone())) as _,
-                Box::new(ScanJNIHandlesRoots::new(factory.clone())) as _,
-                Box::new(ScanObjectSynchronizerRoots::new(factory.clone())) as _,
-                Box::new(ScanManagementRoots::new(factory.clone())) as _,
-                Box::new(ScanJvmtiExportRoots::new(factory.clone())) as _,
-                Box::new(ScanAOTLoaderRoots::new(factory.clone())) as _,
-                Box::new(ScanSystemDictionaryRoots::new(factory.clone())) as _,
                 Box::new(ScanCodeCacheRoots::new(factory.clone())) as _,
-                Box::new(ScanStringTableRoots::new(factory.clone())) as _,
                 Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
+                Box::new(ScanOopStorageSetRoots::new(factory.clone())) as _, // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.
                 Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
                 Box::new(ScanVMThreadRoots::new(factory)) as _,
             ],

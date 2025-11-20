@@ -2,16 +2,16 @@ includes:
   - "./base.yml"
 
 configs:
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-ConcurrentImmix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
+  - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-ConcurrentImmix"
 
 # This will be expanded in CI when we run with the config. Keep a new line at the end.
 benchmarks:
-  dacapo-23.9-RC3-chopin-ci:
+  dacapochopin:

@@ -51,6 +51,14 @@ ifeq ($(MMTK_EXTREME_ASSERTIONS), 1)
   endif
 endif
 
+ifeq ($(call check-jvm-feature, jfr), true)
+  ifndef GC_FEATURES
+    GC_FEATURES=--features jfr
+  else
+    GC_FEATURES:=$(strip $(GC_FEATURES))",jfr"
+  endif
+endif
+
 ifeq ($(MMTK_MALLOC_MARK_SWEEP), 1)
   ifndef GC_FEATURES
     GC_FEATURES=--features malloc_mark_sweep
@@ -76,15 +84,37 @@ else
   CARGO_PROFILE = debug
 endif
 
+CARGO_EXECUTABLE = cargo
+CARGO_TARGET = .
+CARGO_TARGET_FLAG =
+
+ifeq ($(COMPILE_TYPE), cross)
+	ifneq ($(CREATING_BUILDJDK), true)
+		# Set the CARGO_TARGET based on the architecture
+		ifeq ($(OPENJDK_TARGET_CPU), riscv64)
+			CARGO_TARGET = riscv64gc-unknown-linux-gnu
+		else ifeq ($(OPENJDK_TARGET_CPU), aarch64)
+			CARGO_TARGET = aarch64-unknown-linux-gnu
+    else
+      CARGO_TARGET = UNSUPPORTED_MMTK_OPENJDK_TARGET_CPU
+		endif
+		CARGO_EXECUTABLE = cross
+		CARGO_TARGET_FLAG = --target $(CARGO_TARGET)
+	endif
+endif
 $(LIB_MMTK): FORCE
 	if [[ "$(OPENJDK_VERSION)" != "$(OPENJDK_LOCAL_VERSION)" ]]; then \
 		echo -e $(YELLOW)WARNING: Local OpenJDK version does not match version specified in mmtk/Cargo.toml$(NC); \
 		echo -e $(YELLOW)Local OpenJDK version $(OPENJDK_LOCAL_VERSION)$(NC); \
 		echo -e $(YELLOW)mmtk/Cargo.toml OpenJDK version $(OPENJDK_VERSION)$(NC); \
 	fi
-	echo "cd $(MMTK_RUST_ROOT) && cargo --version && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)"
-	cd $(MMTK_RUST_ROOT) && cargo --version && cargo build $(CARGO_PROFILE_FLAG) --target $(HOST_TRIPLE) $(GC_FEATURES)
-	cp $(MMTK_RUST_ROOT)/target/$(HOST_TRIPLE)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
+	if [[ "$(OPENJDK_TARGET_CPU)" != "riscv64" ]] && [[ "$(OPENJDK_TARGET_CPU)" != "aarch64" ]] && [[ $(CARGO_EXECUTABLE) == "cross" ]]; then \
+		echo -e "Only cross compiling to riscv64/aarch64 are supported"; \
+		exit 1; \
+	fi
+	echo "cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) --version && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)"
+	cd $(MMTK_RUST_ROOT) && $(CARGO_EXECUTABLE) --version && $(CARGO_EXECUTABLE) build $(CARGO_TARGET_FLAG) $(CARGO_PROFILE_FLAG) $(GC_FEATURES)
+	mkdir -p $(JVM_LIB_OUTPUTDIR) && cp $(MMTK_RUST_ROOT)/target/$(CARGO_TARGET)/$(CARGO_PROFILE)/libmmtk_openjdk.so $(LIB_MMTK)
 
 JVM_LIBS += -L$(JVM_LIB_OUTPUTDIR) -lmmtk_openjdk
 JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
@@ -92,8 +122,8 @@ JVM_LDFLAGS += '-Wl,-rpath,$$ORIGIN'
 FORCE:
 
 TARGETS += $(LIB_MMTK)
-JVM_SRC_DIRS += $(MMTK_CPP_ROOT) $(MMTK_CPP_ROOT)/barriers
-JVM_CFLAGS += -std=c++11 -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)
+JVM_SRC_DIRS += $(MMTK_CPP_ROOT)/share $(MMTK_CPP_ROOT)/share/barriers $(MMTK_CPP_ROOT)/cpu/$(HOTSPOT_TARGET_CPU_ARCH)
+JVM_CFLAGS += -std=c++14 -fpermissive -DINCLUDE_THIRD_PARTY_HEAP -DTHIRD_PARTY_HEAP_SRC=$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/share -I$(MMTK_CPP_ROOT)/cpu/$(HOTSPOT_TARGET_CPU_ARCH)
 ifeq ($(MMTK_VO_BIT), 1)
   JVM_CFLAGS += -DMMTK_ENABLE_VO_BIT
 endif
