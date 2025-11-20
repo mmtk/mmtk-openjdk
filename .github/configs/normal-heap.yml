@@ -14,4 +14,4 @@ configs:
 
 # This will be expanded in CI when we run with the config. Keep a new line at the end.
 benchmarks:
-  dacapo-23.9-RC3-chopin-ci:
+  dacapochopin:
