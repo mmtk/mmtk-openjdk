@@ -512,6 +512,13 @@ pub extern "C" fn mmtk_register_nmethod(nm: Address) {
     NMETHOD_SLOTS.with_borrow_mut(|slots| {
         if !slots.is_empty() {
             let mut roots = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+            let mut mature_roots = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
+            // The nmethod might already be in the mature roots, if we
+            // are re-registering the nmethod due to code patching.
+            // If the nmethod is already in the mature roots, we demote
+            // the nmethod to the nursery roots, as the nmethod might
+            // now refer to a young object.
+            mature_roots.remove(&nm);
             roots.insert(nm, std::mem::take(slots));
         }
     });
