@@ -94,7 +94,9 @@ impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
     }
 
     fn x86_read_unaligned<T, const UNTAG: bool>(&self) -> T {
-        debug_assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
+        const {
+            assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
+        }
         // Workaround: On x86 (including x86_64), machine instructions may contain pointers as
         // immediates, and they may be unaligned.  It is an undefined behavior in Rust to
         // dereference unaligned pointers.  We have to explicitly use unaligned memory access
@@ -113,7 +115,9 @@ impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
     }
 
     fn x86_write_unaligned<T: Copy, const UNTAG: bool>(&self, v: T) {
-        debug_assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
+        const {
+            assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
+        }
         unsafe {
             let slot = if UNTAG {
                 self.untagged_address()
