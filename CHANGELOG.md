@@ -1,3 +1,28 @@
+0.32.0 (2025-02-04)
+===
+
+## What's Changed
+* Update to MMTk core PR #1308 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/308
+* Fix reference processing crash by @wks in https://github.com/mmtk/mmtk-openjdk/pull/309
+* Add Compressor tests by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/310
+* Enable reference processing by default in CI by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/312
+* Acquire and release Heap_lock on VM_MMTkSTWOperation by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/316
+* Fix bugs related to `Reference.discovered` by @wks in https://github.com/mmtk/mmtk-openjdk/pull/323
+* Control barrier fast paths via env var by @wks in https://github.com/mmtk/mmtk-openjdk/pull/326
+* Warn instead of panic when `object_iterate` is called. by @wks in https://github.com/mmtk/mmtk-openjdk/pull/325
+* Do not apply write barriers when enqueuing refs by @wks in https://github.com/mmtk/mmtk-openjdk/pull/328
+* Enable compressed pointers for Compressor by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/327
+* Concurrent Immix by @tianleq in https://github.com/mmtk/mmtk-openjdk/pull/311
+* Reduce the test heap size for concurrent immix by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/330
+* Refactor barrier implementations by @wks in https://github.com/mmtk/mmtk-openjdk/pull/332
+* Demote re-registered nmethods by @no-defun-allowed in https://github.com/mmtk/mmtk-openjdk/pull/336
+* Move to Rust 1.92 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/338
+
+## New Contributors
+* @no-defun-allowed made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/336
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.31.0...v0.32.0
+
 0.31.0 (2025-04-17)
 ===
 
