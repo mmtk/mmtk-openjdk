@@ -4,6 +4,7 @@ use super::abi::*;
 use super::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::RefScanPolicy;
 use mmtk::vm::SlotVisitor;
 use std::cell::UnsafeCell;
 use std::{mem, slice};
@@ -11,7 +12,7 @@ use std::{mem, slice};
 type S<const COMPRESSED: bool> = OpenJDKSlot<COMPRESSED>;
 
 trait OopIterate: Sized {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
@@ -19,7 +20,7 @@ trait OopIterate: Sized {
 }
 
 impl OopIterate for OopMapBlock {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
@@ -34,25 +35,34 @@ impl OopIterate for OopMapBlock {
 }
 
 impl OopIterate for InstanceKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
+        if !R::VISIT_STRONG {
+            return;
+        }
+
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
-            map.oop_iterate::<COMPRESSED>(oop, closure)
+            map.oop_iterate::<COMPRESSED, R>(oop, closure)
         }
     }
 }
 
 impl OopIterate for InstanceMirrorKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
-        self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+        if !R::VISIT_STRONG {
+            return;
+        }
+
+        self.instance_klass
+            .oop_iterate::<COMPRESSED, R>(oop, closure);
 
         // static fields
         let start = Self::start_of_static_fields(oop);
@@ -74,21 +84,30 @@ impl OopIterate for InstanceMirrorKlass {
 }
 
 impl OopIterate for InstanceClassLoaderKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
-        self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+        if !R::VISIT_STRONG {
+            return;
+        }
+
+        self.instance_klass
+            .oop_iterate::<COMPRESSED, R>(oop, closure);
     }
 }
 
 impl OopIterate for ObjArrayKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
+        if !R::VISIT_STRONG {
+            return;
+        }
+
         let array = unsafe { oop.as_array_oop() };
         if COMPRESSED {
             for narrow_oop in unsafe { array.data::<NarrowOop, COMPRESSED>(BasicType::T_OBJECT) } {
@@ -103,7 +122,7 @@ impl OopIterate for ObjArrayKlass {
 }
 
 impl OopIterate for TypeArrayKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         _oop: Oop,
         _closure: &mut impl SlotVisitor<S<COMPRESSED>>,
@@ -114,38 +133,66 @@ impl OopIterate for TypeArrayKlass {
 }
 
 impl OopIterate for InstanceRefKlass {
-    fn oop_iterate<const COMPRESSED: bool>(
+    fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
         &self,
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
-        use crate::abi::*;
         use crate::api::{add_phantom_candidate, add_soft_candidate, add_weak_candidate};
-        self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
 
-        // Unlike OpenJDK's built-in collectors, we do not use the `discovered` field for
-        // recording discovered references (we use `add_{soft,weak,phantom}_candidate`).
-        // The `discovered` field links all `Reference` instances that are either in the
-        // global "reference pending list" or given to the `ReferenceHandler` thread.
-        // We treat it as a strong field.
-        let discovered_addr: OpenJDKSlot<COMPRESSED> = Self::discovered_address::<COMPRESSED>(oop);
-        closure.visit_slot(discovered_addr);
+        if R::VISIT_STRONG {
+            self.instance_klass
+                .oop_iterate::<COMPRESSED, R>(oop, closure);
 
-        if Self::should_scan_weak_refs::<COMPRESSED>() {
-            let reference = ObjectReference::from(oop);
-            match self.instance_klass.reference_type {
-                ReferenceType::None => {
-                    panic!("oop_iterate on InstanceRefKlass with reference_type as None")
-                }
-                ReferenceType::Weak => add_weak_candidate(reference),
-                ReferenceType::Soft => add_soft_candidate(reference),
-                ReferenceType::Phantom => add_phantom_candidate(reference),
-                // Process final reference normally.
-                // We will handle final reference later
-                ReferenceType::Final => Self::process_ref_as_strong(oop, closure),
+            // Unlike OpenJDK's built-in collectors, we do not use the `discovered` field for
+            // recording discovered references (we use `add_{soft,weak,phantom}_candidate`).
+            // The `discovered` field links all `Reference` instances that are either in the
+            // global "reference pending list" or given to the `ReferenceHandler` thread.
+            // We treat it as a strong field.
+            let discovered_addr: OpenJDKSlot<COMPRESSED> =
+                Self::discovered_address::<COMPRESSED>(oop);
+            closure.visit_slot(discovered_addr);
+        }
+
+        let reference = ObjectReference::from(oop);
+        let reference_type = self.instance_klass.reference_type;
+        match reference_type {
+            ReferenceType::None => {
+                // We shouldn't see this.
+                panic!("oop_iterate on InstanceRefKlass with reference_type as None")
             }
-        } else {
-            Self::process_ref_as_strong(oop, closure);
+            ReferenceType::Final => {
+                // We are currently using the FinalizerProcessor in mmtk-core, and we never
+                // instantiate FinalizerReference.  So we panic.  If we switch to OpenJDK-style
+                // finalizer processing and start to use FinalizerReference, we need to change
+                // the implementation here.
+                panic!("oop_iterate on InstanceRefKlass with reference_type as Final")
+            }
+            _ => {
+                if Self::should_scan_weak_refs::<COMPRESSED>() {
+                    // We treat the reference in the `Reference.reference` field as a weak
+                    // reference. But depending on the `R: RefScanPolicy`, we may discover it and/or
+                    // visit it.
+                    if R::DISCOVER_WEAK {
+                        match reference_type {
+                            ReferenceType::Soft => add_soft_candidate(reference),
+                            ReferenceType::Weak => add_weak_candidate(reference),
+                            ReferenceType::Phantom => add_phantom_candidate(reference),
+                            _ => unreachable!(),
+                        }
+                    }
+                    // Note: `R::DISCOVER_WEAK`, `R::VISIT_WEAK` and `R::VISIT_STRONG` are NOT mutually
+                    // exclusive, so it is not `else if`.
+                    if R::VISIT_WEAK {
+                        Self::visit_reference_field(oop, closure)
+                    }
+                } else {
+                    // We simply treat all weak references as strong references.
+                    if R::VISIT_STRONG {
+                        Self::visit_reference_field(oop, closure);
+                    }
+                }
+            }
         }
     }
 }
@@ -156,7 +203,7 @@ impl InstanceRefKlass {
             .get_options()
             .no_reference_types
     }
-    fn process_ref_as_strong<const COMPRESSED: bool>(
+    fn visit_reference_field<const COMPRESSED: bool>(
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
@@ -183,7 +230,10 @@ fn oop_iterate_slow<const COMPRESSED: bool, V: SlotVisitor<S<COMPRESSED>>>(
     }
 }
 
-fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl SlotVisitor<S<COMPRESSED>>) {
+fn oop_iterate<const COMPRESSED: bool, R: RefScanPolicy>(
+    oop: Oop,
+    closure: &mut impl SlotVisitor<S<COMPRESSED>>,
+) {
     let klass = oop.klass::<COMPRESSED>();
     let klass_id = klass.kind;
     assert!(
@@ -195,26 +245,26 @@ fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl SlotVisitor<
     match klass_id {
         KlassKind::Instance => {
             let instance_klass = unsafe { klass.cast::<InstanceKlass>() };
-            instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+            instance_klass.oop_iterate::<COMPRESSED, R>(oop, closure);
         }
         KlassKind::InstanceClassLoader => {
             let instance_klass = unsafe { klass.cast::<InstanceClassLoaderKlass>() };
-            instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+            instance_klass.oop_iterate::<COMPRESSED, R>(oop, closure);
         }
         KlassKind::InstanceMirror => {
             let instance_klass = unsafe { klass.cast::<InstanceMirrorKlass>() };
-            instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+            instance_klass.oop_iterate::<COMPRESSED, R>(oop, closure);
         }
         KlassKind::ObjArray => {
             let array_klass = unsafe { klass.cast::<ObjArrayKlass>() };
-            array_klass.oop_iterate::<COMPRESSED>(oop, closure);
+            array_klass.oop_iterate::<COMPRESSED, R>(oop, closure);
         }
         KlassKind::TypeArray => {
             // Skip scanning primitive arrays as they contain no reference fields.
         }
         KlassKind::InstanceRef => {
             let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };
-            instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
+            instance_klass.oop_iterate::<COMPRESSED, R>(oop, closure);
         }
         KlassKind::InstanceStackChunk => {
             unreachable!("StackChunkOop not supported!")
@@ -240,12 +290,12 @@ pub unsafe extern "C" fn scan_object_fn<
     closure.visit_slot(slot.into());
 }
 
-pub fn scan_object<const COMPRESSED: bool>(
+pub fn scan_object<const COMPRESSED: bool, R: RefScanPolicy>(
     object: ObjectReference,
     closure: &mut impl SlotVisitor<S<COMPRESSED>>,
-    _tls: VMWorkerThread,
+    _tls: VMThread,
 ) {
     unsafe {
-        oop_iterate::<COMPRESSED>(mem::transmute::<ObjectReference, &OopDesc>(object), closure)
+        oop_iterate::<COMPRESSED, R>(mem::transmute::<ObjectReference, &OopDesc>(object), closure)
     }
 }

@@ -6,6 +6,7 @@ use mmtk::memory_manager;
 use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::RefScanPolicy;
 use mmtk::vm::{RootsWorkFactory, Scanning, SlotVisitor};
 use mmtk::Mutator;
 use mmtk::MutatorContext;
@@ -45,12 +46,12 @@ pub(crate) fn to_slots_closure<S: Slot, F: RootsWorkFactory<S>>(factory: &mut F)
 }
 
 impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
-    fn scan_object<SV: SlotVisitor<OpenJDKSlot<COMPRESSED>>>(
-        tls: VMWorkerThread,
+    fn scan_object<R: RefScanPolicy>(
+        tls: VMThread,
         object: ObjectReference,
-        slot_visitor: &mut SV,
+        slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
     ) {
-        crate::object_scanning::scan_object::<COMPRESSED>(object, slot_visitor, tls);
+        crate::object_scanning::scan_object::<COMPRESSED, R>(object, slot_visitor, tls);
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
