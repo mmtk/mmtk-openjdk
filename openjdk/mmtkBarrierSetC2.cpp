@@ -279,7 +279,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   if (enable_vo_bit || selector.tag == TAG_MARK_COMPACT) {
     // set the alloc bit:
     // intptr_t addr = (intptr_t) (void*) fast_oop;
-    // uint8_t* meta_addr = (uint8_t*) (VO_BIT_BASE_ADDRESS + (addr >> 6));
+    // uint8_t* meta_addr = (uint8_t*) (vo_bit_base_address() + (addr >> 6));
     // intptr_t shift = (addr >> 3) & 0b111;
     // uint8_t byte_val = *meta_addr;
     // uint8_t new_byte_val = byte_val | (1 << shift);
@@ -293,7 +293,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     Node *meta_offset = new URShiftLNode(obj_addr, addr_shift);
     x->transform_later(meta_offset);
 
-    Node *meta_base = ConLNode::make(VO_BIT_BASE_ADDRESS);
+    Node *meta_base = ConLNode::make(vo_bit_base_address());
     x->transform_later(meta_base);
 
     Node *meta_addr = new AddLNode(meta_base, meta_offset);

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 # PGO seems to have problems with incremental compilation or something else similar.
 # PGO build might fail with error messages such as
@@ -9,6 +10,8 @@
 pushd ../mmtk-openjdk/mmtk
 cargo clean
 popd
+
+sh configure --disable-warnings-as-errors --with-debug-level=release
 
 # Compile with profiling support
 RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images

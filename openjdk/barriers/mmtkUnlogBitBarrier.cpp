@@ -140,12 +140,12 @@ void MMTkUnlogBitBarrierSetC1::emit_check_unlog_bit_fast_path(LIRGenerator* gen,
   LIR_Opr addr = gen->new_register(T_OBJECT);
   __ move(src, addr);
 
-  // uint8_t* meta_addr = (uint8_t*) (UNLOG_BIT_BASE_ADDRESS + (addr >> 6));
+  // uint8_t* meta_addr = (uint8_t*) (unlog_bit_base_address() + (addr >> 6));
   LIR_Opr offset = gen->new_pointer_register();
   __ move(addr, offset);
   __ unsigned_shift_right(offset, 6, offset);
   LIR_Opr base = gen->new_pointer_register();
-  __ move(LIR_OprFact::longConst(UNLOG_BIT_BASE_ADDRESS), base);
+  __ move(LIR_OprFact::longConst(unlog_bit_base_address()), base);
   LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
 
   // uint8_t byte_val = *meta_addr;
@@ -191,7 +191,7 @@ void MMTkUnlogBitBarrierSetC1::object_reference_write_pre_or_post(LIRAccess& acc
 Node* MMTkUnlogBitBarrierSetC2::emit_check_unlog_bit_fast_path(MMTkIdealKit& ideal, Node* obj) {
   Node* addr = __ CastPX(__ ctrl(), obj);
   Node* no_base = __ top();
-  Node* meta_addr = __ AddP(no_base, __ ConP(UNLOG_BIT_BASE_ADDRESS), __ URShiftX(addr, __ ConI(6)));
+  Node* meta_addr = __ AddP(no_base, __ ConP(unlog_bit_base_address()), __ URShiftX(addr, __ ConI(6)));
   Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
   Node* shift = __ URShiftX(addr, __ ConI(3));
   shift = __ AndI(__ ConvL2I(shift), __ ConI(7));

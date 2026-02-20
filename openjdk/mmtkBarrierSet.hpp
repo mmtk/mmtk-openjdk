@@ -41,7 +41,9 @@ extern bool mmtk_enable_allocation_fastpath;
 extern bool mmtk_enable_barrier_fastpath;
 extern bool mmtk_enable_reference_load_barrier;
 
-const intptr_t VO_BIT_BASE_ADDRESS = VO_BIT_ADDRESS;
+inline intptr_t vo_bit_base_address() {
+  return static_cast<intptr_t>(get_vo_bit_address());
+}
 
 struct MMTkAllocatorOffsets {
   int tlab_top_offset;
