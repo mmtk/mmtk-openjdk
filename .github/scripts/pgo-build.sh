@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 # PGO seems to have problems with incremental compilation or something else similar.
 # PGO build might fail with error messages such as
@@ -10,6 +11,8 @@ pushd ../mmtk-openjdk/mmtk
 cargo clean
 popd
 
+sh configure --disable-warnings-as-errors --with-debug-level=release
+
 # Compile with profiling support
 RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
 
@@ -20,7 +23,7 @@ rm -rf /tmp/$USER/pgo-data/*
 MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=4194304 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-23.11-MR2-chopin.jar -n 5 fop
 
 # Merge profiling data
-/opt/rust/toolchains/1.83.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
+/opt/rust/toolchains/1.92.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
 
 pushd ../mmtk-openjdk/mmtk
 cargo clean
