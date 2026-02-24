@@ -112,7 +112,7 @@ public:
   virtual bool supports_tlab_allocation() const override;
 
   virtual bool supports_inline_contig_alloc() const override {
-    return MMTK_ENABLE_ALLOCATION_FASTPATH && !disable_fast_alloc();
+    return mmtk_enable_allocation_fastpath && !disable_fast_alloc();
   }
 
   // The amount of space available for thread-local allocation buffers.

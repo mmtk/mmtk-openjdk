@@ -19,7 +19,7 @@ void MMTkFieldBarrierSetRuntime::load_reference(DecoratorSet decorators, oop val
 };
 
 void MMTkFieldBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
-#if MMTK_ENABLE_BARRIER_FASTPATH
+  if (mmtk_enable_barrier_fastpath) {
     intptr_t addr = ((intptr_t) (void*) slot);
     const volatile uint8_t * meta_addr = (const volatile uint8_t *) (side_metadata_base_address() + (addr >> (UseCompressedOops ? 5 : 6)));
     uint8_t byte_val = *meta_addr;
@@ -29,9 +29,9 @@ void MMTkFieldBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, 
     if (((byte_val >> shift) & 1) == kUnloggedValue) {
       ::mmtk_object_reference_write_slow((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) target);
     }
-#else
-    ::object_reference_write_pre_call((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) target);
-#endif
+  } else {
+    ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) target);
+  }
 }
 
 void MMTkFieldBarrierSetRuntime::object_probable_write(oop new_obj) const {
@@ -74,53 +74,53 @@ void MMTkFieldBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet de
 
 void MMTkFieldBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ false)) return;
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  Label done;
+  if (mmtk_enable_barrier_fastpath) {
+    Label done;
 
-  Register tmp3 = rscratch1;
-  Register tmp4 = rscratch2;
-  Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
+    Register tmp3 = rscratch1;
+    Register tmp4 = rscratch2;
+    Register tmp5 = tmp1 == dst.base() || tmp1 == dst.index() ? tmp2 : tmp1;
 
-  // tmp5 = load-byte (side_metadata_base_address() + (obj >> 6));
-  __ lea(tmp3, dst);
-  __ shrptr(tmp3, UseCompressedOops ? 5 : 6);
-  __ movptr(tmp5, side_metadata_base_address());
-  __ movzbl(tmp5, Address(tmp5, tmp3));
-  if (!FIELD_BARRIER_NO_EAGER_BRANCH) {
-    __ cmpl(tmp5, 0);
-    __ jcc(Assembler::equal, done);
+    // tmp5 = load-byte (side_metadata_base_address() + (obj >> 6));
+    __ lea(tmp3, dst);
+    __ shrptr(tmp3, UseCompressedOops ? 5 : 6);
+    __ movptr(tmp5, side_metadata_base_address());
+    __ movzbl(tmp5, Address(tmp5, tmp3));
+    if (!FIELD_BARRIER_NO_EAGER_BRANCH) {
+      __ cmpl(tmp5, 0);
+      __ jcc(Assembler::equal, done);
+    }
+    // tmp3 = (obj >> 3) & 7
+    __ lea(tmp3, dst);
+    __ shrptr(tmp3, UseCompressedOops ? 2 : 3);
+    __ andptr(tmp3, 7);
+    // tmp5 = tmp5 >> tmp3
+    __ movptr(tmp4, rcx);
+    __ movl(rcx, tmp3);
+    __ shrptr(tmp5);
+    __ movptr(rcx, tmp4);
+    // if ((tmp5 & 1) == 1) goto slowpath;
+    __ andptr(tmp5, 1);
+    __ cmpptr(tmp5, kUnloggedValue);
+    __ jcc(Assembler::notEqual, done);
+
+    // TODO: Spill fewer registers
+    __ pusha();
+    __ movptr(c_rarg0, dst.base());
+    __ lea(c_rarg1, dst);
+    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+    __ popa();
+
+    __ bind(done);
+  } else {
+    __ pusha();
+    __ movptr(c_rarg0, dst.base());
+    __ lea(c_rarg1, dst);
+    __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+    __ popa();
   }
-  // tmp3 = (obj >> 3) & 7
-  __ lea(tmp3, dst);
-  __ shrptr(tmp3, UseCompressedOops ? 2 : 3);
-  __ andptr(tmp3, 7);
-  // tmp5 = tmp5 >> tmp3
-  __ movptr(tmp4, rcx);
-  __ movl(rcx, tmp3);
-  __ shrptr(tmp5);
-  __ movptr(rcx, tmp4);
-  // if ((tmp5 & 1) == 1) goto slowpath;
-  __ andptr(tmp5, 1);
-  __ cmpptr(tmp5, kUnloggedValue);
-  __ jcc(Assembler::notEqual, done);
-
-  // TODO: Spill fewer registers
-  __ pusha();
-  __ movptr(c_rarg0, dst.base());
-  __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-  __ popa();
-
-  __ bind(done);
-#else
-  __ pusha();
-  __ movptr(c_rarg0, dst.base());
-  __ lea(c_rarg1, dst);
-  __ movptr(c_rarg2, val == noreg ?  (int32_t) NULL_WORD : val);
-  __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
-  __ popa();
-#endif
 }
 
 void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
@@ -248,41 +248,41 @@ void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Op
   MMTkC1BarrierStub* slow = new MMTkC1BarrierStub(src, slot, new_val, access.patch_emit_info(), needs_patching ? lir_patch_normal : lir_patch_none);
   if (needs_patching) slow->scratch = gen->new_register(T_OBJECT);
 
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  if (needs_patching) {
-    // FIXME: Jump to a medium-path for code patching without entering slow-path
-    __ jump(slow);
+  if (mmtk_enable_barrier_fastpath) {
+    if (needs_patching) {
+      // FIXME: Jump to a medium-path for code patching without entering slow-path
+      __ jump(slow);
+    } else {
+      LIR_Opr addr = slot;
+      // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
+      LIR_Opr offset = gen->new_pointer_register();
+      __ move(addr, offset);
+      __ unsigned_shift_right(offset, UseCompressedOops ? 5 : 6, offset);
+      LIR_Opr base = gen->new_pointer_register();
+      __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
+      LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
+      // uint8_t byte_val = *meta_addr;
+      LIR_Opr byte_val = gen->new_register(T_INT);
+      __ move(meta_addr, byte_val);
+      // #if MMTK_BARRIER_EAGER_BRANCH
+      // __ cmp(lir_cond_equal, byte_val, LIR_OprFact::intConst(0));
+      // __ branch(lir_cond_equal, T_BYTE, Ldone->label());
+      // #endif
+      // intptr_t shift = (addr >> 3) & 0b111;
+      LIR_Opr shift = gen->new_register(T_INT);
+      __ move(addr, shift);
+      __ unsigned_shift_right(shift, UseCompressedOops ? 2 : 3, shift);
+      __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
+      // if (((byte_val >> shift) & 1) == 1) slow;
+      LIR_Opr result = byte_val;
+      __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
+      __ logical_and(result, LIR_OprFact::intConst(1), result);
+      __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
+      __ branch(lir_cond_equal, T_BYTE, slow);
+    }
   } else {
-    LIR_Opr addr = slot;
-    // uint8_t* meta_addr = (uint8_t*) (side_metadata_base_address() + (addr >> 6));
-    LIR_Opr offset = gen->new_pointer_register();
-    __ move(addr, offset);
-    __ unsigned_shift_right(offset, UseCompressedOops ? 5 : 6, offset);
-    LIR_Opr base = gen->new_pointer_register();
-    __ move(LIR_OprFact::longConst(side_metadata_base_address()), base);
-    LIR_Address* meta_addr = new LIR_Address(base, offset, T_BYTE);
-    // uint8_t byte_val = *meta_addr;
-    LIR_Opr byte_val = gen->new_register(T_INT);
-    __ move(meta_addr, byte_val);
-    // #if MMTK_BARRIER_EAGER_BRANCH
-    // __ cmp(lir_cond_equal, byte_val, LIR_OprFact::intConst(0));
-    // __ branch(lir_cond_equal, T_BYTE, Ldone->label());
-    // #endif
-    // intptr_t shift = (addr >> 3) & 0b111;
-    LIR_Opr shift = gen->new_register(T_INT);
-    __ move(addr, shift);
-    __ unsigned_shift_right(shift, UseCompressedOops ? 2 : 3, shift);
-    __ logical_and(shift, LIR_OprFact::intConst(0b111), shift);
-    // if (((byte_val >> shift) & 1) == 1) slow;
-    LIR_Opr result = byte_val;
-    __ unsigned_shift_right(result, shift, result, LIR_OprFact::illegalOpr);
-    __ logical_and(result, LIR_OprFact::intConst(1), result);
-    __ cmp(lir_cond_equal, result, LIR_OprFact::intConst(1));
-    __ branch(lir_cond_equal, T_BYTE, slow);
+    __ jump(slow);
   }
-#else
-  __ jump(slow);
-#endif
 
   __ branch_destination(slow->continuation());
   __ branch_destination(Ldone->label());
@@ -294,34 +294,34 @@ void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Op
 
 
 static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* slot, Node* val) {
-#if MMTK_ENABLE_BARRIER_FASTPATH
-  Node* no_base = __ top();
-  float unlikely  = PROB_UNLIKELY(0.999);
+  if (mmtk_enable_barrier_fastpath) {
+    Node* no_base = __ top();
+    float unlikely  = PROB_UNLIKELY(0.999);
 
-  Node* zero  = __ ConI(0);
-  Node* addr = __ CastPX(__ ctrl(), slot);
-  Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(UseCompressedOops ? 5 : 6)));
-  Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
-  if (!FIELD_BARRIER_NO_EAGER_BRANCH)
-    __ if_then(byte, BoolTest::ne, zero, unlikely);
-  Node* shift = __ URShiftX(addr, __ ConI(UseCompressedOops ? 2 : 3));
-  shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
-  Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
-  __ if_then(result, BoolTest::ne, zero, unlikely); {
+    Node* zero  = __ ConI(0);
+    Node* addr = __ CastPX(__ ctrl(), slot);
+    Node* meta_addr = __ AddP(no_base, __ ConP(side_metadata_base_address()), __ URShiftX(addr, __ ConI(UseCompressedOops ? 5 : 6)));
+    Node* byte = __ load(__ ctrl(), meta_addr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+    if (!FIELD_BARRIER_NO_EAGER_BRANCH)
+      __ if_then(byte, BoolTest::ne, zero, unlikely);
+    Node* shift = __ URShiftX(addr, __ ConI(UseCompressedOops ? 2 : 3));
+    shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
+    Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
+    __ if_then(result, BoolTest::ne, zero, unlikely); {
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+      if (!FIELD_BARRIER_NO_C2_SLOW_CALL)
+        Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
+    } __ end_if();
+    if (!FIELD_BARRIER_NO_EAGER_BRANCH)
+      __ end_if();
+  } else {
     const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    if (!FIELD_BARRIER_NO_C2_SLOW_CALL)
-      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
-  } __ end_if();
-  if (!FIELD_BARRIER_NO_EAGER_BRANCH)
-    __ end_if();
-#else
-  const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-  Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
-  // Looks like this is necessary
-  // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
-  Node* call = __ ctrl()->in(0);
-  call->add_req(slot);
-#endif
+    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
+    // Looks like this is necessary
+    // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
+    Node* call = __ ctrl()->in(0);
+    call->add_req(slot);
+  }
 }
 
 void MMTkFieldBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const {

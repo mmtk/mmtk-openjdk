@@ -80,8 +80,26 @@ MMTkHeap::MMTkHeap(MMTkCollectorPolicy* policy) :
   _heap = this;
 }
 
+static void set_bool_option_from_env_var(const char *name, bool *var) {
+  const char *env_var = getenv(name);
+  if (env_var != NULL) {
+    if (strcmp(env_var, "true") == 0 || strcmp(env_var, "yes") == 0 || strcmp(env_var, "on") == 0 || strcmp(env_var, "1") == 0) {
+      *var = true;
+    } else if (strcmp(env_var, "false") == 0 || strcmp(env_var, "no") == 0 || strcmp(env_var, "off") == 0 || strcmp(env_var, "0") == 0) {
+      *var = false;
+    } else {
+      fprintf(stderr, "Unexpected value for env var %s: %s\n", name, env_var);
+      abort();
+    }
+  }
+}
+
 jint MMTkHeap::initialize() {
   assert(!UseTLAB , "should disable UseTLAB");
+
+  set_bool_option_from_env_var("MMTK_ENABLE_ALLOCATION_FASTPATH", &mmtk_enable_allocation_fastpath);
+  set_bool_option_from_env_var("MMTK_ENABLE_BARRIER_FASTPATH", &mmtk_enable_barrier_fastpath);
+
   const size_t min_heap_size = collector_policy()->min_heap_byte_size();
   const size_t max_heap_size = collector_policy()->max_heap_byte_size();
   //  printf("policy max heap size %zu, min heap size %zu\n", heap_size, collector_policy()->min_heap_byte_size());
@@ -359,13 +377,13 @@ GrowableArray<MemoryPool*> MMTkHeap::memory_pools() {//may cause error
 
 // Iterate over all objects, calling "cl.do_object" on each.
 void MMTkHeap::object_iterate(ObjectClosure* cl) { //No need to implement.Traced whole path.Only other heaps call it.
-  // guarantee(false, "object iterate not supported");
+  fprintf(stderr, "WARNING: MMTkHeap::object_iterate is not implemented, yet.\n");
 }
 
 // Similar to object_iterate() except iterates only
 // over live objects.
 void MMTkHeap::safe_object_iterate(ObjectClosure* cl) { //not sure..many dependencies from vm
-  // guarantee(false, "safe object iterate not supported");
+  fprintf(stderr, "WARNING: MMTkHeap::safe_object_iterate is not implemented, yet.\n");
 }
 
 HeapWord* MMTkHeap::block_start(const void* addr) const {//OK

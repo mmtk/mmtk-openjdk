@@ -37,6 +37,9 @@
 #endif
 #include "mmtkBarrierSetAssembler_x86.hpp"
 
+bool mmtk_enable_allocation_fastpath = true;
+bool mmtk_enable_barrier_fastpath = true;
+
 MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
   int tlab_top_offset, tlab_end_offset;
   int allocators_base_offset = in_bytes(JavaThread::third_party_heap_mutator_offset())
@@ -93,7 +96,7 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
              BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
   _whole_heap(whole_heap),
   _runtime(get_selected_barrier()->create_runtime()) {
-    if (!MMTK_ENABLE_ALLOCATION_FASTPATH || disable_fast_alloc()) {
+    if (!mmtk_enable_allocation_fastpath || disable_fast_alloc()) {
       fprintf(stderr, "Allocation fast-path disabled\n");
     }
   }
