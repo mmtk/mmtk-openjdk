@@ -6,10 +6,11 @@ unset JAVA_TOOL_OPTIONS
 
 run_subset() {
     heap_multiplier=$1
+    jvm_options=$2
 
-    runbms_dacapo2006_with_heap_multiplier antlr $heap_multiplier
-    runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier
-    runbms_dacapo2006_with_heap_multiplier luindex $heap_multiplier
+    runbms_dacapo2006_with_heap_multiplier antlr $heap_multiplier $jvm_options
+    runbms_dacapo2006_with_heap_multiplier fop $heap_multiplier $jvm_options
+    runbms_dacapo2006_with_heap_multiplier luindex $heap_multiplier $jvm_options
 }
 
 # --- SemiSpace ---
@@ -41,6 +42,13 @@ run_subset 4
 export MMTK_PLAN=MarkSweep
 
 run_subset 8
+
+# --- Compressor ---
+export MMTK_PLAN=Compressor
+
+# TODO: Need to temporarily disable compressed oops for the Compressor until it
+# supports discontiguous spaces.
+run_subset 4 "-XX:-UseCompressedOops -XX:-UseCompressedClassPointers"
 
 # --- NoGC ---
 

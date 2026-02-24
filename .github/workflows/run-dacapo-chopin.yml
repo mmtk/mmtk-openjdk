@@ -84,7 +84,9 @@ jobs:
       - name: Check free space and runner log path
         run: |
           df -h
-          df /home/runner/runners
+          df . -h
+          # FIXME: Commenting because GitHub has changed location the home directory
+          # df /home/runner/runners
       - name: Fetch ${{ env.DACAPO_VERSION }} cache
         id: fetch-cache
         uses: actions/cache@v3
