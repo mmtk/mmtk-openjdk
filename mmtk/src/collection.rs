@@ -6,7 +6,7 @@ use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::Mutator;
 
 use crate::reference_glue::DISCOVERED_LISTS;
-use crate::UPCALLS;
+use crate::{singleton, UPCALLS};
 use crate::{MutatorClosure, OpenJDK};
 
 pub struct VMCollection {}
@@ -35,6 +35,18 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
             crate::dump_and_reset_obj_dist();
         }
         DISCOVERED_LISTS.enable_discover();
+        if *crate::singleton::<COMPRESSED>().get_options().plan
+            == mmtk::util::options::PlanSelector::ConcurrentImmix
+        {
+            // For concurrent Immix, we need to check if SATB is active
+            let concurrent_plan = singleton::<COMPRESSED>().get_plan().concurrent().unwrap();
+            let concurrent_marking_active = concurrent_plan.concurrent_work_in_progress();
+
+            unsafe {
+                crate::CONCURRENT_MARKING_ACTIVE = if concurrent_marking_active { 1 } else { 0 };
+            }
+            log::debug!("Set CONCURRENT_MARKING_ACTIVE to {concurrent_marking_active}");
+        }
         unsafe {
             ((*UPCALLS).resume_mutators)(tls);
         }

@@ -32,7 +32,6 @@ extern const uintptr_t RC_TABLE_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
 extern const int DISABLE_ALLOCATION_FAST_PATH;
 extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
-extern uint8_t CONCURRENT_MARKING_ACTIVE;
 extern uint8_t RC_ENABLED;
 extern uint8_t REQUIRES_WEAK_HANDLE_BARRIER;
 extern uint8_t FIELD_BARRIER_NO_EAGER_BRANCH;
@@ -48,6 +47,7 @@ extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 extern uintptr_t HEAP_START;
 extern uintptr_t HEAP_END;
+extern uint8_t CONCURRENT_MARKING_ACTIVE;
 
 extern const char* get_mmtk_version();
 

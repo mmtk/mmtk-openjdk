@@ -91,15 +91,6 @@ runtimes:
     release: 11
     home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
 
-configs:
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Immix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-StickyImmix"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
-  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
-
-benchmarks:
-  dacapo-23.9-RC3-chopin-ci:
+# We don't include `configs` or `benchmarks` here.
+# This file will be included by `large-heap.yml` and `normal-heap.yml`
+# so that we can test different plans with different heap sizes.

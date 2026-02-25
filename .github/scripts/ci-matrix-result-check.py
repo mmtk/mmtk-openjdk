@@ -3,19 +3,19 @@ import sys
 import os
 import re
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 6:
     raise ValueError("Invalid arguments")
 
-script_dir = os.path.dirname(os.path.abspath(__file__));
-config_path = os.path.join(script_dir, "..", "configs", "base.yml")
+script_dir = os.path.dirname(os.path.abspath(__file__))
 expected_results_path = os.path.join(script_dir, "ci-expected-results.yml")
 
 arch = sys.argv[1]
 build = sys.argv[2]
 benchmark = sys.argv[3]
 log_dir = sys.argv[4]
+config_file = sys.argv[5]
 
-def read_in_plans():
+def read_in_plans(config_path):
     # Load the YAML file
     with open(config_path, "r") as f:
         data = yaml.safe_load(f)
@@ -119,7 +119,7 @@ def print_log(directory, search_string):
                         print(f"----------------------------------------------")
 
 # dict['a'] = 'SemiSpace', etc
-plan_dict = read_in_plans()
+plan_dict = read_in_plans(config_file)
 
 actual = read_in_actual_results(sys.stdin.readline(), plan_dict)
 expected = read_in_expected_results(build, benchmark)

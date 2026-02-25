@@ -26,6 +26,7 @@
 #include "barriers/mmtkNoBarrier.hpp"
 #include "barriers/mmtkObjectBarrier.hpp"
 #include "barriers/mmtkFieldBarrier.hpp"
+#include "barriers/mmtkSATBBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetAssembler_x86.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
@@ -79,14 +80,15 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
 }
 
 MMTkBarrierBase* get_selected_barrier() {
-    static MMTkBarrierBase* selected_barrier = NULL;
-    if (selected_barrier) return selected_barrier;
-    const char* barrier = mmtk_active_barrier();
-    if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
-    else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
-    else if (strcmp(barrier, "FieldBarrier") == 0) selected_barrier = new MMTkFieldBarrier();
-    else guarantee(false, "Unimplemented");
-    return selected_barrier;
+  static MMTkBarrierBase* selected_barrier = NULL;
+  if (selected_barrier) return selected_barrier;
+  const char* barrier = mmtk_active_barrier();
+  if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
+  else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
+  else if (strcmp(barrier, "SATBBarrier") == 0) selected_barrier = new MMTkSATBBarrier();
+  else if (strcmp(barrier, "FieldBarrier") == 0) selected_barrier = new MMTkFieldBarrier();
+  else guarantee(false, "Unimplemented");
+  return selected_barrier;
 }
 
 MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
