@@ -28,19 +28,33 @@ public:
   virtual void load_reference(DecoratorSet decorators, oop value) const override;
 };
 
+struct MMTkC1FieldBarrierStub: CodeStub {
+  LIR_Opr src, slot, new_val;
+  CodeEmitInfo* info; // Code patching info
+  LIR_PatchCode patch_code; // Enable code patching?
+  LIR_Opr scratch = NULL; // Scratch register for the resolved field
+
+  MMTkC1FieldBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {}
+
+  virtual void emit_code(LIR_Assembler* ce) override;
+
+  virtual void visit(LIR_OpVisitState* visitor) override;
+
+  NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1FieldBarrierStub"); });
+};
+
 class MMTkFieldBarrierSetAssembler: public MMTkBarrierSetAssembler {
 protected:
   virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const override;
-  virtual void generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm, bool do_code_patch) const override;
 public:
-  virtual void generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const override;
+  virtual void generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1FieldBarrierStub* stub) const;
   virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
   virtual void load_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Address src, Register tmp1, Register tmp_thread) override;
 };
 
 class MMTkFieldBarrierSetC1: public MMTkBarrierSetC1 {
 protected:
-  virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const override;
+  virtual void object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const override;
 
   virtual void load_at_resolved(LIRAccess& access, LIR_Opr result) override;
 

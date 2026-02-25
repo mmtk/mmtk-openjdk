@@ -142,57 +142,11 @@ void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Deco
   }
 }
 
-#undef __
-
-#define __ sasm->
-
-void MMTkFieldBarrierSetAssembler::generate_c1_pre_write_barrier_runtime_stub(StubAssembler* sasm, bool do_code_patch) const {
-  __ prologue("mmtk_field_barrier", false);
-
-  Address store_addr(rbp, 4*BytesPerWord);
-
-  Label done, runtime;
-
-  __ push(c_rarg0);
-  __ push(c_rarg1);
-  __ push(c_rarg2);
-  __ push(rax);
-
-  __ load_parameter(0, c_rarg0);
-  __ load_parameter(1, c_rarg1);
-  __ load_parameter(2, c_rarg2);
-
-  __ bind(runtime);
-
-  __ save_live_registers_no_oop_map(true);
-
-  if (do_code_patch) {
-    // We don't know the field offset when a code patching is required.
-    // As a temporary fix, we apply field barrier to all fields in this object.
-    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_clone_pre_call), c_rarg0);
-  } else {
-    if (mmtk_enable_barrier_fastpath) {
-      __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
-    } else {
-      __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
-    }
-  }
-
-  __ restore_live_registers(true);
-
-  __ bind(done);
-  __ pop(rax);
-  __ pop(c_rarg2);
-  __ pop(c_rarg1);
-  __ pop(c_rarg0);
-
-  __ epilogue();
-}
 
 #undef __
 #define __ ce->masm()->
 
-void MMTkFieldBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1PreBarrierStub* stub) const {
+void MMTkFieldBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1FieldBarrierStub* stub) const {
   MMTkBarrierSetC1* bs = (MMTkBarrierSetC1*) BarrierSet::barrier_set()->barrier_set_c1();
   __ bind(*stub->entry());
 
@@ -211,11 +165,11 @@ void MMTkFieldBarrierSetAssembler::generate_c1_pre_write_barrier_stub(LIR_Assemb
     __ lea(stub->scratch->as_register(), from_addr);
     // Store parameter
     ce->store_parameter(stub->scratch->as_pointer_register(), 1);
-    runtime_address = bs->pre_barrier_c1_runtime_code_blob_with_patch_fix()->code_begin();
+    runtime_address = bs->object_reference_write_pre_c1_runtime_code_blob_with_patch_fix()->code_begin();
   } else {
     // Store parameter
     ce->store_parameter(stub->slot->as_pointer_register(), 1);
-    runtime_address = bs->pre_barrier_c1_runtime_code_blob()->code_begin();
+    runtime_address = bs->object_reference_write_pre_c1_runtime_code_blob()->code_begin();
   }
 
   ce->store_parameter(stub->src->as_pointer_register(), 0);
@@ -251,7 +205,7 @@ void MMTkFieldBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) 
     }
     assert(result->is_register(), "must be");
     assert(result->type() == T_OBJECT, "must be an object");
-    auto slow = new MMTkC1ReferenceLoadBarrierStub(result, access.patch_emit_info());
+    auto slow = new MMTkC1ReferenceLoadBarrierStub(result);
     // Call slow-path only when concurrent marking is active
     LIR_Opr cm_flag_addr_opr = gen->new_pointer_register();
     __ move(LIR_OprFact::longConst(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), cm_flag_addr_opr);
@@ -269,7 +223,27 @@ void MMTkFieldBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) 
 #endif
 }
 
-void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info) const {
+void MMTkC1FieldBarrierStub::emit_code(LIR_Assembler* ce) {
+    MMTkFieldBarrierSetAssembler* bs = (MMTkFieldBarrierSetAssembler*) BarrierSet::barrier_set()->barrier_set_assembler();
+    bs->generate_c1_pre_write_barrier_stub(ce, this);
+}
+
+void MMTkC1FieldBarrierStub::visit(LIR_OpVisitState* visitor) {
+    if (info != NULL) {
+      visitor->do_slow_case(info);
+    } else {
+      visitor->do_slow_case();
+    }
+    if (src != NULL) visitor->do_input(src);
+    if (slot != NULL) visitor->do_input(slot);
+    if (new_val != NULL) visitor->do_input(new_val);
+    if (scratch != NULL) {
+      assert(scratch->is_oop(), "must be");
+      visitor->do_temp(scratch);
+    }
+  }
+
+void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {
   LIRGenerator* gen = access.gen();
   DecoratorSet decorators = access.decorators();
   if ((decorators & IN_HEAP) == 0) return;
@@ -313,7 +287,7 @@ void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Op
     new_val = new_val_reg;
   }
   assert(new_val->is_register(), "must be a register at this point");
-  MMTkC1PreBarrierStub* slow = new MMTkC1PreBarrierStub(src, slot, new_val, access.patch_emit_info(), needs_patching ? lir_patch_normal : lir_patch_none);
+  MMTkC1FieldBarrierStub* slow = new MMTkC1FieldBarrierStub(src, slot, new_val, access.patch_emit_info(), needs_patching ? lir_patch_normal : lir_patch_none);
   if (needs_patching) slow->scratch = gen->new_register(T_OBJECT);
 
   if (mmtk_enable_barrier_fastpath) {
