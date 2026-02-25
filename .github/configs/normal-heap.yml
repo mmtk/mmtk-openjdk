@@ -10,6 +10,7 @@ configs:
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkSweep"
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-MarkCompact"
   - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-Compressor"
+  - "jdk11-master|ms|s|fail_on_oom|tph|preserve|mmtk_gc-ConcurrentImmix"
 
 # This will be expanded in CI when we run with the config. Keep a new line at the end.
 benchmarks:
