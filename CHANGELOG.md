@@ -2,6 +2,8 @@
 ===
 
 ## What's Changed
+* Merge with mmtk/mmtk-openjdk@master by @caizixian in https://github.com/mmtk/mmtk-openjdk/pull/234
+* Feat: get mmtk-openjdk running on Armv8 architecture  by @ArberSephirotheca in https://github.com/mmtk/mmtk-openjdk/pull/249
 * Update to MMTk core PR #1308 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/308
 * Fix reference processing crash by @wks in https://github.com/mmtk/mmtk-openjdk/pull/309
 * Add Compressor tests by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/310
@@ -15,11 +17,11 @@
 * Concurrent Immix by @tianleq in https://github.com/mmtk/mmtk-openjdk/pull/311
 * Reduce the test heap size for concurrent immix by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/330
 * Refactor barrier implementations by @wks in https://github.com/mmtk/mmtk-openjdk/pull/332
-* Demote re-registered nmethods by @no-defun-allowed in https://github.com/mmtk/mmtk-openjdk/pull/336
-* Move to Rust 1.92 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/338
+* Demote re-registered nmethods by @wks in https://github.com/mmtk/mmtk-openjdk/pull/337
+* Move to Rust 1.92 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/339
 
 ## New Contributors
-* @no-defun-allowed made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/336
+* @ArberSephirotheca made their first contribution in https://github.com/mmtk/mmtk-openjdk/pull/249
 
 **Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.31.0...v0.32.0
 

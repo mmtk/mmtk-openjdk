@@ -535,7 +535,7 @@ pub extern "C" fn mmtk_object_probable_write(mutator: *mut libc::c_void, obj: Ob
 // finalization
 #[no_mangle]
 pub extern "C" fn add_finalizer(_object: ObjectReference) {
-    unreachable!()
+    // unreachable!()
 }
 
 #[no_mangle]

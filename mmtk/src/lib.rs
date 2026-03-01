@@ -2,6 +2,7 @@
 extern crate lazy_static;
 extern crate atomic;
 extern crate once_cell;
+#[macro_use]
 extern crate probe;
 extern crate spin;
 
@@ -118,19 +119,12 @@ pub struct OpenJDK_Upcalls {
     pub scan_roots_in_mutator_thread: extern "C" fn(closure: SlotsClosure, tls: VMMutatorThread),
     pub scan_multiple_thread_roots:
         extern "C" fn(closure: SlotsClosure, ptr: OpaquePointer, len: usize),
-    pub scan_universe_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_jni_handle_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_object_synchronizer_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_management_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_jvmti_export_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_aot_loader_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_system_dictionary_roots: extern "C" fn(closure: SlotsClosure),
     pub scan_code_cache_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_string_table_roots: extern "C" fn(closure: SlotsClosure, rc_non_stuck_objs_only: bool),
     pub scan_class_loader_data_graph_roots:
         extern "C" fn(closure: SlotsClosure, weak_closure: SlotsClosure, scan_weak: bool),
-    pub scan_weak_processor_roots:
-        extern "C" fn(closure: SlotsClosure, rc_non_stuck_objs_only: bool),
+    pub scan_oop_storage_set_roots: extern "C" fn(closure: SlotsClosure),
+    pub scan_weak_processor_roots: extern "C" fn(closure: SlotsClosure),
+    // pub scan_string_table_roots: extern "C" fn(closure: SlotsClosure, rc_non_stuck_objs_only: bool),
     pub scan_vm_thread_roots: extern "C" fn(closure: SlotsClosure),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
@@ -140,7 +134,8 @@ pub struct OpenJDK_Upcalls {
     pub swap_reference_pending_list: extern "C" fn(objects: ObjectReference) -> ObjectReference,
     pub java_lang_class_klass_offset_in_bytes: extern "C" fn() -> usize,
     pub java_lang_classloader_loader_data_offset: extern "C" fn() -> usize,
-    pub nmethod_fix_relocation: extern "C" fn(Address),
+    pub fix_oop_relocations: extern "C" fn(nmethod: *mut libc::c_void),
+    // pub nmethod_fix_relocation: extern "C" fn(Address),
     pub clear_claimed_marks: extern "C" fn(),
     pub unload_classes: extern "C" fn(),
     pub gc_epilogue: extern "C" fn(),
@@ -211,6 +206,9 @@ pub static mut RC_ENABLED: u8 = 0;
 
 #[no_mangle]
 pub static mut REQUIRES_WEAK_HANDLE_BARRIER: u8 = 0;
+
+#[no_mangle]
+pub static mut CLASS_UNLOADING_ENABLED: u8 = 0;
 
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;

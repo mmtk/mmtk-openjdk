@@ -177,12 +177,9 @@ impl OopIterate for InstanceRefKlass {
 
 impl InstanceRefKlass {
     fn should_discover_refs<const COMPRESSED: bool>(
-        mut rt: ReferenceType,
+        rt: ReferenceType,
         disable_discovery: bool,
     ) -> bool {
-        if rt == ReferenceType::Other {
-            rt = ReferenceType::Weak;
-        }
         if disable_discovery {
             return false;
         }
@@ -272,39 +269,43 @@ fn oop_iterate<const COMPRESSED: bool>(
     } else {
         oop.klass::<COMPRESSED>()
     };
-    let klass_id = klass.id;
-    // assert!(
-    //     klass_id as i32 >= 0 && (klass_id as i32) < 6,
-    //     "Invalid klass-id: {:x} for oop: {:x}",
-    //     klass_id as i32,
-    //     unsafe { mem::transmute::<Oop, ObjectReference>(oop) }
-    // );
+    let klass_id = klass.kind;
+    assert!(
+        klass_id as i32 >= 0 && (klass_id as i32) < KlassKind::Unknown as i32,
+        "Invalid klass-id: {:x} for oop: {:x}",
+        klass_id as i32,
+        unsafe { mem::transmute::<Oop, ObjectReference>(oop) }
+    );
     match klass_id {
-        KlassID::Instance => {
+        KlassKind::Instance => {
             let instance_klass = unsafe { klass.cast::<InstanceKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::ObjArray => {
-            let array_klass = unsafe { klass.cast::<ObjArrayKlass>() };
-            array_klass.oop_iterate::<COMPRESSED>(oop, closure);
-        }
-        KlassID::TypeArray => {
-            // Skip scanning primitive arrays as they contain no reference fields.
-        }
-        KlassID::InstanceClassLoader => {
+        KlassKind::InstanceClassLoader => {
             let instance_klass = unsafe { klass.cast::<InstanceClassLoaderKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::InstanceMirror => {
+        KlassKind::InstanceMirror => {
             let instance_klass = unsafe { klass.cast::<InstanceMirrorKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        KlassID::InstanceRef => {
+        KlassKind::ObjArray => {
+            let array_klass = unsafe { klass.cast::<ObjArrayKlass>() };
+            array_klass.oop_iterate::<COMPRESSED>(oop, closure);
+        }
+        KlassKind::TypeArray => {
+            // Skip scanning primitive arrays as they contain no reference fields.
+        }
+        KlassKind::InstanceRef => {
             let instance_klass = unsafe { klass.cast::<InstanceRefKlass>() };
             instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
         }
-        #[allow(unreachable_patterns)]
-        _ => unreachable!(), // _ => oop_iterate_slow(oop, closure, OpaquePointer::UNINITIALIZED),
+        KlassKind::InstanceStackChunk => {
+            unreachable!("StackChunkOop not supported!")
+        }
+        KlassKind::Unknown => {
+            unreachable!("Unknown KlassKind")
+        }
     }
 }
 
@@ -322,22 +323,22 @@ fn do_klass<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(klass: &Klass, c
     if !closure.should_follow_clds() {
         return;
     }
-    do_cld::<_, _, COMPRESSED>(&klass.class_loader_data, closure)
+    do_cld::<_, _, COMPRESSED>(klass.class_loader_data, closure)
 }
 
 pub fn is_obj_array<const COMPRESSED: bool>(oop: Oop) -> bool {
-    oop.klass::<COMPRESSED>().id == KlassID::ObjArray
+    oop.klass::<COMPRESSED>().kind == KlassKind::ObjArray
 }
 
 pub fn is_val_array<const COMPRESSED: bool>(oop: Oop) -> bool {
-    oop.klass::<COMPRESSED>().id == KlassID::TypeArray
+    oop.klass::<COMPRESSED>().kind == KlassKind::TypeArray
 }
 
 pub fn get_obj_kind<const COMPRESSED: bool>(oop: Oop) -> ObjectKind {
-    let cls_id = oop.klass::<COMPRESSED>().id;
+    let cls_id = oop.klass::<COMPRESSED>().kind;
     match cls_id {
-        KlassID::TypeArray => ObjectKind::ValArray,
-        KlassID::ObjArray => {
+        KlassKind::TypeArray => ObjectKind::ValArray,
+        KlassKind::ObjArray => {
             ObjectKind::ObjArray(unsafe { oop.as_array_oop().length::<COMPRESSED>() as u32 })
         }
         _ => ObjectKind::Scalar,

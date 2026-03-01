@@ -133,16 +133,10 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         _tls: VMWorkerThread,
         factory: impl RootsWorkFactory<OpenJDKSlot<COMPRESSED>>,
     ) {
-        let mut w = vec![
-            Box::new(ScanUniverseRoots::new(factory.clone())) as _,
-            Box::new(ScanJNIHandlesRoots::new(factory.clone())) as _,
-            Box::new(ScanObjectSynchronizerRoots::new(factory.clone())) as _,
-            Box::new(ScanManagementRoots::new(factory.clone())) as _,
-            Box::new(ScanJvmtiExportRoots::new(factory.clone())) as _,
-            Box::new(ScanAOTLoaderRoots::new(factory.clone())) as _,
-            Box::new(ScanSystemDictionaryRoots::new(factory.clone())) as _,
+        let mut w: Vec<Box<dyn mmtk::scheduler::GCWork<OpenJDK<COMPRESSED>>>> = vec![
             Box::new(ScanCodeCacheRoots::new(factory.clone())) as _,
             Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
+            Box::new(ScanOopStorageSetRoots::new(factory.clone())) as _,
             Box::new(ScanVMThreadRoots::new(factory.clone())) as _,
         ];
         if crate::singleton::<COMPRESSED>()
@@ -151,13 +145,13 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         {
             w.push(Box::new(ScanNewWeakHandleRoots::new(factory.clone())) as _);
         }
-        if crate::singleton::<COMPRESSED>()
-            .get_plan()
-            .current_gc_should_perform_class_unloading()
-        {
-            w.push(Box::new(ScanWeakStringTableRoots::new(factory.clone())) as _);
-            w.push(Box::new(ScanWeakCodeCacheRoots::new(factory.clone())) as _);
-        }
+        // if crate::singleton::<COMPRESSED>()
+        //     .get_plan()
+        //     .current_gc_should_perform_class_unloading()
+        // {
+        //     // w.push(Box::new(ScanWeakStringTableRoots::new(factory.clone())) as _);
+        //     w.push(Box::new(ScanWeakCodeCacheRoots::new(factory.clone())) as _);
+        // }
         memory_manager::add_work_packets(
             crate::singleton::<COMPRESSED>(),
             factory.roots_stage(),
