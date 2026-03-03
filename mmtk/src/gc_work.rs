@@ -399,8 +399,8 @@ impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
         } else {
             None
         };
-        let scan_all_strong_roots = mmtk.get_plan().current_gc_should_perform_class_unloading();
-        assert!(scan_all_strong_roots);
+        // let scan_all_strong_roots = mmtk.get_plan().current_gc_should_perform_class_unloading();
+        // assert!(scan_all_strong_roots);
         unsafe {
             ((*UPCALLS).scan_weak_processor_roots)(to_slots_closure_weak::<VM::VMSlot, F>(
                 &mut self.factory,

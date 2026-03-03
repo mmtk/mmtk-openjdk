@@ -89,6 +89,7 @@ pub struct Klass {
     pub access_flags: i32, // AccessFlags
     #[cfg(feature = "jfr")]
     pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
+    pub _shared_class_path_index: u16,
     pub shared_class_flags: u16,
     pub archived_mirror_index: i32,
     pub padding: i32,
@@ -543,8 +544,6 @@ pub fn validate_memory_layouts() {
 #[repr(C)]
 #[derive(Debug)]
 struct Chunk {
-    #[cfg(debug_assertions)]
-    vptr: OpaquePointer,
     data: [*mut OopDesc; 32],
     size: AtomicU32,
     next: *mut Chunk,
@@ -595,17 +594,14 @@ impl ChunkedHandleList {
 #[repr(C)]
 #[derive(Debug)]
 pub struct ClassLoaderData {
-    #[cfg(debug_assertions)]
-    vptr: OpaquePointer,
-    holder: OpaquePointer,           // WeakHandle<vm_class_loader_data>
-    class_loader: OpaquePointer,     // OopHandle
-    metaspace: OpaquePointer,        // ClassLoaderMetaspace*volatile
-    metaspace_lock: OpaquePointer,   // Mutex*
-    unloading: bool,                 // bool
-    is_anonymous: bool,              // bool
-    modified_oops: bool,             // bool
-    accumulated_modified_oops: bool, // bool
-    keep_alive: i16,
+    holder: OpaquePointer,         // WeakHandle<vm_class_loader_data>
+    class_loader: OpaquePointer,   // OopHandle
+    metaspace: OpaquePointer,      // ClassLoaderMetaspace*volatile
+    metaspace_lock: OpaquePointer, // Mutex*
+    unloading: u8,                 // bool
+    is_anonymous: u8,              // bool
+    modified_oops: u8,             // bool
+    keep_alive: i32,
     claimed: AtomicU32,
     handles: ChunkedHandleList,
 }

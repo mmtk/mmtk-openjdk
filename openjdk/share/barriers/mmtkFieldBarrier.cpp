@@ -54,17 +54,21 @@ void MMTkFieldBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet de
 #if SOFT_REFERENCE_LOAD_BARRIER
   if (on_oop && on_reference) {
     Label done;
+
+    assert_different_registers(dst, tmp1);
+
     // No slow-call if SATB is not active
-    Register tmp = rscratch1;
-    Register tmp2 = rscratch2;
-    __ movptr(tmp, intptr_t(&CONCURRENT_MARKING_ACTIVE));
-    __ xorq(tmp2, tmp2);
-    __ movb(tmp2, Address(tmp, 0));
-    __ cmpptr(tmp2, 1);
-    __ jcc(Assembler::notEqual, done);
-    // No slow-call if dst is NULL
-    __ cmpptr(dst, 0);
-    __ jcc(Assembler::equal, done);
+    // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
+    __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
+    // Load with zero extension to 32 bits.
+    // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
+    __ movzbl(tmp1, Address(tmp1, 0));
+    // if (tmp1_l == 0) goto done;
+    __ testl(tmp1, tmp1);
+    __ jcc(Assembler::zero, done);
+    // if (dst == 0) goto done;
+    __ testptr(dst, dst);
+    __ jcc(Assembler::zero, done);
     // Do slow-call
     __ pusha();
     __ mov(c_rarg0, dst);
@@ -401,6 +405,12 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
 }
 
 static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oop, Node* offset, Node* slot, Node* val, bool need_mem_bar) {
+  // Note: This function is copied from G1BarrierSetC2::insert_pre_barrier,
+  // and ShenandoahBarrierSetC2::insert_pre_barrier is probably copied from G1 as well.
+  // It basically implements BarrierSetC1::generate_referent_check in C2 IR.
+  // TODO: If another barrier needs weak reference load barrier,
+  // consider hoisting this function to a superclass.
+
   // We could be accessing the referent field of a reference object. If so, when G1
   // is enabled, we need to log the value in the referent field in an SATB buffer.
   // This routine performs some compile time filters and generates suitable
@@ -412,26 +422,26 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
 
   // If offset is a constant, is it java_lang_ref_Reference::_reference_offset?
   const TypeX* otype = offset->find_intptr_t_type();
-  if (otype != NULL && otype->is_con() &&
-      otype->get_con() != java_lang_ref_Reference::referent_offset) {
+  if (otype != nullptr && otype->is_con() &&
+      otype->get_con() != java_lang_ref_Reference::referent_offset()) {
     // Constant offset but not the reference_offset so just return
     return;
   }
 
   // We only need to generate the runtime guards for instances.
   const TypeOopPtr* btype = base_oop->bottom_type()->isa_oopptr();
-  if (btype != NULL) {
+  if (btype != nullptr) {
     if (btype->isa_aryptr()) {
       // Array type so nothing to do
       return;
     }
 
     const TypeInstPtr* itype = btype->isa_instptr();
-    if (itype != NULL) {
+    if (itype != nullptr) {
       // Can the klass of base_oop be statically determined to be
       // _not_ a sub-class of Reference and _not_ Object?
-      ciKlass* klass = itype->klass();
-      if ( klass->is_loaded() &&
+      ciKlass* klass = itype->instance_klass();
+      if (klass->is_loaded() &&
           !klass->is_subtype_of(kit->env()->Reference_klass()) &&
           !kit->env()->Object_klass()->is_subtype_of(klass)) {
         return;
@@ -444,7 +454,7 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
 
   IdealKit ideal(kit);
 
-  Node* referent_off = __ ConX(java_lang_ref_Reference::referent_offset);
+  Node* referent_off = __ ConX(java_lang_ref_Reference::referent_offset());
 
   __ if_then(offset, BoolTest::eq, referent_off, unlikely); {
       // Update graphKit memory and control from IdealKit.
@@ -454,7 +464,7 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
       // Update IdealKit memory and control from graphKit.
       __ sync_kit(kit);
       Node* one = __ ConI(1);
-      // is_instof == 0 if base_oop == NULL
+      // is_instof == 0 if base_oop == nullptr
       __ if_then(is_instof, BoolTest::eq, one, unlikely); {
         // Update graphKit from IdeakKit.
         kit->sync_kit(ideal);
@@ -475,24 +485,23 @@ static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oo
 }
 
 Node* MMTkFieldBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) const {
-
   DecoratorSet decorators = access.decorators();
-  C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
-  GraphKit* kit = parse_access.kit();
-
   Node* adr = access.addr().node();
   Node* obj = access.base();
 
   bool mismatched = (decorators & C2_MISMATCHED) != 0;
   bool unknown = (decorators & ON_UNKNOWN_OOP_REF) != 0;
   bool in_heap = (decorators & IN_HEAP) != 0;
+  bool in_native = (decorators & IN_NATIVE) != 0;
   bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
+  bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
   bool is_unordered = (decorators & MO_UNORDERED) != 0;
-  bool need_cpu_mem_bar = !is_unordered || mismatched || !in_heap;
+  bool no_keepalive = (decorators & AS_NO_KEEPALIVE) != 0;
+  bool is_mixed = !in_heap && !in_native;
+  bool need_cpu_mem_bar = !is_unordered || mismatched || is_mixed;
 
   Node* top = Compile::current()->top();
-  Node* offset = adr->is_AddP() ? adr->in(AddPNode::Offset) :top;
-  Node* load = BarrierSetC2::load_at_resolved(access, val_type);
+  Node* offset = adr->is_AddP() ? adr->in(AddPNode::Offset) : top;
 
   // If we are reading the value of the referent field of a Reference
   // object (either by using Unsafe directly or through reflection)
@@ -500,11 +509,20 @@ Node* MMTkFieldBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_
   // SATB log buffer using the pre-barrier mechanism.
   // Also we need to add memory barrier to prevent commoning reads
   // from this field across safepoint since GC can change its value.
-  bool need_read_barrier = in_heap && (on_weak || (unknown && offset != top && obj != top));
+  bool need_read_barrier = (((on_weak || on_phantom) && !no_keepalive) ||
+                            (in_heap && unknown && offset != top && obj != top));
 
   if (!access.is_oop() || !need_read_barrier) {
-    return load;
+    return BarrierSetC2::load_at_resolved(access, val_type);
   }
+
+  // The other access "opt_access" is only used in arraycopy barriers.
+  // OpenJDK doesn't have weak arrays, so it must be "parse_access".
+  assert(access.is_parse_access(), "entry not supported at optimization time");
+
+  C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+  GraphKit* kit = parse_access.kit();
+  Node* load = BarrierSetC2::load_at_resolved(access, val_type);
 
 #if SOFT_REFERENCE_LOAD_BARRIER
   if (on_weak) {
