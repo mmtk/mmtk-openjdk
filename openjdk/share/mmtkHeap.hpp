@@ -31,6 +31,7 @@
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/oopStorage.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+#include "gc/shared/oopStorageSetParState.hpp"
 #include "gc/shared/space.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/workerThread.hpp"
@@ -43,6 +44,23 @@
 #include "utilities/ostream.hpp"
 
 #define WORKER_STACK_SIZE (64 * 1024 * 1024)
+
+template <class T>
+struct MaybeUninit {
+  MaybeUninit() {}
+  T* operator->() {
+    return (T*) &_data;
+  }
+  T& operator*() {
+    return *((T*) &_data);
+  }
+  template<class... Args>
+  void init(Args... args) {
+    new (&_data) T(args...);
+  }
+private:
+  char _data[sizeof(T)];
+};
 
 class GCMemoryManager;
 class MemoryPool;

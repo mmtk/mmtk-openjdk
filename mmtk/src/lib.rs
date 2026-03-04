@@ -134,7 +134,7 @@ pub struct OpenJDK_Upcalls {
     pub swap_reference_pending_list: extern "C" fn(objects: ObjectReference) -> ObjectReference,
     pub java_lang_class_klass_offset_in_bytes: extern "C" fn() -> usize,
     pub java_lang_classloader_loader_data_offset: extern "C" fn() -> usize,
-    pub fix_oop_relocations: extern "C" fn(nmethod: *mut libc::c_void),
+    pub fix_oop_relocations: extern "C" fn(nmethods: *mut libc::c_void, len: usize),
     // pub nmethod_fix_relocation: extern "C" fn(Address),
     pub clear_claimed_marks: extern "C" fn(),
     pub unload_classes: extern "C" fn(),

@@ -6,6 +6,7 @@ use crate::OpenJDKSlot;
 use crate::Slot;
 use crate::SlotsClosure;
 use crate::UPCALLS;
+use mmtk::plan::immix::Pause;
 use mmtk::scheduler::*;
 use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
@@ -241,6 +242,10 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             .get_plan()
             .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
             .is_some();
+        let is_rc_pause = mmtk
+            .get_plan()
+            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
+            .is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
         let class_unloading_enabled = unsafe { crate::CLASS_UNLOADING_ENABLED } == 1;
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
@@ -271,7 +276,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
 
             // Only scan mature roots in full-heap collections.
-            if !is_current_gc_nursery && !(is_lxr && class_unloading_enabled) {
+            if !is_current_gc_nursery && !(is_lxr && (class_unloading_enabled || is_rc_pause)) {
                 for (key, roots) in mature.iter() {
                     mature_slots += roots.len();
                     add_roots(roots);
@@ -308,7 +313,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 .create_process_roots_work(slots, RootKind::Strong);
         }
 
-        if moves_object {
+        if moves_object && !nmethods_to_fix.is_empty() {
             // Note: If the current GC doesn't move objects at all, we don't need to fix relocation.
             // FIXME: Even during copying GC, some GC algorithms (such as Immix) don't move every
             // single object.  We only need to call `fix_oop_relocations` on nmethods that actually
@@ -487,10 +492,8 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
         _mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
     ) {
         let num_nmethods = self.nmethods.len();
-        for nmethod in self.nmethods.iter().copied() {
-            unsafe {
-                ((*UPCALLS).fix_oop_relocations)(nmethod.to_mut_ptr());
-            }
+        unsafe {
+            ((*UPCALLS).fix_oop_relocations)(self.nmethods.as_mut_ptr() as *mut _, num_nmethods);
         }
         // probe!(mmtk_openjdk, fix_relocations, num_nmethods);
     }

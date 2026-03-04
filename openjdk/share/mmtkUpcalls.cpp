@@ -159,24 +159,8 @@ class MMTkLXRFastUpdateClosure : public OopClosure {
   }
 };
 
-template <class T>
-struct MaybeUninit {
-  MaybeUninit() {}
-  T* operator->() {
-    return (T*) &_data;
-  }
-  T& operator*() {
-    return *((T*) &_data);
-  }
-  template<class... Args>
-  void init(Args... args) {
-    new (&_data) T(args...);
-  }
-private:
-  char _data[sizeof(T)];
-};
-
-static MaybeUninit<OopStorage::ParState<false, false>> par_state_string;
+extern MaybeUninit<OopStorageSetStrongParState<false, false>> oop_storage_set_strong_par_state;
+extern MaybeUninit<OopStorageSetWeakParState<false, false>> oop_storage_set_weak_par_state;
 
 static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure, bool current_gc_should_unload_classes) {
   log_debug(gc)("Requesting the VM to suspend all mutators...");
@@ -184,7 +168,8 @@ static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure, bool curre
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
   MMTkHeap::heap()->set_is_gc_active(true);
 
-  // par_state_string.init(StringTable::weak_storage());
+  oop_storage_set_strong_par_state.init();
+  oop_storage_set_weak_par_state.init();
 
   mmtk_report_gc_start();
   if (ClassUnloading && current_gc_should_unload_classes) {
@@ -212,7 +197,8 @@ static void mmtk_update_weak_processor(bool lxr) {
   // HandleMark hm(THREAD);
   if (lxr) {
     MMTkLXRFastIsAliveClosure is_alive;
-    WeakProcessor::weak_oops_do(&is_alive, &do_nothing_cl);
+    MMTkForwardClosure forward;
+    WeakProcessor::weak_oops_do(&is_alive, &forward);
   } else {
     MMTkIsAliveClosure is_alive;
     MMTkForwardClosure forward;
@@ -247,6 +233,7 @@ static void mmtk_unload_classes() {
     // MMTkHeap::heap()->bulk_unregister_nmethods();
     ctx.free_code_blobs();
     ClassLoaderDataGraph::purge(true /* at_safepoint */);
+    DEBUG_ONLY(MetaspaceUtils::verify();)
     LOG_CLS_UNLOAD("[mmtk_unload_classes] compute_new_size");
     // Resize and verify metaspace
     MetaspaceGC::compute_new_size();
@@ -576,9 +563,11 @@ static size_t mmtk_java_lang_classloader_loader_data_offset() {
   return v;
 }
 
-void mmtk_fix_oop_relocations(void *nmptr) {
-  nmethod* nm = (nmethod*)nmptr;
-  nm->fix_oop_relocations();
+void mmtk_fix_oop_relocations(void* nmethods, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
+    nm->fix_oop_relocations();
+  }
 }
 
 OpenJDK_Upcalls mmtk_upcalls = {

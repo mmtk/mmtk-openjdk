@@ -31,6 +31,7 @@
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/oopStorageSet.inline.hpp"
+#include "gc/shared/oopStorageSetParState.inline.hpp"
 #include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
@@ -64,6 +65,9 @@
 #include "gc/shared/workerPolicy.hpp"
 
 using namespace JavaClassFile;
+
+MaybeUninit<OopStorageSetStrongParState<false, false>> oop_storage_set_strong_par_state;
+MaybeUninit<OopStorageSetWeakParState<false, false>> oop_storage_set_weak_par_state;
 
 /*
 needed support from rust
@@ -493,11 +497,15 @@ void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl, OopClosure& we
   }
 }
 void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
-  OopStorageSet::strong_oops_do(&cl);
+  for (auto id : EnumRange<OopStorageSet::StrongId>()) {
+    oop_storage_set_strong_par_state->par_state(id)->oops_do(&cl);
+  }
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
   ResourceMark rm;
-  WeakProcessor::oops_do(&cl);
+  for (auto id : EnumRange<OopStorageSet::WeakId>()) {
+    oop_storage_set_weak_par_state->par_state(id)->weak_oops_do(&cl);
+  }
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;

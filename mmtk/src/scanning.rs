@@ -136,18 +136,18 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         let mut w: Vec<Box<dyn mmtk::scheduler::GCWork<OpenJDK<COMPRESSED>>>> = vec![
             Box::new(ScanCodeCacheRoots::new(factory.clone())),
             Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())),
-            Box::new(ScanOopStorageSetRoots::new(factory.clone())),
             Box::new(ScanVMThreadRoots::new(factory.clone())),
         ];
+        for _ in 0..*crate::singleton::<COMPRESSED>().get_options().threads {
+            w.push(Box::new(ScanOopStorageSetRoots::new(factory.clone())));
+            w.push(Box::new(ScanWeakProcessorRoots::new(factory.clone())));
+        }
         // if crate::singleton::<COMPRESSED>()
         //     .get_plan()
         //     .requires_weak_root_scanning()
         // {
         //     w.push(Box::new(ScanNewWeakHandleRoots::new(factory.clone())) as _);
         // }
-        w.push(Box::new(
-            ScanWeakProcessorRoots::<OpenJDKSlot<COMPRESSED>, _>::new(factory.clone()),
-        ));
         // if crate::singleton::<COMPRESSED>()
         //     .get_plan()
         //     .current_gc_should_perform_class_unloading()
