@@ -34,7 +34,9 @@ struct MMTkC1FieldBarrierStub: CodeStub {
   LIR_PatchCode patch_code; // Enable code patching?
   LIR_Opr scratch = NULL; // Scratch register for the resolved field
 
-  MMTkC1FieldBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {}
+  MMTkC1FieldBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {
+    FrameMap* f = Compilation::current()->frame_map();
+  }
 
   virtual void emit_code(LIR_Assembler* ce) override;
 
