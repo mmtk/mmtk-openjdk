@@ -36,6 +36,7 @@ struct MMTkC1FieldBarrierStub: CodeStub {
 
   MMTkC1FieldBarrierStub(LIR_Opr src, LIR_Opr slot, LIR_Opr new_val, CodeEmitInfo* info = NULL, LIR_PatchCode patch_code = lir_patch_none): src(src), slot(slot), new_val(new_val), info(info), patch_code(patch_code) {
     FrameMap* f = Compilation::current()->frame_map();
+    f->update_reserved_argument_area_size(3 * BytesPerWord);
   }
 
   virtual void emit_code(LIR_Assembler* ce) override;
