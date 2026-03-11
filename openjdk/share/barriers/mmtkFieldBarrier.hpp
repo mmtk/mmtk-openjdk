@@ -70,8 +70,8 @@ class MMTkFieldBarrierSetC2: public MMTkBarrierSetC2 {
 protected:
   virtual void object_reference_write_pre(GraphKit* kit, Node* src, Node* slot, Node* val) const override;
 public:
-  virtual bool array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type, bool is_clone, bool is_clone_instance, ArrayCopyPhase phase) const {
-    return false;
+  virtual bool array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type, bool is_clone, bool is_clone_instance, ArrayCopyPhase phase) const override {
+    return is_reference_type(type) && !tightly_coupled_alloc && !is_clone;
   }
   virtual Node* load_at_resolved(C2Access& access, const Type* val_type) const override;
 };
