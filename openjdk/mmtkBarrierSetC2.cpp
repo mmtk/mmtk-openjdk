@@ -87,11 +87,18 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
   if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 
+  // max_non_los_bytes is size_t which can be 32-bit or 64-bit, unsigned,
+  // but const_size (see below) is a jlong which is always 64-bit signed (int64_t).
+  // max_non_los_bytes is sometimes (e.g. NoGC) set by mmtk-core to SIZE_MAX
+  // (0xFFFF_FFFF if 32-bit or 0xFFFF_FFFF_FFFF_FFFF if 64-bit).
+  // To make it simple, we always use uint64_t for size comparison.
+  uint64_t limit = max_non_los_bytes - extra_header;
+
   // Check if allocation size is constant
-  long const_size = x->_igvn.find_long_con(size_in_bytes, -1);
+  jlong const_size = x->_igvn.find_long_con(size_in_bytes, -1);
   if (const_size >= 0) {
-    // Constant alloc size. We know it is non-negative, it is safe to cast to unsigned long and compare with size_t
-    if (((unsigned long)const_size) > max_non_los_bytes - extra_header) {
+    // Constant alloc size. Since we know it is non-negative, we can safely cast it to uint64_t.
+    if ((uint64_t)const_size > limit) {
       // We know at JIT time that we need to go to slowpath
       always_slow = true;
       initial_slow_test = NULL;
@@ -99,10 +106,14 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   } else {
     // Variable alloc size
 
+    // Do a bit-cast to encode it in a jlong.
+    jlong limit_bitcast = PrimitiveConversions::cast<jlong>(limit);
+
     // Create a node for the constant and compare with size_in_bytes
-    Node *max_non_los_bytes_node = ConLNode::make((long)max_non_los_bytes - extra_header);
+    Node *max_non_los_bytes_node = ConLNode::make(limit_bitcast);
     x->transform_later(max_non_los_bytes_node);
-    Node *mmtk_size_cmp = new CmpLNode(size_in_bytes, max_non_los_bytes_node);
+    // Do unsigned comparison.
+    Node *mmtk_size_cmp = new CmpULNode(size_in_bytes, max_non_los_bytes_node);
     x->transform_later(mmtk_size_cmp);
     // Size Check: if size_in_bytes >= max_non_los_bytes
     Node *mmtk_size_bool = new BoolNode(mmtk_size_cmp, BoolTest::ge);
