@@ -7,7 +7,7 @@
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
   if (mmtk_enable_reference_load_barrier) {
     if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
-      ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
+      ::mmtk_load_reference((void*) value, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
   }
 };
 

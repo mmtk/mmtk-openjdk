@@ -76,7 +76,7 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     size_t bytes, int allocator);
 
 /// java.lang.Reference load barrier
-extern void mmtk_load_reference(MMTk_Mutator mutator, void* obj);
+extern void mmtk_load_reference(void* obj, MMTk_Mutator mutator);
 
 /// Full pre-barrier
 extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, void* slot, void* target);
@@ -85,7 +85,7 @@ extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, voi
 extern void mmtk_object_reference_write_post(MMTk_Mutator mutator, void* src, void* slot, void* target);
 
 /// Generic slow-path
-extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, void* slot, void* target);
+extern void mmtk_object_reference_write_slow(void* src, void* slot, void* target, MMTk_Mutator mutator);
 
 /// Full array-copy pre-barrier
 extern void mmtk_array_copy_pre(void* src, void* dst, size_t count, MMTk_Mutator mutator);

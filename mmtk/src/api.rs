@@ -429,7 +429,7 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_load_reference(mutator: *mut libc::c_void, o: ObjectReference) {
+pub extern "C" fn mmtk_load_reference(o: ObjectReference, mutator: *mut libc::c_void) {
     with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
@@ -474,10 +474,10 @@ pub extern "C" fn mmtk_object_reference_write_post(
 /// Barrier slow-path call
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_slow(
-    mutator: *mut libc::c_void,
     src: NullableObjectReference,
     slot: Address,
     target: NullableObjectReference,
+    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
