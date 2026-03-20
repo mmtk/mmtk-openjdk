@@ -136,17 +136,23 @@ void MMTkFieldBarrierSetAssembler::object_reference_write_pre(MacroAssembler* ma
 
 void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
   if (FIELD_BARRIER_NO_ARRAYCOPY) return;
+  bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
+  if (dest_uninitialized) return;
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
-    // // Bailout if count is zero
+    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
+    // Bailout if count is zero
     __ cmpptr(count, 0);
     __ jcc(Assembler::equal, done);
-    __ pusha();
-    __ movptr(c_rarg0, src);
-    __ movptr(c_rarg1, dst);
-    __ movptr(c_rarg2, count);
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_pre_call), 3);
-    __ popa();
+    __ push_call_clobbered_registers(false /* save_fpu */);
+    assert_different_registers(c_rarg0, dst, count);
+    assert_different_registers(c_rarg1, count);
+    if (c_rarg0 != src)   __ movptr(c_rarg0, src);
+    if (c_rarg1 != dst)   __ movptr(c_rarg1, dst);
+    if (c_rarg2 != count) __ movptr(c_rarg2, count);
+    __ lea(c_rarg3, mutator);
+    __ call_VM_leaf_base(FN_ADDR(mmtk_array_copy_pre2), 4);
+    __ pop_call_clobbered_registers(false /* save_fpu */);
     __ bind(done);
   }
 }

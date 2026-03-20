@@ -164,8 +164,11 @@ void MMTkBarrierSetRuntime::object_reference_write_slow_call(void* src, void* sl
 }
 
 void MMTkBarrierSetRuntime::object_reference_array_copy_pre_call(void* src, void* dst, size_t count) {
-  if (FIELD_BARRIER_NO_ARRAYCOPY_SLOW) return;
   ::mmtk_array_copy_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
+}
+
+void MMTkBarrierSetRuntime::object_reference_array_copy_pre_call2(void* src, void* dst, size_t count, void* mutator) {
+  ::mmtk_array_copy_pre((MMTk_Mutator) mutator, src, dst, count);
 }
 
 void MMTkBarrierSetRuntime::object_reference_array_copy_post_call(void* src, void* dst, size_t count) {

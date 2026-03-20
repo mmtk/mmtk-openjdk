@@ -510,6 +510,21 @@ pub extern "C" fn mmtk_array_copy_pre(
     })
 }
 
+#[no_mangle]
+pub extern "C" fn mmtk_array_copy_pre2(
+    src: Address,
+    dst: Address,
+    count: usize,
+    mutator: *mut libc::c_void,
+) {
+    let bytes = count << log_bytes_in_slot();
+    with_mutator!(|mutator| {
+        mutator
+            .barrier()
+            .memory_region_copy_pre((src..src + bytes).into(), (dst..dst + bytes).into());
+    })
+}
+
 /// Array-copy post-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_post(

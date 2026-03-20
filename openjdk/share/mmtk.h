@@ -89,6 +89,7 @@ extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, vo
 
 /// Full array-copy pre-barrier
 extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
+extern void mmtk_array_copy_pre2(void* src, void* dst, size_t count, void* mutator);
 
 /// Full array-copy post-barrier
 extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
