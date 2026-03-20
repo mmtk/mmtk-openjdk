@@ -351,8 +351,10 @@ void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Op
 
 
 static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* slot, Node* val) {
+  Node* no_base = __ top();
+  Node* tls = __ thread();
+  Node* mutator = __ AddP(no_base, tls, __ ConX(in_bytes(JavaThread::third_party_heap_mutator_offset())));
   if (mmtk_enable_barrier_fastpath) {
-    Node* no_base = __ top();
     float unlikely  = PROB_UNLIKELY(0.999);
 
     Node* zero  = __ ConI(0);
@@ -365,9 +367,9 @@ static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* sl
     shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
     Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
     __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+      const TypeFunc* tf = __ func_type(TypeRawPtr::NOTNULL, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
       if (!FIELD_BARRIER_NO_C2_SLOW_CALL)
-        Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
+        Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_slow), "mmtk_barrier_call", mutator, src, slot, val);
     } __ end_if();
     if (!FIELD_BARRIER_NO_EAGER_BRANCH)
       __ end_if();

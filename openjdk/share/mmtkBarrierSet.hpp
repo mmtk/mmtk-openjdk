@@ -91,6 +91,7 @@ public:
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call2)
         || call == CAST_FROM_FN_PTR(address, mmtk_array_copy_pre2)
+        || call == CAST_FROM_FN_PTR(address, mmtk_object_reference_write_slow)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call)
         || call == CAST_FROM_FN_PTR(address, load_reference_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_clone_pre_call);
