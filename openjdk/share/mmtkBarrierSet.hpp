@@ -79,7 +79,6 @@ public:
   static void object_reference_write_slow_call(void* src, void* slot, void* target);
   /// Generic arraycopy post-barrier. Called by fast-paths.
   static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
-  static void object_reference_array_copy_pre_call2(void* src, void* dst, size_t count, void* mutator);
   /// Generic arraycopy pre-barrier. Called by fast-paths.
   static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
   static void object_reference_clone_pre_call(void* obj);
@@ -89,8 +88,7 @@ public:
         || call == CAST_FROM_FN_PTR(address, object_reference_write_post_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
-        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call2)
-        || call == CAST_FROM_FN_PTR(address, mmtk_array_copy_pre2)
+        || call == CAST_FROM_FN_PTR(address, mmtk_array_copy_pre)
         || call == CAST_FROM_FN_PTR(address, mmtk_object_reference_write_slow)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call)
         || call == CAST_FROM_FN_PTR(address, load_reference_call)

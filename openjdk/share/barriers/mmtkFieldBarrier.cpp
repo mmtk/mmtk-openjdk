@@ -151,7 +151,7 @@ void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Deco
     if (c_rarg1 != dst)   __ movptr(c_rarg1, dst);
     if (c_rarg2 != count) __ movptr(c_rarg2, count);
     __ lea(c_rarg3, mutator);
-    __ call_VM_leaf_base(FN_ADDR(mmtk_array_copy_pre2), 4);
+    __ call_VM_leaf_base(FN_ADDR(mmtk_array_copy_pre), 4);
     __ pop_call_clobbered_registers(false /* save_fpu */);
     __ bind(done);
   }

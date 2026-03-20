@@ -497,21 +497,6 @@ fn log_bytes_in_slot() -> usize {
 /// Array-copy pre-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_pre(
-    mutator: *mut libc::c_void,
-    src: Address,
-    dst: Address,
-    count: usize,
-) {
-    let bytes = count << log_bytes_in_slot();
-    with_mutator!(|mutator| {
-        mutator
-            .barrier()
-            .memory_region_copy_pre((src..src + bytes).into(), (dst..dst + bytes).into());
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn mmtk_array_copy_pre2(
     src: Address,
     dst: Address,
     count: usize,
