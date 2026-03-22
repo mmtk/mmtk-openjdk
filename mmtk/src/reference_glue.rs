@@ -12,7 +12,7 @@ use mmtk::util::opaque_pointer::VMWorkerThread;
 use mmtk::util::ObjectReference;
 use mmtk::vm::slot::Slot;
 use mmtk::vm::ReferenceGlue;
-use mmtk::MMTK;
+use mmtk::{gc_log, MMTK};
 
 fn set_referent<const COMPRESSED: bool>(reff: ObjectReference, referent: Option<ObjectReference>) {
     let oop = Oop::from(reff);
@@ -180,23 +180,53 @@ impl DiscoveredLists {
         clear: bool,
     ) {
         let mut packets = vec![];
-        for i in 0..lists.len() {
-            let head = unsafe { *lists[i].head.get() };
-            if clear {
-                unsafe { *lists[i].head.get() = ObjectReference::NULL };
+        let mut packets_step2 = vec![];
+        if rt == ReferenceType::Weak || rt == ReferenceType::Soft {
+            for i in 0..lists.len() {
+                let head = unsafe { *lists[i].head.get() };
+                if clear {
+                    unsafe { *lists[i].head.get() = ObjectReference::NULL };
+                }
+                if head.is_none() {
+                    continue;
+                }
+                let w = ProcessDiscoveredListForSoftAndWeakRefs::<_, COMPRESSED> {
+                    head: head.unwrap(),
+                    rt,
+                    _p: PhantomData::<E>,
+                };
+                packets.push(Box::new(w) as Box<dyn GCWork<E::VM>>);
+                let w2 = ProcessDeadRefs::<_, COMPRESSED> {
+                    list_index: i,
+                    head: head.unwrap(),
+                    rt,
+                    _p: PhantomData::<E>,
+                };
+                packets_step2.push(Box::new(w2) as Box<dyn GCWork<E::VM>>);
             }
-            if head.is_none() {
-                continue;
+        } else {
+            for i in 0..lists.len() {
+                let head = unsafe { *lists[i].head.get() };
+                if clear {
+                    unsafe { *lists[i].head.get() = ObjectReference::NULL };
+                }
+                if head.is_none() {
+                    continue;
+                }
+                let w = ProcessDiscoveredList::<_, COMPRESSED> {
+                    list_index: i,
+                    head: head.unwrap(),
+                    rt,
+                    _p: PhantomData::<E>,
+                };
+                packets.push(Box::new(w) as Box<dyn GCWork<E::VM>>);
             }
-            let w = ProcessDiscoveredList::<_, COMPRESSED> {
-                list_index: i,
-                head: head.unwrap(),
-                rt,
-                _p: PhantomData::<E>,
-            };
-            packets.push(Box::new(w) as Box<dyn GCWork<E::VM>>);
         }
         worker.scheduler().work_buckets[WorkBucketStage::Unconstrained].bulk_add(packets);
+        if rt == ReferenceType::Weak || rt == ReferenceType::Soft {
+            worker.scheduler().work_buckets[WorkBucketStage::PhantomRefClosure]
+                .bulk_add(packets_step2);
+        }
     }
 
     pub fn reconsider_soft_refs<E: ProcessEdgesWork>(&self, _worker: &mut GCWorker<E::VM>) {}
@@ -316,6 +346,160 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM>
                 unsafe { *slot = ObjectReference::NULL };
             }
         }
+        trace.process_slots();
+        trace.flush();
+    }
+}
+
+pub struct ProcessDiscoveredListForSoftAndWeakRefs<E: ProcessEdgesWork, const COMPRESSED: bool> {
+    head: ObjectReference,
+    rt: ReferenceType,
+    _p: PhantomData<E>,
+}
+
+impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM>
+    for ProcessDiscoveredListForSoftAndWeakRefs<E, COMPRESSED>
+{
+    fn do_work(&mut self, worker: &mut GCWorker<E::VM>, mmtk: &'static MMTK<E::VM>) {
+        let mut trace = E::new(vec![], false, mmtk, WorkBucketStage::Unconstrained);
+        trace.set_worker(worker);
+        let retain = self.rt == ReferenceType::Soft && !mmtk.is_emergency_collection();
+
+        let mut reference_opt = Some(self.head);
+
+        while let Some(reference) = reference_opt {
+            let next_ref = get_next_reference::<COMPRESSED>(reference);
+            let next_ref = next_ref
+                .map(|x| x.get_forwarded_object())
+                .flatten()
+                .or_else(|| next_ref);
+            if let Some(o) = next_ref {
+                debug_assert!(o.get_forwarded_object().is_none());
+            }
+            // Reaches the end of the list?
+            let end_of_list = next_ref == Some(reference) || next_ref.is_none();
+            reference_opt = if end_of_list { None } else { next_ref };
+
+            let reference = trace.trace_object(reference);
+            let referent = get_referent::<COMPRESSED>(reference);
+            if referent.is_none() {
+                continue;
+            }
+            let referent = referent.unwrap();
+            gc_log!(
+                "REF Process: {:?} retain={:?} referent.is_reachable={:?} referent={:?}",
+                reference.range::<E::VM>(),
+                retain,
+                referent.is_reachable(),
+                referent.range::<E::VM>()
+            );
+            if referent.is_reachable() || retain {
+                // unreachable!();
+                // Keep this referent
+                let forwarded = trace.trace_object(referent);
+                debug_assert!(forwarded.get_forwarded_object().is_none());
+                debug_assert!(reference.get_forwarded_object().is_none());
+                set_referent::<COMPRESSED>(reference, Some(forwarded));
+                // Remove from the discovered list
+                gc_log!("REF Remove2: {:?}->{:?}", referent, forwarded);
+            } else {
+                gc_log!(
+                    "REF Enqueue: {:?}->{:?} is_reachable={:?} setnull={:?}  ",
+                    reference,
+                    referent,
+                    referent.is_reachable(),
+                    self.rt != ReferenceType::Final,
+                    // should_scan
+                );
+            }
+            // reference_opt = next_ref;
+        }
+        trace.process_slots();
+        trace.flush();
+    }
+}
+
+pub struct ProcessDeadRefs<E: ProcessEdgesWork, const COMPRESSED: bool> {
+    list_index: usize,
+    head: ObjectReference,
+    rt: ReferenceType,
+    _p: PhantomData<E>,
+}
+
+impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM> for ProcessDeadRefs<E, COMPRESSED> {
+    fn do_work(&mut self, worker: &mut GCWorker<E::VM>, mmtk: &'static MMTK<E::VM>) {
+        let mut trace = E::new(vec![], false, mmtk, WorkBucketStage::Unconstrained);
+        trace.set_worker(worker);
+        let retain = self.rt == ReferenceType::Soft && !mmtk.is_emergency_collection();
+        let new_list = iterate_list::<_, COMPRESSED>(self.head, |reference| {
+            debug_assert!(
+                get_next_reference::<COMPRESSED>(reference).is_none(),
+                "next must be null. ref={:?} {:?} bin={}",
+                reference,
+                self.rt,
+                self.list_index
+            );
+            let referent = get_referent::<COMPRESSED>(reference);
+            if referent.is_none() {
+                // Remove from the discovered list
+                gc_log!("REF2 Remove1: {:?}", referent);
+                return DiscoveredListIterationResult::Remove;
+            }
+            let referent = referent.unwrap();
+            gc_log!(
+                "REF2 Process: {:?} retain={:?} referent.is_reachable={:?} referent={:?}",
+                reference.range::<E::VM>(),
+                retain,
+                referent.is_reachable(),
+                referent.range::<E::VM>()
+            );
+            if referent.is_reachable() || retain {
+                // Keep this referent
+                let forwarded = referent.get_forwarded_object().unwrap_or(referent);
+                debug_assert!(forwarded.get_forwarded_object().is_none());
+                debug_assert!(reference.get_forwarded_object().is_none());
+                if forwarded != referent {
+                    set_referent::<COMPRESSED>(reference, Some(forwarded));
+                }
+                // Remove from the discovered list
+                gc_log!("REF2 Remove2: {:?}->{:?}", referent, forwarded);
+                return DiscoveredListIterationResult::Remove;
+            } else {
+                gc_log!(
+                    "REF2 Enqueue: {:?}->{:?} is_reachable={:?} setnull={:?}  ",
+                    reference,
+                    referent,
+                    referent.is_reachable(),
+                    self.rt != ReferenceType::Final,
+                    // should_scan
+                );
+                if self.rt != ReferenceType::Final {
+                    // Clear this referent
+                    set_referent::<COMPRESSED>(reference, ObjectReference::NULL);
+                    // set_referent(reference, ObjectReference::NULL);
+                }
+                // Keep the reference
+                return DiscoveredListIterationResult::Enqueue(reference);
+            }
+        });
+        // Flush the list to the Universe::pending_list
+        if let Some((head, tail)) = new_list {
+            // debug_assert!(!head.is_null() && !tail.is_null());
+            // debug_assert_eq!(ObjectReference::NULL, get_next_reference(tail));
+            if self.rt == ReferenceType::Final {
+                let slot = DISCOVERED_LISTS.r#final[self.list_index].head.get();
+                unsafe { *slot = Some(head) };
+            } else {
+                let old_head = unsafe { ((*crate::UPCALLS).swap_reference_pending_list)(head) };
+                set_next_reference::<COMPRESSED>(tail, Some(old_head));
+            }
+        } else {
+            if self.rt == ReferenceType::Final {
+                let slot = DISCOVERED_LISTS.r#final[self.list_index].head.get();
+                unsafe { *slot = ObjectReference::NULL };
+            }
+        }
+        // assert!(trace.is_empty());
         trace.process_slots();
         trace.flush();
     }
