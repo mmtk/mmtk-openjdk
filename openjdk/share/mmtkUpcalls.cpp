@@ -271,6 +271,13 @@ static void mmtk_resume_mutators(void *tls) {
   }
 
   log_debug(gc)("Notifying mutators blocking on Heap_lock for reference pending list...");
+  // Note: That's the ReferenceHandler thread.
+  {
+    MutexLocker x(Heap_lock, Mutex::_no_safepoint_check_flag);
+    if (Universe::has_reference_pending_list()) {
+      Heap_lock->notify_all();
+    }
+  }
 }
 
 static const int GC_THREAD_KIND_WORKER = 1;
