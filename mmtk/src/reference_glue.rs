@@ -12,7 +12,7 @@ use mmtk::util::opaque_pointer::VMWorkerThread;
 use mmtk::util::ObjectReference;
 use mmtk::vm::slot::Slot;
 use mmtk::vm::ReferenceGlue;
-use mmtk::{gc_log, MMTK};
+use mmtk::MMTK;
 
 fn set_referent<const COMPRESSED: bool>(reff: ObjectReference, referent: Option<ObjectReference>) {
     let oop = Oop::from(reff);
@@ -386,33 +386,13 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM>
                 continue;
             }
             let referent = referent.unwrap();
-            gc_log!(
-                "REF Process: {:?} retain={:?} referent.is_reachable={:?} referent={:?}",
-                reference.range::<E::VM>(),
-                retain,
-                referent.is_reachable(),
-                referent.range::<E::VM>()
-            );
             if referent.is_reachable() || retain {
-                // unreachable!();
                 // Keep this referent
                 let forwarded = trace.trace_object(referent);
                 debug_assert!(forwarded.get_forwarded_object().is_none());
                 debug_assert!(reference.get_forwarded_object().is_none());
                 set_referent::<COMPRESSED>(reference, Some(forwarded));
-                // Remove from the discovered list
-                gc_log!("REF Remove2: {:?}->{:?}", referent, forwarded);
-            } else {
-                gc_log!(
-                    "REF Enqueue: {:?}->{:?} is_reachable={:?} setnull={:?}  ",
-                    reference,
-                    referent,
-                    referent.is_reachable(),
-                    self.rt != ReferenceType::Final,
-                    // should_scan
-                );
             }
-            // reference_opt = next_ref;
         }
         trace.process_slots();
         trace.flush();
@@ -442,17 +422,9 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM> for ProcessDeadR
             let referent = get_referent::<COMPRESSED>(reference);
             if referent.is_none() {
                 // Remove from the discovered list
-                gc_log!("REF2 Remove1: {:?}", referent);
                 return DiscoveredListIterationResult::Remove;
             }
             let referent = referent.unwrap();
-            gc_log!(
-                "REF2 Process: {:?} retain={:?} referent.is_reachable={:?} referent={:?}",
-                reference.range::<E::VM>(),
-                retain,
-                referent.is_reachable(),
-                referent.range::<E::VM>()
-            );
             if referent.is_reachable() || retain {
                 // Keep this referent
                 let forwarded = referent.get_forwarded_object().unwrap_or(referent);
@@ -462,17 +434,8 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM> for ProcessDeadR
                     set_referent::<COMPRESSED>(reference, Some(forwarded));
                 }
                 // Remove from the discovered list
-                gc_log!("REF2 Remove2: {:?}->{:?}", referent, forwarded);
                 return DiscoveredListIterationResult::Remove;
             } else {
-                gc_log!(
-                    "REF2 Enqueue: {:?}->{:?} is_reachable={:?} setnull={:?}  ",
-                    reference,
-                    referent,
-                    referent.is_reachable(),
-                    self.rt != ReferenceType::Final,
-                    // should_scan
-                );
                 if self.rt != ReferenceType::Final {
                     // Clear this referent
                     set_referent::<COMPRESSED>(reference, ObjectReference::NULL);
