@@ -23,7 +23,7 @@ DACAPO_JAR=/usr/share/benchmarks/dacapo/dacapo-23.11-MR2-chopin.jar
 
 # OpenJDK config name
 OPENJDK_DEBUG_LEVEL=release
-OPENJDK_CONFIG=linux-x86_64-server-$OPENJDK_DEBUG_LEVEL
+OPENJDK_CONFIG=linux-x86_64-normal-server-$OPENJDK_DEBUG_LEVEL
 
 # Rust profile data directory
 PROFILE_DATA_DIR="/tmp/$USER/pgo-data"
@@ -43,34 +43,19 @@ clean_binding_mmtk() {
 clean_binding_mmtk
 
 # Compile with profiling support
-<<<<<<< HEAD
-RUSTFLAGS="-Cprofile-generate=/tmp/$USER/pgo-data" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
-=======
 sh configure --disable-warnings-as-errors --with-debug-level=$OPENJDK_DEBUG_LEVEL
 RUSTFLAGS="-Cprofile-generate=$PROFILE_DATA_DIR" make CONF=$OPENJDK_CONFIG THIRD_PARTY_HEAP=$BINDING_OPENJDK_DIR images
->>>>>>> 4037ffa (Improve pgo-build.sh (#351))
 
 # Remove extraneous profiling data
 rm -rf $PROFILE_DATA_DIR/*
 
 # Profile using fop
-<<<<<<< HEAD
-MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=16777216 MMTK_PRECISE_STRESS=false ./build/linux-x86_64-normal-server-release/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar /usr/share/benchmarks/dacapo/dacapo-23.9-RC3-chopin.jar -n 5 fop
-
-# Merge profiling data
-/opt/rust/toolchains/1.71.1-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata merge -o /tmp/$USER/pgo-data/merged.profdata /tmp/$USER/pgo-data
-=======
 MMTK_PLAN=GenImmix MMTK_STRESS_FACTOR=16777216 MMTK_PRECISE_STRESS=false ./build/$OPENJDK_CONFIG/images/jdk/bin/java -XX:MetaspaceSize=500M -XX:+DisableExplicitGC -XX:-TieredCompilation -Xcomp -XX:+UseThirdPartyHeap -Xms60M -Xmx60M -jar $DACAPO_JAR -n 5 fop
 
 # Merge profiling data
 "$LLVM_PROFDATA" merge -o $PROFILE_DATA_DIR/merged.profdata $PROFILE_DATA_DIR
->>>>>>> 4037ffa (Improve pgo-build.sh (#351))
 
 clean_binding_mmtk
 
 # Compile using profiling data
-<<<<<<< HEAD
-RUSTFLAGS="-Cprofile-use=/tmp/$USER/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=linux-x86_64-normal-server-release THIRD_PARTY_HEAP=$PWD/../mmtk-openjdk/openjdk images
-=======
 RUSTFLAGS="-Cprofile-use=$PROFILE_DATA_DIR/merged.profdata -Cllvm-args=-pgo-warn-missing-function" make CONF=$OPENJDK_CONFIG THIRD_PARTY_HEAP=$BINDING_OPENJDK_DIR images
->>>>>>> 4037ffa (Improve pgo-build.sh (#351))
