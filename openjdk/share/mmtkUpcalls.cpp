@@ -115,7 +115,7 @@ public:
     return MMTkForwardClosure::is_forwarded(MMTkForwardClosure::read_forwarding_word(o));
   }
 
-  inline virtual bool do_object_b(oop o) {
+  inline virtual bool do_object_b(oop o) override {
     const uintptr_t v = uintptr_t((void*) o);
     // if (v >= 0x220000000000ULL || v < 0x20000000000ULL) return false;
     return o != NULL && (rc_live(o) || is_forwarded(o));
@@ -123,15 +123,11 @@ public:
 };
 
 class MMTkLXRFastUpdateClosure : public OopClosure {
-  uintptr_t heap_start = HEAP_START;
-  uintptr_t heap_end = HEAP_END;
-
  public:
-  inline virtual void do_oop(oop* slot) {
+  inline virtual void do_oop(oop* slot) override {
     const auto o = *slot;
     const uintptr_t v = uintptr_t((void*) o);
-    if (v >= heap_end || v < heap_start) {
-      *slot = NULL;
+    if (o == NULL) {
       return;
     }
     const auto status = MMTkForwardClosure::read_forwarding_word(o);
@@ -141,21 +137,36 @@ class MMTkLXRFastUpdateClosure : public OopClosure {
       *slot = NULL;
     }
   }
-  inline virtual void do_oop(narrowOop* slot) {
+  inline virtual void do_oop(narrowOop* slot) override {
     narrowOop heap_oop = RawAccess<>::oop_load(slot);
     if (CompressedOops::is_null(heap_oop)) return;
     oop o = CompressedOops::decode_not_null(heap_oop);
     const uintptr_t v = uintptr_t((void*) o);
-    if (v >= heap_end || v < heap_start) {
-      RawAccess<>::oop_store(slot, CompressedOops::encode(oop(NULL)));
-      return;
-    }
     const auto status = MMTkForwardClosure::read_forwarding_word(o);
     if (MMTkForwardClosure::is_forwarded(status)) {
       RawAccess<>::oop_store(slot, CompressedOops::encode_not_null(MMTkForwardClosure::extract_forwarding_pointer(status)));
     } else if (!MMTkLXRFastIsAliveClosure::rc_live(o)) {
       RawAccess<>::oop_store(slot, CompressedOops::encode(oop(NULL)));
     }
+  }
+};
+
+class MMTkUpdateClosure : public OopClosure {
+ public:
+  inline virtual void do_oop(oop* slot) override {
+    const auto o = *slot;
+    const uintptr_t v = uintptr_t((void*) o);
+    if (o == NULL) {
+      return;
+    }
+    if (mmtk_is_live((void*) o) == 0) {
+      *slot = NULL;
+    } else if (MMTkForwardClosure::is_forwarded(MMTkForwardClosure::read_forwarding_word(o))) {
+      *slot = MMTkForwardClosure::extract_forwarding_pointer(MMTkForwardClosure::read_forwarding_word(o));
+    }
+  }
+  inline virtual void do_oop(narrowOop* slot) override {
+    guarantee(false, "unreachable");
   }
 };
 
@@ -196,13 +207,11 @@ static void mmtk_clear_claimed_marks() {
 static void mmtk_update_weak_processor(bool lxr) {
   // HandleMark hm(THREAD);
   if (lxr) {
-    MMTkLXRFastIsAliveClosure is_alive;
-    MMTkForwardClosure forward;
-    WeakProcessor::weak_oops_do(&is_alive, &forward);
+    MMTkLXRFastUpdateClosure cl;
+    WeakProcessor::oops_do(&cl);
   } else {
-    MMTkIsAliveClosure is_alive;
-    MMTkForwardClosure forward;
-    WeakProcessor::weak_oops_do(&is_alive, &forward);
+    MMTkUpdateClosure cl;
+    WeakProcessor::oops_do(&cl);
   }
 }
 

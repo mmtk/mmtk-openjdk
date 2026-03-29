@@ -295,7 +295,10 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM>
     fn do_work(&mut self, worker: &mut GCWorker<E::VM>, mmtk: &'static MMTK<E::VM>) {
         let mut trace = E::new(vec![], false, mmtk, WorkBucketStage::Unconstrained);
         trace.set_worker(worker);
-        let retain = self.rt == ReferenceType::Soft && !mmtk.is_emergency_collection();
+        let retain = self.rt == ReferenceType::Soft
+            && !mmtk.is_emergency_collection()
+            && !mmtk.is_user_triggered_collection();
+
         let new_list = iterate_list::<_, COMPRESSED>(self.head, |reference| {
             debug_assert!(
                 get_next_reference::<COMPRESSED>(reference).is_none(),
@@ -363,7 +366,9 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM>
     fn do_work(&mut self, worker: &mut GCWorker<E::VM>, mmtk: &'static MMTK<E::VM>) {
         let mut trace = E::new(vec![], false, mmtk, WorkBucketStage::Unconstrained);
         trace.set_worker(worker);
-        let retain = self.rt == ReferenceType::Soft && !mmtk.is_emergency_collection();
+        let retain = self.rt == ReferenceType::Soft
+            && !mmtk.is_emergency_collection()
+            && !mmtk.is_user_triggered_collection();
 
         let mut reference_opt = Some(self.head);
 
@@ -410,7 +415,10 @@ impl<E: ProcessEdgesWork, const COMPRESSED: bool> GCWork<E::VM> for ProcessDeadR
     fn do_work(&mut self, worker: &mut GCWorker<E::VM>, mmtk: &'static MMTK<E::VM>) {
         let mut trace = E::new(vec![], false, mmtk, WorkBucketStage::Unconstrained);
         trace.set_worker(worker);
-        let retain = self.rt == ReferenceType::Soft && !mmtk.is_emergency_collection();
+        let retain = self.rt == ReferenceType::Soft
+            && !mmtk.is_emergency_collection()
+            && !mmtk.is_user_triggered_collection();
+
         let new_list = iterate_list::<_, COMPRESSED>(self.head, |reference| {
             debug_assert!(
                 get_next_reference::<COMPRESSED>(reference).is_none(),
