@@ -509,7 +509,8 @@ void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  VMThread::vm_thread()->oops_do(&cl, NULL);
+  MarkingCodeBlobClosure cb_cl(&cl, false, true);
+  VMThread::vm_thread()->oops_do(&cl, &cb_cl);
 }
 
 void MMTkHeap::scan_roots_in_all_mutator_threads(OopClosure& cl) {

@@ -238,14 +238,11 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             .get_plan()
             .generational()
             .is_some_and(|gen| gen.is_current_gc_nursery());
-        let is_lxr = mmtk
+        let lxr = mmtk
             .get_plan()
-            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
-            .is_some();
-        let is_rc_pause = mmtk
-            .get_plan()
-            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
-            .is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
+            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>();
+        let is_lxr = lxr.is_some();
+        let is_rc_pause = lxr.is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
         let class_unloading_enabled = unsafe { crate::CLASS_UNLOADING_ENABLED } == 1;
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
@@ -283,6 +280,17 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                     if moves_object {
                         nmethods_to_fix.push(*key);
                     }
+                }
+            }
+
+            let pause = lxr.map(|x| x.current_pause()).unwrap_or(None);
+
+            if is_lxr
+                && class_unloading_enabled
+                && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full))
+            {
+                for key in mature.keys() {
+                    nmethods_to_fix.push(*key);
                 }
             }
 
@@ -339,7 +347,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 // For scavenging GCs, the mmtk-openjdk binding reports the *slots* of nmethods as
                 // roots. They will be traced at unspecified times during the Closure stage.
                 // SoftRefClosure is the first safe place to call fix_oop_relocations.
-                WorkBucketStage::Release
+                WorkBucketStage::FixRelocations
             };
             worker.scheduler().work_buckets[stage].bulk_add(packets);
         }
@@ -379,7 +387,6 @@ fn to_slots_closure_weak<S: Slot, F: RootsWorkFactory<S>>(factory: &mut F) -> Sl
     }
 }
 
-#[allow(unused)]
 pub struct ScanWeakProcessorRoots<S: Slot, F: RootsWorkFactory<S>> {
     factory: F,
     _p: PhantomData<S>,
@@ -418,63 +425,6 @@ impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
     }
 }
 
-pub struct ScanWeakCodeCacheRoots<S: Slot, F: RootsWorkFactory<S>> {
-    factory: F,
-    _p: PhantomData<S>,
-}
-
-impl<S: Slot, F: RootsWorkFactory<S>> ScanWeakCodeCacheRoots<S, F> {
-    pub fn new(factory: F) -> Self {
-        Self {
-            factory,
-            _p: PhantomData,
-        }
-    }
-}
-
-impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
-    for ScanWeakCodeCacheRoots<VM::VMSlot, F>
-{
-    fn do_work(&mut self, _worker: &mut GCWorker<VM>, mmtk: &'static MMTK<VM>) {
-        let t = if cfg!(feature = "roots_breakdown") {
-            Some(std::time::SystemTime::now())
-        } else {
-            None
-        };
-        let scan_all_strong_roots = mmtk.get_plan().current_gc_should_perform_class_unloading();
-        assert!(scan_all_strong_roots);
-
-        let mut slots = Vec::with_capacity(F::BUFFER_SIZE);
-        let mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
-        let mut c = 0;
-        // Young roots
-        for (_key, roots) in &*mature {
-            for r in roots {
-                slots.push(VM::VMSlot::from_address(*r));
-                if slots.len() >= F::BUFFER_SIZE {
-                    if cfg!(feature = "roots_breakdown") {
-                        c += slots.len();
-                    }
-                    self.factory
-                        .create_process_roots_work(std::mem::take(&mut slots), RootKind::Weak);
-                    slots.reserve(F::BUFFER_SIZE);
-                }
-            }
-        }
-        if !slots.is_empty() {
-            if cfg!(feature = "roots_breakdown") {
-                c += slots.len();
-            }
-            self.factory
-                .create_process_roots_work(slots, RootKind::Weak);
-        }
-        if cfg!(feature = "roots_breakdown") {
-            let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-            eprintln!(" - WeakodeCacheRoots roots count: {} ({:.3})", c, ms);
-        }
-    }
-}
-
 struct FixRelocations {
     nmethods: Vec<Address>,
 }
@@ -489,11 +439,25 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
     fn do_work(
         &mut self,
         _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
-        _mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
+        mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
     ) {
+        let is_lxr = mmtk
+            .get_plan()
+            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
+            .is_some();
+        let is_rc_pause = mmtk
+            .get_plan()
+            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
+            .is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
+
         let num_nmethods = self.nmethods.len();
+        let lxr_rc_pause = is_lxr && is_rc_pause;
         unsafe {
-            ((*UPCALLS).fix_oop_relocations)(self.nmethods.as_mut_ptr() as *mut _, num_nmethods);
+            ((*UPCALLS).fix_oop_relocations)(
+                lxr_rc_pause,
+                self.nmethods.as_mut_ptr() as *mut _,
+                num_nmethods,
+            );
         }
         // probe!(mmtk_openjdk, fix_relocations, num_nmethods);
     }

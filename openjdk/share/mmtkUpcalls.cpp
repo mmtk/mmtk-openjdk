@@ -215,9 +215,12 @@ static void mmtk_update_weak_processor(bool lxr) {
   }
 }
 
+static void mmtk_oops_do_marking_epilogue() {
+  nmethod::oops_do_marking_epilogue();
+}
+
 static void mmtk_unload_classes() {
   if (ClassUnloading) {
-    LOG_CLS_UNLOAD("[mmtk_unload_classes] start");
     // Unload classes and purge SystemDictionary.
     // LOG_CLS_UNLOAD("[mmtk_unload_classes] SystemDictionary::do_unloading");
     // auto purged_classes = SystemDictionary::do_unloading(NULL);
@@ -252,7 +255,6 @@ static void mmtk_unload_classes() {
 }
 
 static void mmtk_gc_epilogue() {
-  nmethod::oops_do_marking_epilogue();
   Universe::heap()->update_capacity_and_used_at_gc();
   // CodeCache::gc_epilogue();
   // JvmtiExport::gc_epilogue();
@@ -260,6 +262,7 @@ static void mmtk_gc_epilogue() {
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
+  CodeCache::arm_all_nmethods();
 }
 
 static void mmtk_resume_mutators(void *tls) {
@@ -389,15 +392,16 @@ static void mmtk_scan_roots_in_mutator_thread(SlotsClosure closure, void* tls) {
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure cl(closure);
   MarkingCodeBlobClosure cb_cl(&cl, false, true);
-  thread->oops_do(&cl, NULL);
+  thread->oops_do(&cl, &cb_cl);
 }
 
 static void mmtk_scan_multiple_thread_roots(SlotsClosure closure, void* ptr, size_t len) {
   ResourceMark rm;
   auto mutators = (JavaThread**) ptr;
   MMTkRootsClosure cl(closure);
+  MarkingCodeBlobClosure cb_cl(&cl, false, true);
   for (size_t i = 0; i < len; i++)
-    mutators[i]->oops_do(&cl, NULL);
+    mutators[i]->oops_do(&cl, &cb_cl);
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls, bool follow_clds, bool claim_clds) {
@@ -572,10 +576,21 @@ static size_t mmtk_java_lang_classloader_loader_data_offset() {
   return v;
 }
 
-void mmtk_fix_oop_relocations(void* nmethods, size_t len) {
-  for (size_t i = 0; i < len; i++) {
-    nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
-    nm->fix_oop_relocations();
+void mmtk_fix_oop_relocations(bool lxr, void* nmethods, size_t len) {
+  if (lxr) {
+    MMTkLXRFastUpdateClosure cl;
+    for (size_t i = 0; i < len; i++) {
+      nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
+      nm->oops_do(&cl);
+      nm->fix_oop_relocations();
+    }
+  } else {
+    MMTkUpdateClosure cl;
+    for (size_t i = 0; i < len; i++) {
+      nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
+      nm->oops_do(&cl);
+      nm->fix_oop_relocations();
+    }
   }
 }
 
@@ -619,4 +634,5 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_clear_claimed_marks,
   mmtk_unload_classes,
   mmtk_gc_epilogue,
+  mmtk_oops_do_marking_epilogue,
 };

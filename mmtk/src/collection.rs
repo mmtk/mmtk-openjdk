@@ -115,6 +115,7 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
 
     fn vm_release(do_unloading: bool) {
         unsafe {
+            ((*UPCALLS).oops_do_marking_epilogue)();
             if do_unloading {
                 gc_log!("    - unload_classes");
                 ((*UPCALLS).unload_classes)();
