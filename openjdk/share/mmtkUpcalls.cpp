@@ -286,7 +286,7 @@ static void mmtk_gc_epilogue() {
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::update_pointers();
 #endif
-  CodeCache::arm_all_nmethods();
+  // CodeCache::arm_all_nmethods();
 }
 
 static void mmtk_resume_mutators(void *tls) {

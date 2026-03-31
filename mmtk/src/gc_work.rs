@@ -456,16 +456,19 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
             .get_plan()
             .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
             .is_some();
-        let is_rc_pause = mmtk
-            .get_plan()
-            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
-            .is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
+        let fast_mode = is_lxr
+            && mmtk
+                .get_plan()
+                .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
+                .is_some_and(|lxr| {
+                    lxr.current_pause() == Some(Pause::RefCount)
+                        || lxr.current_pause() == Some(Pause::InitialMark)
+                });
 
         let num_nmethods = self.nmethods.len();
-        let lxr_rc_pause = is_lxr && is_rc_pause;
         unsafe {
             ((*UPCALLS).fix_oop_relocations)(
-                lxr_rc_pause,
+                fast_mode,
                 self.forward_only,
                 self.nmethods.as_mut_ptr() as *mut _,
                 num_nmethods,
