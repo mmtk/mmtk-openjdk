@@ -219,7 +219,7 @@ typedef struct {
     void* (*swap_reference_pending_list)(void* objects);
     size_t (*java_lang_class_klass_offset_in_bytes)();
     size_t (*java_lang_classloader_loader_data_offset)();
-    void (*fix_oop_relocations)(bool lxr, bool forward_only, void* nmethods, size_t len);
+    void (*fix_oop_relocations)(bool lxr, void* nmethods, size_t len);
     void (*clear_claimed_marks)();
     void (*unload_classes)();
     void (*gc_epilogue)();

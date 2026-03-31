@@ -34,334 +34,129 @@
 #include "gc/shared/gcTraceTime.inline.hpp"
 #include "mmtkParallelCleaning.hpp"
 #include "mmtk.h"
-
 #include "runtime/atomic.hpp"
-#if INCLUDE_JVMCI
-#include "jvmci/jvmci.hpp"
-#endif
+#include "oops/access.inline.hpp"
+#include "oops/compressedOops.inline.hpp"
+#include "oops/oop.inline.hpp"
+#include "code/nmethod.hpp"
 
 using namespace JavaClassFile;
 
 namespace mmtk {
-
-// StringSymbolTableUnlinkTask::StringSymbolTableUnlinkTask(uint num_workers, BoolObjectClosure* is_alive, OopClosure* forward) :
-//   AbstractGangTask("String/Symbol Unlinking"),
-//   _is_alive(is_alive),
-//   _forward(forward),
-//   _par_state_string_fwd(StringTable::weak_storage()),
-//   _par_state_string(StringTable::weak_storage()),
-//   _strings_processed(0), _strings_removed(0),
-//   _symbols_processed(0), _symbols_removed(0),
-//   _num_workers(num_workers), _num_entered_barrier(0) {
-
-//   _initial_string_table_size = (int) StringTable::the_table()->table_size();
-//   _initial_symbol_table_size = SymbolTable::the_table()->table_size();
-//   // if (process_symbols) {
-//     SymbolTable::clear_parallel_claimed_index();
-//   // }
-//   // if (process_strings) {
-//     StringTable::reset_dead_counter();
-//   // }
-// }
-
-// StringSymbolTableUnlinkTask::~StringSymbolTableUnlinkTask() {
-//   guarantee(!_process_symbols || SymbolTable::parallel_claimed_index() >= _initial_symbol_table_size,
-//             "claim value %d after unlink less than initial symbol table size %d",
-//             SymbolTable::parallel_claimed_index(), _initial_symbol_table_size);
-
-//   log_info(gc, stringtable)(
-//       "Cleaned string and symbol table, "
-//       "strings: " SIZE_FORMAT " processed, " SIZE_FORMAT " removed, "
-//       "symbols: " SIZE_FORMAT " processed, " SIZE_FORMAT " removed",
-//       strings_processed(), strings_removed(),
-//       symbols_processed(), symbols_removed());
-
-//   // if (_process_strings) {
-//     StringTable::finish_dead_counter();
-//   // }
-// }
-
-// void StringSymbolTableUnlinkTask::work(uint worker_id) {
-//   int strings_processed = 0;
-//   int strings_removed = 0;
-//   int symbols_processed = 0;
-//   int symbols_removed = 0;
-//   // if (_process_strings) {
-//     StringTable::possibly_parallel_unlink(&_par_state_string, _is_alive, &strings_processed, &strings_removed);
-//     Atomic::add(strings_processed, &_strings_processed);
-//     Atomic::add(strings_removed, &_strings_removed);
-//   // }
-//   // if (_process_symbols) {
-//     SymbolTable::possibly_parallel_unlink(&symbols_processed, &symbols_removed);
-//     Atomic::add(symbols_processed, &_symbols_processed);
-//     Atomic::add(symbols_removed, &_symbols_removed);
-//   // }
-// }
-
-// size_t StringSymbolTableUnlinkTask::strings_processed() const { return (size_t)_strings_processed; }
-// size_t StringSymbolTableUnlinkTask::strings_removed()   const { return (size_t)_strings_removed; }
-
-// size_t StringSymbolTableUnlinkTask::symbols_processed() const { return (size_t)_symbols_processed; }
-// size_t StringSymbolTableUnlinkTask::symbols_removed()   const { return (size_t)_symbols_removed; }
-
-// void StringSymbolTableUnlinkTask::barrier_wait(uint worker_id) {
-//   MonitorLockerEx ml(_lock, Mutex::_no_safepoint_check_flag);
-//   _num_entered_barrier++;
-//   if (_num_entered_barrier >= _num_workers) {
-//     ml.notify_all();
-//   }
-//   while (_num_entered_barrier < _num_workers) {
-//       ml.wait(Mutex::_no_safepoint_check_flag, 0, false);
-//   }
-// }
-
-
-// Monitor* StringSymbolTableUnlinkTask::_lock = new Monitor(Mutex::leaf, "String Table Unload lock", false, Monitor::_safepoint_check_never);
-// Monitor* CodeCacheUnloadingTask::_lock = new Monitor(Mutex::leaf, "Code Cache Unload lock", false, Monitor::_safepoint_check_never);
-
-// CodeCacheUnloadingTask::CodeCacheUnloadingTask(uint num_workers, BoolObjectClosure* is_alive, bool unloading_occurred) :
-//   _is_alive(is_alive),
-//   _unloading_occurred(unloading_occurred),
-//   _num_workers(num_workers),
-//   _first_nmethod(NULL),
-//   _claimed_nmethod(NULL),
-//   _postponed_list(NULL),
-//   _num_entered_barrier(0)
-// {
-//   CompiledMethod::increase_unloading_clock();
-//   // Get first alive nmethod
-//   CompiledMethodIterator iter = CompiledMethodIterator();
-//   if(iter.next_alive()) {
-//     _first_nmethod = iter.method();
-//   }
-//   _claimed_nmethod = (volatile CompiledMethod*)_first_nmethod;
-// }
-
-// CodeCacheUnloadingTask::~CodeCacheUnloadingTask() {
-//   // CodeCache::verify_clean_inline_caches();
-
-//   CodeCache::set_needs_cache_clean(false);
-//   guarantee(CodeCache::scavenge_root_nmethods() == NULL, "Must be");
-
-//   CodeCache::verify_icholder_relocations();
-// }
-
-// void CodeCacheUnloadingTask::add_to_postponed_list(CompiledMethod* nm) {
-//   CompiledMethod* old;
-//   do {
-//     old = (CompiledMethod*)_postponed_list;
-//     nm->set_unloading_next(old);
-//   } while ((CompiledMethod*)Atomic::cmpxchg(nm, &_postponed_list, old) != old);
-// }
-
-// void CodeCacheUnloadingTask::clean_nmethod(CompiledMethod* nm) {
-//   bool postponed = nm->do_unloading_parallel(_is_alive, _unloading_occurred);
-
-//   if (postponed) {
-//     // This nmethod referred to an nmethod that has not been cleaned/unloaded yet.
-//     add_to_postponed_list(nm);
-//   }
-
-//   // Mark that this thread has been cleaned/unloaded.
-//   // After this call, it will be safe to ask if this nmethod was unloaded or not.
-//   nm->set_unloading_clock(CompiledMethod::global_unloading_clock());
-// }
-
-// void CodeCacheUnloadingTask::clean_nmethod_postponed(CompiledMethod* nm) {
-//   nm->do_unloading_parallel_postponed();
-// }
-
-// void CodeCacheUnloadingTask::claim_nmethods(CompiledMethod** claimed_nmethods, int *num_claimed_nmethods) {
-//   CompiledMethod* first;
-//   CompiledMethodIterator last;
-
-//   do {
-//     *num_claimed_nmethods = 0;
-
-//     first = (CompiledMethod*)_claimed_nmethod;
-//     last = CompiledMethodIterator(first);
-
-//     if (first != NULL) {
-
-//       for (int i = 0; i < MaxClaimNmethods; i++) {
-//         if (!last.next_alive()) {
-//           break;
-//         }
-//         claimed_nmethods[i] = last.method();
-//         (*num_claimed_nmethods)++;
-//       }
-//     }
-
-//   } while ((CompiledMethod*)Atomic::cmpxchg(last.method(), &_claimed_nmethod, first) != first);
-// }
-
-// CompiledMethod* CodeCacheUnloadingTask::claim_postponed_nmethod() {
-//   CompiledMethod* claim;
-//   CompiledMethod* next;
-
-//   do {
-//     claim = (CompiledMethod*)_postponed_list;
-//     if (claim == NULL) {
-//       return NULL;
-//     }
-
-//     next = claim->unloading_next();
-
-//   } while ((CompiledMethod*)Atomic::cmpxchg(next, &_postponed_list, claim) != claim);
-
-//   return claim;
-// }
-
-// // Mark that we're done with the first pass of nmethod cleaning.
-// void CodeCacheUnloadingTask::barrier_mark(uint worker_id) {
-//   MonitorLockerEx ml(_lock, Mutex::_no_safepoint_check_flag);
-//   _num_entered_barrier++;
-//   if (_num_entered_barrier == _num_workers) {
-//     ml.notify_all();
-//   }
-// }
-
-// // See if we have to wait for the other workers to
-// // finish their first-pass nmethod cleaning work.
-// void CodeCacheUnloadingTask::barrier_wait(uint worker_id) {
-//   if (_num_entered_barrier < _num_workers) {
-//     MonitorLockerEx ml(_lock, Mutex::_no_safepoint_check_flag);
-//     while (_num_entered_barrier < _num_workers) {
-//       ml.wait(Mutex::_no_safepoint_check_flag, 0, false);
-//     }
-//   }
-// }
-
-// // Cleaning and unloading of nmethods. Some work has to be postponed
-// // to the second pass, when we know which nmethods survive.
-// void CodeCacheUnloadingTask::work_first_pass(uint worker_id) {
-//   // The first nmethods is claimed by the first worker.
-//   if (worker_id == 0 && _first_nmethod != NULL) {
-//     clean_nmethod(_first_nmethod);
-//     _first_nmethod = NULL;
-//   }
-
-//   int num_claimed_nmethods;
-//   CompiledMethod* claimed_nmethods[MaxClaimNmethods];
-
-//   while (true) {
-//     claim_nmethods(claimed_nmethods, &num_claimed_nmethods);
-
-//     if (num_claimed_nmethods == 0) {
-//       break;
-//     }
-
-//     for (int i = 0; i < num_claimed_nmethods; i++) {
-//       clean_nmethod(claimed_nmethods[i]);
-//     }
-//   }
-// }
-
-// void CodeCacheUnloadingTask::work_second_pass(uint worker_id) {
-//   CompiledMethod* nm;
-//   // Take care of postponed nmethods.
-//   while ((nm = claim_postponed_nmethod()) != NULL) {
-//     clean_nmethod_postponed(nm);
-//   }
-// }
-
-// KlassCleaningTask::KlassCleaningTask(BoolObjectClosure* is_alive) :
-//   _is_alive(is_alive),
-//   _clean_klass_tree_claimed(0),
-//   _klass_iterator() {
-// }
-
-// bool KlassCleaningTask::claim_clean_klass_tree_task() {
-//   if (_clean_klass_tree_claimed) {
-//     return false;
-//   }
-
-//   return Atomic::cmpxchg(1, &_clean_klass_tree_claimed, 0) == 0;
-// }
-
-// InstanceKlass* KlassCleaningTask::claim_next_klass() {
-//   Klass* klass;
-//   do {
-//     klass =_klass_iterator.next_klass();
-//   } while (klass != NULL && !klass->is_instance_klass());
-
-//   // this can be null so don't call InstanceKlass::cast
-//   return static_cast<InstanceKlass*>(klass);
-// }
-
-// void KlassCleaningTask::clean_klass(InstanceKlass* ik) {
-//   ik->clean_weak_instanceklass_links();
-// }
-
-// void KlassCleaningTask::work() {
-//   ResourceMark rm;
-
-//   // One worker will clean the subklass/sibling klass tree.
-//   if (claim_clean_klass_tree_task()) {
-//     Klass::clean_subklass_tree();
-//   }
-
-//   // All workers will help cleaning the classes,
-//   InstanceKlass* klass;
-//   while ((klass = claim_next_klass()) != NULL) {
-//     clean_klass(klass);
-//   }
-// }
-
-// bool ResolvedMethodCleaningTask::claim_resolved_method_task() {
-//   if (_resolved_method_task_claimed) {
-//     return false;
-//   }
-//   return Atomic::cmpxchg(1, &_resolved_method_task_claimed, 0) == 0;
-// }
-
-// // These aren't big, one thread can do it all.
-// void ResolvedMethodCleaningTask::work() {
-//   if (claim_resolved_method_task()) {
-//     ResolvedMethodTable::unlink();
-//   }
-// }
-#if INCLUDE_JVMCI
-JVMCICleaningTask::JVMCICleaningTask() :
-  _cleaning_claimed(0) {
+MMTkCodeCacheUnloadingTask::MMTkCodeCacheUnloadingTask(uint num_workers, bool unloading_occurred) :
+  _unloading_occurred(unloading_occurred),
+  _num_workers(num_workers),
+  _first_nmethod(nullptr),
+  _claimed_nmethod(nullptr) {
+  // Get first alive nmethod
+  CompiledMethodIterator iter(CompiledMethodIterator::all_blobs);
+  if(iter.next()) {
+    _first_nmethod = iter.method();
+  }
+  _claimed_nmethod = _first_nmethod;
 }
 
-bool JVMCICleaningTask::claim_cleaning_task() {
-  if (_cleaning_claimed) {
-    return false;
+MMTkCodeCacheUnloadingTask::~MMTkCodeCacheUnloadingTask() {
+  CodeCache::verify_clean_inline_caches();
+  CodeCache::verify_icholder_relocations();
+}
+
+void MMTkCodeCacheUnloadingTask::claim_nmethods(CompiledMethod** claimed_nmethods, int *num_claimed_nmethods) {
+  CompiledMethod* first;
+  CompiledMethodIterator last(CompiledMethodIterator::all_blobs);
+
+  do {
+    *num_claimed_nmethods = 0;
+
+    first = _claimed_nmethod;
+    last = CompiledMethodIterator(CompiledMethodIterator::all_blobs, first);
+
+    if (first != nullptr) {
+
+      for (int i = 0; i < MaxClaimNmethods; i++) {
+        if (!last.next()) {
+          break;
+        }
+        claimed_nmethods[i] = last.method();
+        (*num_claimed_nmethods)++;
+      }
+    }
+
+  } while (Atomic::cmpxchg(&_claimed_nmethod, first, last.method()) != first);
+}
+
+class MMTkForwardClosure : public OopClosure {
+ public:
+  inline static size_t read_forwarding_word(oop o) {
+    return *((size_t*) (void*) o);
+  }
+  inline static oop extract_forwarding_pointer(size_t status) {
+    return (oop) (void*) (status << 8 >> 8);
+  }
+  inline static bool is_forwarded(size_t status) {
+    return (status >> 56) != 0;
+  }
+  inline virtual void do_oop(oop* slot) override {
+    const auto o = *slot;
+    if (o == NULL) return;
+    const auto status = read_forwarding_word(o);
+    if (is_forwarded(status)) {
+      *slot = extract_forwarding_pointer(status);
+    }
+  }
+  inline virtual void do_oop(narrowOop* slot) override {
+    narrowOop heap_oop = RawAccess<>::oop_load(slot);
+    if (CompressedOops::is_null(heap_oop)) return;
+    oop o = CompressedOops::decode_not_null(heap_oop);
+    const auto status = read_forwarding_word(o);
+    if (is_forwarded(status)) {
+      RawAccess<>::oop_store(slot, CompressedOops::encode_not_null(extract_forwarding_pointer(status)));
+    }
+  }
+};
+
+void MMTkCodeCacheUnloadingTask::work(uint worker_id) {
+  MMTkForwardClosure cl;
+  // The first nmethods is claimed by the first worker.
+  if (worker_id == 0 && _first_nmethod != nullptr) {
+    _first_nmethod->do_unloading(_unloading_occurred);
+    _first_nmethod = nullptr;
   }
 
-  return Atomic::cmpxchg(&_cleaning_claimed, 0, 1) == 0;
-}
+  int num_claimed_nmethods;
+  CompiledMethod* claimed_nmethods[MaxClaimNmethods];
 
-void JVMCICleaningTask::work(bool unloading_occurred) {
-  // One worker will clean JVMCI metadata handles.
-  if (unloading_occurred && EnableJVMCI && claim_cleaning_task()) {
-    JVMCI::do_unloading(unloading_occurred);
+  while (true) {
+    claim_nmethods(claimed_nmethods, &num_claimed_nmethods);
+
+    if (num_claimed_nmethods == 0) {
+      break;
+    }
+
+    for (int i = 0; i < num_claimed_nmethods; i++) {
+      if (claimed_nmethods[i]->is_nmethod()) {
+        auto nm = (nmethod*) claimed_nmethods[i];
+        nm->oops_do(&cl);
+        nm->fix_oop_relocations();
+      }
+    }
+    for (int i = 0; i < num_claimed_nmethods; i++) {
+      claimed_nmethods[i]->do_unloading(_unloading_occurred);
+    }
   }
 }
-#endif
 
-ParallelCleaningTask::ParallelCleaningTask(BoolObjectClosure* is_alive,
-                                           OopClosure* forward,
-                                           uint num_workers,
-                                           bool unloading_occurred) :
+
+ParallelCleaningTask::ParallelCleaningTask(uint num_workers, bool unloading_occurred) :
   WorkerTask("Parallel Cleaning"),
   _unloading_occurred(unloading_occurred),
   _code_cache_task(num_workers, unloading_occurred),
-  JVMCI_ONLY(_jvmci_cleaning_task() COMMA)
   _klass_cleaning_task() {
 }
 
 // The parallel work done by all worker threads.
 void ParallelCleaningTask::work(uint worker_id) {
-  // Clean JVMCI metadata handles.
-  // Execute this task first because it is serial task.
-  JVMCI_ONLY(_jvmci_cleaning_task.work(_unloading_occurred);)
-
-  // Do first pass of code cache cleaning.
   _code_cache_task.work(worker_id);
-
   // Clean all klasses that were not unloaded.
   // The weak metadata in klass doesn't need to be
   // processed if there was no unloading.

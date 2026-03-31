@@ -580,11 +580,10 @@ HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_wa
   return alloc_fast(size << LogHeapWordSize, AllocatorLos);
 }
 
-void MMTkHeap::complete_cleaning(BoolObjectClosure* is_alive, OopClosure* forward, bool purged_classes) {
+void MMTkHeap::complete_cleaning(bool purged_classes) {
   ResourceMark rm;
-  // HandleMark hm(THREAD);
   uint num_workers = _workers->active_workers();
-  mmtk::ParallelCleaningTask unlink_task(is_alive, forward, num_workers, purged_classes);
+  mmtk::ParallelCleaningTask unlink_task(num_workers, purged_classes);
   _workers->run_task(&unlink_task);
 }
 

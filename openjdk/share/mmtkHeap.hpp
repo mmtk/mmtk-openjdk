@@ -218,7 +218,7 @@ public:
   void scan_weak_processor_roots(OopClosure& cl);
   void scan_vm_thread_roots(OopClosure& cl);
 
-  void complete_cleaning(BoolObjectClosure* is_alive, OopClosure* forward, bool purged_classes);
+  void complete_cleaning(bool purged_classes);
 };
 
 

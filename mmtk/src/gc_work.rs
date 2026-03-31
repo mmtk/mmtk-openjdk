@@ -172,46 +172,6 @@ impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
     }
 }
 
-pub struct ScanNewWeakHandleRoots<S: Slot, F: RootsWorkFactory<S>> {
-    factory: F,
-    _p: PhantomData<S>,
-}
-
-impl<S: Slot, F: RootsWorkFactory<S>> ScanNewWeakHandleRoots<S, F> {
-    pub fn new(factory: F) -> Self {
-        Self {
-            factory,
-            _p: PhantomData,
-        }
-    }
-}
-
-impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
-    for ScanNewWeakHandleRoots<VM::VMSlot, F>
-{
-    fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
-        let t = if cfg!(feature = "roots_breakdown") {
-            Some(std::time::SystemTime::now())
-        } else {
-            None
-        };
-        let mut new_roots = crate::NURSERY_WEAK_HANDLE_ROOTS.lock().unwrap();
-        if cfg!(feature = "roots_breakdown") {
-            record_roots(new_roots.len());
-        }
-        for slice in new_roots.chunks(F::BUFFER_SIZE) {
-            let slice = unsafe { std::mem::transmute::<&[Address], &[VM::VMSlot]>(slice) };
-            self.factory
-                .create_process_roots_work(slice.to_vec(), RootKind::YoungWeakHandleRoots);
-        }
-        new_roots.clear();
-        if cfg!(feature = "roots_breakdown") {
-            let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-            report_roots("NewWeakHandleRoots", ms);
-        }
-    }
-}
-
 #[allow(unused)]
 pub struct ScanCodeCacheRoots<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
 {
@@ -269,6 +229,8 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         // That includes all nmethods with moved children.
         // In nursery GCs, that means nmethods added since the previous GC.
         let mut nmethods_to_fix = Vec::new();
+        let no_fix_relocation = class_unloading_enabled
+            && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full));
 
         {
             let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
@@ -284,16 +246,14 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 }
             }
 
-            if is_lxr
-                && class_unloading_enabled
-                && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full))
-            {
-                for key in mature.keys() {
-                    nmethods_to_fix.push(*key);
+            if no_fix_relocation {
+                let mut nursery = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+                for (key, roots) in nursery.drain() {
+                    nursery_slots += roots.len();
+                    add_roots(&roots);
+                    mature.insert(key, roots);
                 }
-            }
-
-            {
+            } else {
                 let mut nursery = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
                 for (key, roots) in nursery.drain() {
                     nursery_slots += roots.len();
@@ -320,14 +280,6 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 .create_process_roots_work(slots, RootKind::Strong);
         }
 
-        // When class unloading is pending, use forward-only mode: forward alive oops
-        // but don't null dead oops. This allows has_dead_oop() during class unloading
-        // to detect nmethods that should be unloaded.
-        let forward_only = (is_lxr
-            && class_unloading_enabled
-            && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full)))
-            || !is_current_gc_nursery;
-
         if moves_object && !nmethods_to_fix.is_empty() {
             // Note: If the current GC doesn't move objects at all, we don't need to fix relocation.
             // FIXME: Even during copying GC, some GC algorithms (such as Immix) don't move every
@@ -338,10 +290,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 .chunks(FixRelocations::NMETHODS_PER_PACKET)
                 .map(|chunk| {
                     let nmethods = chunk.to_vec();
-                    Box::new(FixRelocations {
-                        nmethods,
-                        forward_only,
-                    }) as _
+                    Box::new(FixRelocations { nmethods }) as _
                 })
                 .collect();
 
@@ -357,7 +306,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 // For scavenging GCs, the mmtk-openjdk binding reports the *slots* of nmethods as
                 // roots. They will be traced at unspecified times during the Closure stage.
                 // SoftRefClosure is the first safe place to call fix_oop_relocations.
-                WorkBucketStage::FixRelocations
+                WorkBucketStage::Release
             };
             worker.scheduler().work_buckets[stage].bulk_add(packets);
         }
@@ -437,7 +386,6 @@ impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
 
 struct FixRelocations {
     nmethods: Vec<Address>,
-    forward_only: bool,
 }
 
 impl FixRelocations {
@@ -469,7 +417,6 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
         unsafe {
             ((*UPCALLS).fix_oop_relocations)(
                 fast_mode,
-                self.forward_only,
                 self.nmethods.as_mut_ptr() as *mut _,
                 num_nmethods,
             );
