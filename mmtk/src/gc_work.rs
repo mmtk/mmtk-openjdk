@@ -244,6 +244,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         let is_lxr = lxr.is_some();
         let is_rc_pause = lxr.is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
         let class_unloading_enabled = unsafe { crate::CLASS_UNLOADING_ENABLED } == 1;
+        let pause = lxr.map(|x| x.current_pause()).unwrap_or(None);
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 
@@ -283,8 +284,6 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 }
             }
 
-            let pause = lxr.map(|x| x.current_pause()).unwrap_or(None);
-
             if is_lxr
                 && class_unloading_enabled
                 && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full))
@@ -321,6 +320,14 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 .create_process_roots_work(slots, RootKind::Strong);
         }
 
+        // When class unloading is pending, use forward-only mode: forward alive oops
+        // but don't null dead oops. This allows has_dead_oop() during class unloading
+        // to detect nmethods that should be unloaded.
+        let forward_only = (is_lxr
+            && class_unloading_enabled
+            && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full)))
+            || !is_current_gc_nursery;
+
         if moves_object && !nmethods_to_fix.is_empty() {
             // Note: If the current GC doesn't move objects at all, we don't need to fix relocation.
             // FIXME: Even during copying GC, some GC algorithms (such as Immix) don't move every
@@ -331,7 +338,10 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 .chunks(FixRelocations::NMETHODS_PER_PACKET)
                 .map(|chunk| {
                     let nmethods = chunk.to_vec();
-                    Box::new(FixRelocations { nmethods }) as _
+                    Box::new(FixRelocations {
+                        nmethods,
+                        forward_only,
+                    }) as _
                 })
                 .collect();
 
@@ -427,6 +437,7 @@ impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
 
 struct FixRelocations {
     nmethods: Vec<Address>,
+    forward_only: bool,
 }
 
 impl FixRelocations {
@@ -455,6 +466,7 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
         unsafe {
             ((*UPCALLS).fix_oop_relocations)(
                 lxr_rc_pause,
+                self.forward_only,
                 self.nmethods.as_mut_ptr() as *mut _,
                 num_nmethods,
             );

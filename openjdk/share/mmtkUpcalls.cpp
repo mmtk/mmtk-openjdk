@@ -151,6 +151,30 @@ class MMTkLXRFastUpdateClosure : public OopClosure {
   }
 };
 
+// Forward-only closure: forwards alive oops but does NOT null dead oops.
+// Used during fix_oop_relocations when class unloading is pending, so that
+// has_dead_oop() can still detect nmethods that should be unloaded.
+class MMTkForwardOnlyClosure : public OopClosure {
+ public:
+  inline virtual void do_oop(oop* slot) override {
+    const auto o = *slot;
+    if (o == NULL) return;
+    const auto status = MMTkForwardClosure::read_forwarding_word(o);
+    if (MMTkForwardClosure::is_forwarded(status)) {
+      *slot = MMTkForwardClosure::extract_forwarding_pointer(status);
+    }
+  }
+  inline virtual void do_oop(narrowOop* slot) override {
+    narrowOop heap_oop = RawAccess<>::oop_load(slot);
+    if (CompressedOops::is_null(heap_oop)) return;
+    oop o = CompressedOops::decode_not_null(heap_oop);
+    const auto status = MMTkForwardClosure::read_forwarding_word(o);
+    if (MMTkForwardClosure::is_forwarded(status)) {
+      RawAccess<>::oop_store(slot, CompressedOops::encode_not_null(MMTkForwardClosure::extract_forwarding_pointer(status)));
+    }
+  }
+};
+
 class MMTkUpdateClosure : public OopClosure {
  public:
   inline virtual void do_oop(oop* slot) override {
@@ -576,8 +600,17 @@ static size_t mmtk_java_lang_classloader_loader_data_offset() {
   return v;
 }
 
-void mmtk_fix_oop_relocations(bool lxr, void* nmethods, size_t len) {
-  if (lxr) {
+void mmtk_fix_oop_relocations(bool lxr, bool forward_only, void* nmethods, size_t len) {
+  if (forward_only) {
+    // Forward-only: forward alive oops but don't null dead oops.
+    // Used when class unloading is pending so has_dead_oop() can detect dead nmethods.
+    MMTkForwardOnlyClosure cl;
+    for (size_t i = 0; i < len; i++) {
+      nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
+      nm->oops_do(&cl);
+      nm->fix_oop_relocations();
+    }
+  } else if (lxr) {
     MMTkLXRFastUpdateClosure cl;
     for (size_t i = 0; i < len; i++) {
       nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
