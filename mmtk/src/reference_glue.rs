@@ -17,7 +17,6 @@ use mmtk::MMTK;
 fn set_referent<const COMPRESSED: bool>(reff: ObjectReference, referent: Option<ObjectReference>) {
     let oop = Oop::from(reff);
     let slot = InstanceRefKlass::referent_address::<COMPRESSED>(oop);
-    mmtk::plan::lxr::record_slot_for_validation(slot, referent);
     slot.store(referent)
 }
 
@@ -42,7 +41,6 @@ fn set_next_reference<const COMPRESSED: bool>(
     next: Option<ObjectReference>,
 ) {
     let slot = get_next_reference_slot::<COMPRESSED>(object);
-    mmtk::plan::lxr::record_slot_for_validation(slot, next);
     slot.store(next)
 }
 
