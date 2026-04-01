@@ -100,7 +100,6 @@ instrumentation = ["mmtk/instrumentation", "no_fast_alloc"]
 log_gc = ["mmtk/log_gc"]
 log_stages = ["mmtk/log_stages"]
 log_work_packets = ["mmtk/log_work_packets"]
-object_size_distribution = ["mmtk/object_size_distribution"]
 discontig_space = []
 
 # Compressed pointer experiments

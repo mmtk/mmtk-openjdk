@@ -189,9 +189,6 @@ pub extern "C" fn alloc(
     offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
-    if cfg!(feature = "object_size_distribution") {
-        crate::record_alloc(size);
-    }
     with_mutator!(|mutator| memory_manager::alloc(mutator, size, align, offset, allocator))
 }
 
