@@ -553,7 +553,7 @@ pub extern "C" fn mmtk_is_live(object: NullableObjectReference) -> usize {
         "{:?} is not mapped",
         object
     );
-    object.is_live2() as _
+    object.is_live() as _
 }
 
 /// If the object is non-null and forwarded, return the forwarded pointer. Otherwise, return the original pointer.
@@ -565,7 +565,7 @@ pub extern "C" fn mmtk_get_forwarded_ref(
     let Some(o) = o else {
         return ObjectReference::NULL.into();
     };
-    match o.get_forwarded_object2() {
+    match o.get_forwarded_object() {
         Some(o) => Some(o).into(),
         None => object,
     }
