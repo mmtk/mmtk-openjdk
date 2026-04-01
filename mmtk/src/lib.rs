@@ -314,11 +314,6 @@ fn record_alloc(size: usize) {
         .or_insert((1, size));
 }
 
-extern "C" fn dump_and_reset_obj_dist() {
-    assert!(cfg!(feature = "object_size_distribution"));
-    mmtk::dump_and_reset_obj_dist("Dynamic", &mut OBJ_COUNT.lock().unwrap());
-}
-
 fn set_compressed_pointer_vm_layout(builder: &mut MMTKBuilder) {
     let max_heap_size = builder.options.gc_trigger.max_heap_size();
     assert!(

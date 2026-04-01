@@ -31,9 +31,6 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn resume_mutators(tls: VMWorkerThread) {
-        if cfg!(feature = "object_size_distribution") {
-            crate::dump_and_reset_obj_dist();
-        }
         DISCOVERED_LISTS.enable_discover();
         if *crate::singleton::<COMPRESSED>().get_options().plan
             == mmtk::util::options::PlanSelector::ConcurrentImmix
