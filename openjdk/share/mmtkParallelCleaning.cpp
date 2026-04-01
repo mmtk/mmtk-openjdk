@@ -57,7 +57,6 @@ MMTkCodeCacheUnloadingTask::MMTkCodeCacheUnloadingTask(uint num_workers, bool un
 }
 
 MMTkCodeCacheUnloadingTask::~MMTkCodeCacheUnloadingTask() {
-  CodeCache::verify_clean_inline_caches();
   CodeCache::verify_icholder_relocations();
 }
 

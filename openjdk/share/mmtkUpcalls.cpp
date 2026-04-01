@@ -260,6 +260,7 @@ static void mmtk_gc_epilogue() {
 }
 
 static void mmtk_resume_mutators(void *tls) {
+  nmethod::oops_do_marking_epilogue();
   // Note: we don't have to hold gc_lock to increment the counter.
   // The increment has to be done before mutators can be resumed (from `block_for_gc` or yieldpoints).
   // Otherwise, mutators might see an outdated start-the-world count.
