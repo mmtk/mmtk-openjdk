@@ -93,8 +93,6 @@ extern void mmtk_array_copy_pre(void* src, void* dst, size_t count, MMTk_Mutator
 /// Full array-copy post-barrier
 extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
-extern void mmtk_object_reference_clone_pre(MMTk_Mutator mutator, void* obj);
-
 /// C2 slowpath allocation barrier
 extern void mmtk_object_probable_write(MMTk_Mutator mutator, void* obj);
 
@@ -146,10 +144,6 @@ extern void* mmtk_get_forwarded_ref(void* object);
 extern size_t mmtk_add_nmethod_oop(void* object);
 extern size_t mmtk_register_nmethod(void* nm);
 extern size_t mmtk_unregister_nmethod(void* nm);
-
-extern size_t mmtk_register_new_weak_handle(void* entry);
-
-extern size_t mmtk_verbose();
 
 /**
  * VM Accounting

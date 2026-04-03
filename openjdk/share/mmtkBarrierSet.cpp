@@ -177,6 +177,6 @@ void MMTkBarrierSetRuntime::load_reference_call(void* ref) {
   ::mmtk_load_reference(ref, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
 }
 
-void MMTkBarrierSetRuntime::object_reference_clone_pre_call(void* ref) {
-  ::mmtk_object_reference_clone_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, ref);
+void MMTkBarrierSetRuntime::object_probable_write_pre_call(void* ref) {
+  ::mmtk_object_probable_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, ref);
 }

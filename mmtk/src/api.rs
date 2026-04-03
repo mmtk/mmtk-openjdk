@@ -1,4 +1,3 @@
-use crate::abi::Oop;
 use crate::slots::OpenJDKSlot;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
@@ -258,12 +257,6 @@ pub extern "C" fn total_bytes() -> usize {
 }
 
 #[no_mangle]
-#[cfg(feature = "sanity")]
-pub extern "C" fn scan_region() {
-    with_singleton!(|singleton| memory_manager::scan_region(singleton))
-}
-
-#[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread, force: bool) {
     with_singleton!(|singleton| {
         memory_manager::handle_user_collection_request(singleton, tls, force);
@@ -430,26 +423,18 @@ pub extern "C" fn mmtk_load_reference(o: ObjectReference, mutator: *mut libc::c_
     with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
-#[no_mangle]
-pub extern "C" fn mmtk_object_reference_clone_pre(
-    mutator: *mut libc::c_void,
-    obj: ObjectReference,
-) {
-    with_mutator!(|mutator| mutator.barrier().object_reference_clone_pre(obj))
-}
-
 /// Full pre barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
     mutator: *mut libc::c_void,
-    src: NullableObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
 ) {
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_pre(src.into(), slot.into(), target.into());
+            .object_reference_write_pre(src, slot.into(), target.into());
     })
 }
 
@@ -457,21 +442,21 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_post(
     mutator: *mut libc::c_void,
-    src: NullableObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
 ) {
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_post(src.into(), slot.into(), target.into());
+            .object_reference_write_post(src, slot.into(), target.into());
     })
 }
 
 /// Barrier slow-path call
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_slow(
-    src: NullableObjectReference,
+    src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
     mutator: *mut libc::c_void,
@@ -479,7 +464,7 @@ pub extern "C" fn mmtk_object_reference_write_slow(
     with_mutator!(|mutator| {
         mutator
             .barrier()
-            .object_reference_write_slow(src.into(), slot.into(), target.into());
+            .object_reference_write_slow(src, slot.into(), target.into());
     })
 }
 
@@ -531,8 +516,8 @@ pub extern "C" fn mmtk_object_probable_write(mutator: *mut libc::c_void, obj: Ob
 
 // finalization
 #[no_mangle]
-pub extern "C" fn add_finalizer(_object: ObjectReference) {
-    // unreachable!()
+pub extern "C" fn add_finalizer(object: ObjectReference) {
+    with_singleton!(|singleton| memory_manager::add_finalizer(singleton, object));
 }
 
 #[no_mangle]
@@ -608,23 +593,12 @@ pub extern "C" fn mmtk_register_nmethod(nm: Address) {
 /// Unregister an nmethod.
 #[no_mangle]
 pub extern "C" fn mmtk_unregister_nmethod(nm: Address) {
-    let mut roots = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
-    roots.remove(&nm);
-    let mut roots = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
-    roots.remove(&nm);
-}
-
-#[no_mangle]
-pub extern "C" fn mmtk_verbose() -> usize {
-    with_singleton!(|singleton| *singleton.options.verbose)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn mmtk_register_new_weak_handle(oop: *const Oop) {
-    // let addr = if crate::use_compressed_oops() {
-    //     Address::from_usize(oop as usize | (1 << 63))
-    // } else {
-    //     Address::from_ptr(oop)
-    // };
-    // crate::NURSERY_WEAK_HANDLE_ROOTS.lock().unwrap().push(addr);
+    {
+        let mut roots = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
+        roots.remove(&nm);
+    }
+    {
+        let mut roots = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
+        roots.remove(&nm);
+    }
 }

@@ -165,7 +165,7 @@ void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sa
   if (do_code_patch) {
     // We don't know the field offset when a code patching is required.
     // As a temporary fix, we apply field barrier to all fields in this object.
-    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_clone_pre_call), c_rarg0);
+    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_probable_write_pre_call), c_rarg0);
   } else {
     __ call_VM_leaf_base(entry_point, 3);
   }

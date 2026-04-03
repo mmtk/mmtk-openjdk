@@ -142,10 +142,7 @@ impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
     }
 
     /// encode an object pointer to its u32 compressed form
-    fn compress(o: Option<ObjectReference>) -> u32 {
-        let Some(o) = o else {
-            return 0;
-        };
+    fn compress(o: ObjectReference) -> u32 {
         ((o.to_raw_address() - BASE.load(Ordering::Relaxed)) >> SHIFT.load(Ordering::Relaxed))
             as u32
     }
@@ -204,16 +201,16 @@ impl<const COMPRESSED: bool> Slot for OpenJDKSlot<COMPRESSED> {
         }
     }
 
-    fn store(&self, object: Option<ObjectReference>) {
+    fn store(&self, object: ObjectReference) {
         if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
             if COMPRESSED {
                 if self.is_compressed() {
                     self.x86_write_unaligned::<u32, true>(Self::compress(object))
                 } else {
-                    self.x86_write_unaligned::<Option<ObjectReference>, true>(object)
+                    self.x86_write_unaligned::<ObjectReference, true>(object)
                 }
             } else {
-                self.x86_write_unaligned::<Option<ObjectReference>, false>(object)
+                self.x86_write_unaligned::<ObjectReference, false>(object)
             }
         } else {
             debug_assert!(!COMPRESSED);
@@ -242,8 +239,16 @@ impl<const COMPRESSED: bool> Slot for OpenJDKSlot<COMPRESSED> {
     ) -> Result<Option<ObjectReference>, Option<ObjectReference>> {
         if COMPRESSED {
             if self.is_compressed() {
-                let old_value = Self::compress(old_object);
-                let new_value = Self::compress(new_object);
+                let old_value = if let Some(o) = old_object {
+                    Self::compress(o)
+                } else {
+                    0
+                };
+                let new_value = if let Some(o) = new_object {
+                    Self::compress(o)
+                } else {
+                    0
+                };
                 let slot = self.untagged_address();
                 unsafe {
                     match slot.compare_exchange::<AtomicU32>(old_value, new_value, success, failure)
