@@ -1,4 +1,3 @@
-use mmtk::gc_log;
 use mmtk::scheduler::{GCWorker, ProcessEdgesWork};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
@@ -14,18 +13,14 @@ pub struct VMCollection {}
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
 impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
-    fn stop_all_mutators<F>(
-        tls: VMWorkerThread,
-        mut mutator_visitor: F,
-        current_gc_should_unload_classes: bool,
-    ) where
+    fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
+    where
         F: FnMut(&'static mut Mutator<OpenJDK<COMPRESSED>>),
     {
         unsafe {
             ((*UPCALLS).stop_all_mutators)(
                 tls,
                 MutatorClosure::from_rust_closure::<_, COMPRESSED>(&mut mutator_visitor),
-                current_gc_should_unload_classes,
             );
         }
     }
@@ -100,23 +95,12 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
         }
     }
 
-    fn clear_cld_claimed_marks() {
-        unsafe {
-            ((*UPCALLS).clear_claimed_marks)();
-        }
-    }
-
     fn set_concurrent_marking_state(active: bool) {
         unsafe { crate::CONCURRENT_MARKING_ACTIVE = if active { 1 } else { 0 } }
     }
 
-    fn vm_release(do_unloading: bool) {
+    fn vm_release() {
         unsafe {
-            if do_unloading {
-                gc_log!("    - unload_classes");
-                ((*UPCALLS).unload_classes)();
-            }
-            gc_log!("    - gc_epilogue");
             ((*UPCALLS).gc_epilogue)();
         }
     }

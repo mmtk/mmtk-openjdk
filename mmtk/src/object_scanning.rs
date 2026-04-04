@@ -29,7 +29,7 @@ impl OopIterate for OopMapBlock {
         let start = oop.get_field_address(self.offset);
         for i in 0..self.count as usize {
             let slot = (start + (i << S::<COMPRESSED>::LOG_BYTES_IN_SLOT)).into();
-            closure.visit_slot(slot, false);
+            closure.visit_slot(slot);
         }
     }
 }
@@ -40,9 +40,6 @@ impl OopIterate for InstanceKlass {
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
-        if closure.should_follow_clds() {
-            do_klass::<_, _, COMPRESSED>(oop.klass::<COMPRESSED>(), closure);
-        }
         let oop_maps = self.nonstatic_oop_maps();
         for map in oop_maps {
             map.oop_iterate::<COMPRESSED>(oop, closure)
@@ -57,21 +54,6 @@ impl OopIterate for InstanceMirrorKlass {
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
         self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
-        if closure.should_follow_clds() {
-            let klass = unsafe {
-                (oop.start() + *crate::JAVA_LANG_CLASS_KLASS_OFFSET_IN_BYTES).load::<*mut Klass>()
-            };
-            if !klass.is_null() {
-                let klass = unsafe { &mut *klass };
-                if klass.is_instance_klass()
-                    && (unsafe { klass.cast::<InstanceKlass>().is_anonymous() })
-                {
-                    do_cld::<_, _, COMPRESSED>(&klass.class_loader_data, closure)
-                } else {
-                    do_klass::<_, _, COMPRESSED>(klass, closure)
-                }
-            }
-        }
 
         // static fields
         let start = Self::start_of_static_fields(oop);
@@ -80,13 +62,13 @@ impl OopIterate for InstanceMirrorKlass {
             let start: *const NarrowOop = start.to_ptr::<NarrowOop>();
             let slice = unsafe { slice::from_raw_parts(start, len as _) };
             for narrow_oop in slice {
-                closure.visit_slot(narrow_oop.slot().into(), false);
+                closure.visit_slot(narrow_oop.slot().into());
             }
         } else {
             let start: *const Oop = start.to_ptr::<Oop>();
             let slice = unsafe { slice::from_raw_parts(start, len as _) };
             for oop in slice {
-                closure.visit_slot(Address::from_ref(oop as &Oop).into(), false);
+                closure.visit_slot(Address::from_ref(oop as &Oop).into());
             }
         }
     }
@@ -99,15 +81,6 @@ impl OopIterate for InstanceClassLoaderKlass {
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
         self.instance_klass.oop_iterate::<COMPRESSED>(oop, closure);
-        if closure.should_follow_clds() {
-            let cld = unsafe {
-                (oop.start() + *crate::JAVA_LANG_CLASSLOADER_LOADER_DATA_OFFSET)
-                    .load::<*mut ClassLoaderData>()
-            };
-            if !cld.is_null() {
-                do_cld::<_, _, COMPRESSED>(unsafe { &*cld }, closure);
-            }
-        }
     }
 }
 
@@ -117,17 +90,14 @@ impl OopIterate for ObjArrayKlass {
         oop: Oop,
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
-        if closure.should_follow_clds() {
-            do_klass::<_, _, COMPRESSED>(oop.klass::<COMPRESSED>(), closure);
-        }
         let array = unsafe { oop.as_array_oop() };
         if COMPRESSED {
             for narrow_oop in unsafe { array.data::<NarrowOop, COMPRESSED>(BasicType::T_OBJECT) } {
-                closure.visit_slot(narrow_oop.slot().into(), false);
+                closure.visit_slot(narrow_oop.slot().into());
             }
         } else {
             for oop in unsafe { array.data::<Oop, COMPRESSED>(BasicType::T_OBJECT) } {
-                closure.visit_slot(Address::from_ref(oop as &Oop).into(), false);
+                closure.visit_slot(Address::from_ref(oop as &Oop).into());
             }
         }
     }
@@ -202,9 +172,9 @@ impl InstanceRefKlass {
         closure: &mut impl SlotVisitor<S<COMPRESSED>>,
     ) {
         let referent_addr = Self::referent_address::<COMPRESSED>(oop);
-        closure.visit_slot(referent_addr, false);
+        closure.visit_slot(referent_addr);
         let discovered_addr = Self::discovered_address::<COMPRESSED>(oop);
-        closure.visit_slot(discovered_addr, false);
+        closure.visit_slot(discovered_addr);
     }
     fn discover_reference<const COMPRESSED: bool>(oop: Oop, rt: ReferenceType) -> bool {
         // Do not discover new refs during reference processing.
@@ -253,22 +223,12 @@ fn oop_iterate_slow<const COMPRESSED: bool, V: SlotVisitor<S<COMPRESSED>>>(
             ),
             mem::transmute::<&OopDesc, ObjectReference>(oop),
             tls,
-            closure.should_follow_clds(),
-            closure.should_claim_clds(),
         );
     }
 }
 
-fn oop_iterate<const COMPRESSED: bool>(
-    oop: Oop,
-    closure: &mut impl SlotVisitor<S<COMPRESSED>>,
-    klass: Option<Address>,
-) {
-    let klass = if let Some(klass) = klass {
-        unsafe { &*(klass.as_usize() as *const Klass) }
-    } else {
-        oop.klass::<COMPRESSED>()
-    };
+fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl SlotVisitor<S<COMPRESSED>>) {
+    let klass = oop.klass::<COMPRESSED>();
     let klass_id = klass.kind;
     assert!(
         klass_id as i32 >= 0 && (klass_id as i32) < KlassKind::Unknown as i32,
@@ -309,23 +269,6 @@ fn oop_iterate<const COMPRESSED: bool>(
     }
 }
 
-fn do_cld<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(
-    cld: &ClassLoaderData,
-    closure: &mut V,
-) {
-    if !closure.should_follow_clds() {
-        return;
-    }
-    cld.oops_do::<_, _, COMPRESSED>(closure)
-}
-
-fn do_klass<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(klass: &Klass, closure: &mut V) {
-    if !closure.should_follow_clds() {
-        return;
-    }
-    do_cld::<_, _, COMPRESSED>(klass.class_loader_data, closure)
-}
-
 pub fn is_obj_array<const COMPRESSED: bool>(oop: Oop) -> bool {
     oop.klass::<COMPRESSED>().kind == KlassKind::ObjArray
 }
@@ -364,7 +307,7 @@ pub unsafe extern "C" fn scan_object_fn<
 ) {
     let ptr: *mut u8 = CLOSURE.with(|x| *x.get());
     let closure = &mut *(ptr as *mut V);
-    closure.visit_slot(slot.into(), false);
+    closure.visit_slot(slot.into());
 }
 
 pub fn scan_object<const COMPRESSED: bool>(
@@ -373,25 +316,6 @@ pub fn scan_object<const COMPRESSED: bool>(
     _tls: VMWorkerThread,
 ) {
     unsafe {
-        oop_iterate::<COMPRESSED>(
-            mem::transmute::<ObjectReference, &OopDesc>(object),
-            closure,
-            None,
-        )
-    }
-}
-
-pub fn scan_object_with_klass<const COMPRESSED: bool>(
-    object: ObjectReference,
-    closure: &mut impl SlotVisitor<S<COMPRESSED>>,
-    _tls: VMWorkerThread,
-    klass: Address,
-) {
-    unsafe {
-        oop_iterate::<COMPRESSED>(
-            mem::transmute::<ObjectReference, &OopDesc>(object),
-            closure,
-            Some(klass),
-        )
+        oop_iterate::<COMPRESSED>(mem::transmute::<ObjectReference, &OopDesc>(object), closure)
     }
 }

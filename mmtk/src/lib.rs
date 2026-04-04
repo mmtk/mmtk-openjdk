@@ -14,7 +14,7 @@ use libc::{c_char, c_void, uintptr_t};
 use mmtk::plan::lxr::LXR;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
-use mmtk::util::heap::vm_layout::{VMLayout, BYTES_IN_CHUNK};
+use mmtk::util::heap::vm_layout::VMLayout;
 use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::slot::Slot;
@@ -86,23 +86,13 @@ pub struct SlotsClosure {
 
 #[repr(C)]
 pub struct OpenJDK_Upcalls {
-    pub stop_all_mutators: extern "C" fn(
-        tls: VMWorkerThread,
-        closure: MutatorClosure,
-        current_gc_should_unload_classes: bool,
-    ),
+    pub stop_all_mutators: extern "C" fn(tls: VMWorkerThread, closure: MutatorClosure),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
     pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub out_of_memory: extern "C" fn(tls: VMThread, err_kind: AllocationError),
     pub get_mutators: extern "C" fn(closure: MutatorClosure),
-    pub scan_object: extern "C" fn(
-        trace: *mut c_void,
-        object: ObjectReference,
-        tls: OpaquePointer,
-        follow_clds: bool,
-        claim_clds: bool,
-    ),
+    pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut libc::c_void,
@@ -120,11 +110,9 @@ pub struct OpenJDK_Upcalls {
     pub scan_multiple_thread_roots:
         extern "C" fn(closure: SlotsClosure, ptr: OpaquePointer, len: usize),
     pub scan_code_cache_roots: extern "C" fn(closure: SlotsClosure),
-    pub scan_class_loader_data_graph_roots:
-        extern "C" fn(closure: SlotsClosure, weak_closure: SlotsClosure, scan_weak: bool),
+    pub scan_class_loader_data_graph_roots: extern "C" fn(closure: SlotsClosure),
     pub scan_oop_storage_set_roots: extern "C" fn(closure: SlotsClosure),
     pub scan_weak_processor_roots: extern "C" fn(closure: SlotsClosure),
-    // pub scan_string_table_roots: extern "C" fn(closure: SlotsClosure, rc_non_stuck_objs_only: bool),
     pub scan_vm_thread_roots: extern "C" fn(closure: SlotsClosure),
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
@@ -132,21 +120,9 @@ pub struct OpenJDK_Upcalls {
     pub update_weak_processor: extern "C" fn(lxr: bool),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
     pub swap_reference_pending_list: extern "C" fn(objects: ObjectReference) -> ObjectReference,
-    pub java_lang_class_klass_offset_in_bytes: extern "C" fn() -> usize,
-    pub java_lang_classloader_loader_data_offset: extern "C" fn() -> usize,
     pub fix_oop_relocations: extern "C" fn(lxr: bool, nmethods: *mut libc::c_void, len: usize),
-    // pub nmethod_fix_relocation: extern "C" fn(Address),
     pub clear_claimed_marks: extern "C" fn(),
-    pub unload_classes: extern "C" fn(),
     pub gc_epilogue: extern "C" fn(),
-    pub oops_do_marking_epilogue: extern "C" fn(),
-}
-
-lazy_static! {
-    pub static ref JAVA_LANG_CLASS_KLASS_OFFSET_IN_BYTES: usize =
-        unsafe { ((*UPCALLS).java_lang_class_klass_offset_in_bytes)() };
-    pub static ref JAVA_LANG_CLASSLOADER_LOADER_DATA_OFFSET: usize =
-        unsafe { ((*UPCALLS).java_lang_classloader_loader_data_offset)() };
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
@@ -206,9 +182,6 @@ pub static mut RC_ENABLED: u8 = 0;
 
 #[no_mangle]
 pub static mut REQUIRES_WEAK_HANDLE_BARRIER: u8 = 0;
-
-#[no_mangle]
-pub static mut CLASS_UNLOADING_ENABLED: u8 = 0;
 
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;
@@ -288,14 +261,10 @@ pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::MarkCompactAllocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
 lazy_static! {
-    /// A global storage for all the cached CodeCache root pointers
+    /// A global storage for all the cached CodeCache roots added since the last GC.
     static ref NURSERY_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
+    /// A global storage for all the cached CodeCache roots added before the last GC.
     static ref MATURE_CODE_CACHE_ROOTS: Mutex<HashMap<Address, Vec<Address>>> = Mutex::new(HashMap::new());
-    static ref NURSERY_WEAK_HANDLE_ROOTS: Mutex<Vec<Address>> = Mutex::new(Vec::new());
-}
-
-lazy_static! {
-    static ref OBJ_COUNT: Mutex<HashMap<usize, (usize, usize)>> = Mutex::new(HashMap::new());
 }
 
 fn set_compressed_pointer_vm_layout(builder: &mut MMTKBuilder) {

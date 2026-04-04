@@ -13,7 +13,6 @@ use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
-#[allow(unused)]
 pub(crate) const WORK_PACKET_CAPACITY: usize = mmtk::scheduler::EDGES_WORK_BUFFER_SIZE;
 
 extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
@@ -26,16 +25,13 @@ extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
         // Note: Currently OpenJDKSlot has the same layout as Address.  If the layout changes, we
         // should fix the Rust-to-C interface.
         let buf = unsafe { Vec::<S>::from_raw_parts(ptr as _, length, capacity) };
-        if cfg!(feature = "roots_breakdown") {
-            super::gc_work::record_roots(buf.len());
-        }
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
         factory.create_process_roots_work(buf, RootKind::Strong);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
         use std::mem::ManuallyDrop;
-        let new_vec = Vec::with_capacity(F::BUFFER_SIZE);
+        let new_vec = Vec::with_capacity(WORK_PACKET_CAPACITY);
         let mut me = ManuallyDrop::new(new_vec);
         (me.as_mut_ptr(), me.len(), me.capacity())
     };
@@ -56,20 +52,6 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
     ) {
         crate::object_scanning::scan_object::<COMPRESSED>(object, slot_visitor, tls);
-    }
-
-    fn scan_object_with_klass(
-        tls: VMWorkerThread,
-        object: ObjectReference,
-        slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
-        klass: Address,
-    ) {
-        crate::object_scanning::scan_object_with_klass::<COMPRESSED>(
-            object,
-            slot_visitor,
-            tls,
-            klass,
-        );
     }
 
     fn obj_array_data(o: ObjectReference) -> crate::OpenJDKSlotRange<COMPRESSED> {

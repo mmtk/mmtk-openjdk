@@ -178,13 +178,13 @@ struct SlotsClosure {
  * OpenJDK-specific
  */
 typedef struct {
-    void (*stop_all_mutators) (void *tls, MutatorClosure closure, bool current_gc_should_unload_classes);
+    void (*stop_all_mutators) (void *tls, MutatorClosure closure);
     void (*resume_mutators) (void *tls);
     void (*spawn_gc_thread) (void *tls, int kind, void *ctx);
     void (*block_for_gc) ();
     void (*out_of_memory) (void *tls, MMTkAllocationError err_kind);
     void (*get_mutators) (MutatorClosure closure);
-    void (*scan_object) (void* trace, void* object, void* tls, bool follow_clds, bool claim_clds);
+    void (*scan_object) (void* trace, void* object, void* tls);
     void (*dump_object) (void* object);
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
@@ -201,7 +201,7 @@ typedef struct {
     void (*scan_roots_in_mutator_thread)(SlotsClosure closure, void* tls);
     void (*scan_multiple_thread_roots)(SlotsClosure closure, void* ptr, size_t len);
     void (*scan_code_cache_roots) (SlotsClosure closure);
-    void (*scan_class_loader_data_graph_roots) (SlotsClosure closure, SlotsClosure weak_closure, bool scan_weak);
+    void (*scan_class_loader_data_graph_roots) (SlotsClosure closure);
     void (*scan_oop_storage_set_roots) (SlotsClosure closure);
     void (*scan_weak_processor_roots) (SlotsClosure closure);
     void (*scan_vm_thread_roots) (SlotsClosure closure);
@@ -211,13 +211,9 @@ typedef struct {
     void (*mmtk_update_weak_processor)(bool lxr);
     void (*enqueue_references)(void** objects, size_t len);
     void* (*swap_reference_pending_list)(void* objects);
-    size_t (*java_lang_class_klass_offset_in_bytes)();
-    size_t (*java_lang_classloader_loader_data_offset)();
     void (*fix_oop_relocations)(bool lxr, void* nmethods, size_t len);
     void (*clear_claimed_marks)();
-    void (*unload_classes)();
     void (*gc_epilogue)();
-    void (*oops_do_marking_epilogue)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls);

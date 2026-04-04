@@ -173,7 +173,7 @@ class MMTkUpdateClosure : public OopClosure {
 extern MaybeUninit<OopStorageSetStrongParState<false, false>> oop_storage_set_strong_par_state;
 extern MaybeUninit<OopStorageSetWeakParState<false, false>> oop_storage_set_weak_par_state;
 
-static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure, bool current_gc_should_unload_classes) {
+static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure) {
   log_debug(gc)("Requesting the VM to suspend all mutators...");
   MMTkHeap::heap()->companion_thread()->request(MMTkVMCompanionThread::_threads_suspended, true);
   log_debug(gc)("Mutators stopped. Now enumerate threads for scanning...");
@@ -183,9 +183,6 @@ static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure, bool curre
   oop_storage_set_weak_par_state.init();
 
   mmtk_report_gc_start();
-  if (ClassUnloading && current_gc_should_unload_classes) {
-    ClassLoaderDataGraph::clear_claimed_marks();
-  }
   // CodeCache::gc_prologue();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
@@ -212,39 +209,6 @@ static void mmtk_update_weak_processor(bool lxr) {
   } else {
     MMTkUpdateClosure cl;
     WeakProcessor::oops_do(&cl);
-  }
-}
-
-static void mmtk_oops_do_marking_epilogue() {
-  nmethod::oops_do_marking_epilogue();
-}
-
-static void mmtk_unload_classes() {
-  if (ClassUnloading) {
-    // Unload classes and purge SystemDictionary.
-    // LOG_CLS_UNLOAD("[mmtk_unload_classes] SystemDictionary::do_unloading");
-    // auto purged_classes = SystemDictionary::do_unloading(NULL);
-    ClassUnloadingContext ctx(MMTkHeap::heap()->workers()->active_workers(),
-                            true /* unregister_nmethods_during_purge */,
-                            false /* lock_codeblob_free_separately */);
-    MMTkIsAliveClosure is_alive;
-    {
-      CodeCache::UnlinkingScope scope(&is_alive);
-      bool unloading_occurred = SystemDictionary::do_unloading(NULL);
-      MMTkHeap::heap()->complete_cleaning(unloading_occurred);
-    }
-    LOG_CLS_UNLOAD("[mmtk_unload_classes] ClassLoaderDataGraph::purge");
-
-    ctx.purge_nmethods();
-    // MMTkHeap::heap()->bulk_unregister_nmethods();
-    ctx.free_code_blobs();
-    ClassLoaderDataGraph::purge(true /* at_safepoint */);
-    DEBUG_ONLY(MetaspaceUtils::verify();)
-    LOG_CLS_UNLOAD("[mmtk_unload_classes] compute_new_size");
-    // Resize and verify metaspace
-    MetaspaceGC::compute_new_size();
-    // MetaspaceUtils::verify_metrics();
-    LOG_CLS_UNLOAD("[mmtk_unload_classes] end");
   }
 }
 
@@ -399,8 +363,8 @@ static void mmtk_scan_multiple_thread_roots(SlotsClosure closure, void* ptr, siz
     mutators[i]->oops_do(&cl, &cb_cl);
 }
 
-static void mmtk_scan_object(void* trace, void* object, void* tls, bool follow_clds, bool claim_clds) {
-  MMTkScanObjectClosure cl(trace, follow_clds, claim_clds);
+static void mmtk_scan_object(void* trace, void* object, void* tls) {
+  MMTkScanObjectClosure cl(trace, false, false);
   ((oop) object)->oop_iterate(&cl);
 }
 
@@ -490,11 +454,7 @@ static void mmtk_schedule_finalizer() {
 }
 
 static void mmtk_scan_code_cache_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_code_cache_roots(cl); }
-static void mmtk_scan_class_loader_data_graph_roots(SlotsClosure closure, SlotsClosure weak_closure, bool scan_all_strong_roots) {
-  MMTkRootsClosure cl(closure);
-  MMTkRootsClosure weak_cl(weak_closure);
-  MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl, weak_cl, scan_all_strong_roots);
-}
+static void mmtk_scan_class_loader_data_graph_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_class_loader_data_graph_roots(cl); }
 static void mmtk_scan_oop_storage_set_roots(SlotsClosure closure) { MMTkRootsClosure cl(closure); MMTkHeap::heap()->scan_oop_storage_set_roots(cl); }
 static void mmtk_scan_weak_processor_roots(SlotsClosure closure) {
   MMTkRootsClosure cl(closure);
@@ -559,18 +519,6 @@ static void* mmtk_swap_reference_pending_list(void* object) {
   return Universe::swap_reference_pending_list((oop) object);
 }
 
-static size_t mmtk_java_lang_class_klass_offset_in_bytes() {
-  auto v = java_lang_Class::klass_offset();
-  guarantee(v != 0 && v != -1, "checking");
-  return v;
-}
-
-static size_t mmtk_java_lang_classloader_loader_data_offset() {
-  auto v = java_lang_ClassLoader::loader_data_offset();
-  guarantee(v != 0 && v != -1, "checking");
-  return v;
-}
-
 void mmtk_fix_oop_relocations(bool lxr,  void* nmethods, size_t len) {
   if (lxr) {
     MMTkLXRFastUpdateClosure cl;
@@ -623,11 +571,7 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_update_weak_processor,
   mmtk_enqueue_references,
   mmtk_swap_reference_pending_list,
-  mmtk_java_lang_class_klass_offset_in_bytes,
-  mmtk_java_lang_classloader_loader_data_offset,
   mmtk_fix_oop_relocations,
   mmtk_clear_claimed_marks,
-  mmtk_unload_classes,
   mmtk_gc_epilogue,
-  mmtk_oops_do_marking_epilogue,
 };

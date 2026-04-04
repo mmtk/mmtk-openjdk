@@ -13,26 +13,6 @@ use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-thread_local! {
-    pub static COUNT: AtomicUsize = AtomicUsize::new(0);
-}
-
-pub fn record_roots(len: usize) {
-    super::gc_work::COUNT.with(|x| {
-        let c = x.load(Ordering::Relaxed);
-        x.store(c + len, Ordering::Relaxed);
-    });
-}
-
-fn report_roots(name: &str, ms: f32) {
-    super::gc_work::COUNT.with(|x| {
-        let c = x.load(Ordering::Relaxed);
-        eprintln!(" - {} roots count: {} ({:.3}ms)", name, c, ms);
-        x.store(0, Ordering::Relaxed);
-    });
-}
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {
@@ -52,125 +32,20 @@ macro_rules! scan_roots_work {
 
         impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM> for $struct_name<VM, F> {
             fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
-                let t = if cfg!(feature = "roots_breakdown") {
-                    Some(std::time::SystemTime::now())
-                } else {
-                    None
-                };
                 unsafe {
                     ((*UPCALLS).$func_name)(to_slots_closure(&mut self.factory));
                 }
-                if cfg!(feature = "roots_breakdown") {
-                    let name = stringify!($struct_name);
-                    let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-                    report_roots(&name[4..name.len() - 5], ms);
-                }
             }
         }
     };
 }
 
+scan_roots_work!(
+    ScanClassLoaderDataGraphRoots,
+    scan_class_loader_data_graph_roots
+);
 scan_roots_work!(ScanOopStorageSetRoots, scan_oop_storage_set_roots);
 scan_roots_work!(ScanVMThreadRoots, scan_vm_thread_roots);
-
-extern "C" fn report_slots_and_renew_buffer_cld<
-    S: Slot,
-    F: RootsWorkFactory<S>,
-    const WEAK: bool,
-    const ALL_STRONG: bool,
->(
-    ptr: *mut Address,
-    length: usize,
-    capacity: usize,
-    factory_ptr: *mut libc::c_void,
-) -> NewBuffer {
-    if !ptr.is_null() {
-        let ptr = ptr as *mut S;
-        let buf = unsafe { Vec::<S>::from_raw_parts(ptr, length, capacity) };
-        if cfg!(feature = "roots_breakdown") {
-            record_roots(buf.len());
-        }
-        let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
-        let kind = if WEAK {
-            RootKind::YoungWeakCLDRoots
-        } else if ALL_STRONG {
-            RootKind::StrongCLDRoots
-        } else {
-            RootKind::YoungStrongCLDRoots
-        };
-        factory.create_process_roots_work(buf, kind);
-    }
-    let (ptr, _, capacity) = {
-        // TODO: Use Vec::into_raw_parts() when the method is available.
-        use std::mem::ManuallyDrop;
-        let new_vec = Vec::with_capacity(F::BUFFER_SIZE);
-        let mut me = ManuallyDrop::new(new_vec);
-        (me.as_mut_ptr(), me.len(), me.capacity())
-    };
-    NewBuffer { ptr, capacity }
-}
-
-fn to_slots_closure_cld<
-    S: Slot,
-    F: RootsWorkFactory<S>,
-    const WEAK: bool,
-    const ALL_STRONG: bool,
->(
-    factory: &mut F,
-) -> SlotsClosure {
-    SlotsClosure {
-        func: report_slots_and_renew_buffer_cld::<S, F, WEAK, ALL_STRONG>,
-        data: factory as *mut F as *mut libc::c_void,
-    }
-}
-
-pub struct ScanClassLoaderDataGraphRoots<S: Slot, F: RootsWorkFactory<S>> {
-    factory: F,
-    _p: PhantomData<S>,
-}
-
-impl<S: Slot, F: RootsWorkFactory<S>> ScanClassLoaderDataGraphRoots<S, F> {
-    pub fn new(factory: F) -> Self {
-        Self {
-            factory,
-            _p: PhantomData,
-        }
-    }
-}
-
-impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
-    for ScanClassLoaderDataGraphRoots<VM::VMSlot, F>
-{
-    fn do_work(&mut self, _worker: &mut GCWorker<VM>, mmtk: &'static MMTK<VM>) {
-        let t = if cfg!(feature = "roots_breakdown") {
-            Some(std::time::SystemTime::now())
-        } else {
-            None
-        };
-        let scan_all_strong_roots = mmtk.get_plan().current_gc_should_perform_class_unloading();
-        if scan_all_strong_roots {
-            unsafe {
-                ((*UPCALLS).scan_class_loader_data_graph_roots)(
-                    to_slots_closure_cld::<VM::VMSlot, F, false, true>(&mut self.factory),
-                    to_slots_closure_cld::<VM::VMSlot, F, true, false>(&mut self.factory),
-                    scan_all_strong_roots,
-                );
-            }
-        } else {
-            unsafe {
-                ((*UPCALLS).scan_class_loader_data_graph_roots)(
-                    to_slots_closure_cld::<VM::VMSlot, F, false, false>(&mut self.factory),
-                    to_slots_closure_cld::<VM::VMSlot, F, true, false>(&mut self.factory),
-                    scan_all_strong_roots,
-                );
-            }
-        }
-        if cfg!(feature = "roots_breakdown") {
-            let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-            report_roots("ClassLoaderDataGraph", ms);
-        }
-    }
-}
 
 #[allow(unused)]
 pub struct ScanCodeCacheRoots<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
@@ -203,8 +78,6 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>();
         let is_lxr = lxr.is_some();
         let is_rc_pause = lxr.is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
-        let class_unloading_enabled = unsafe { crate::CLASS_UNLOADING_ENABLED } == 1;
-        let pause = lxr.map(|x| x.current_pause()).unwrap_or(None);
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 
@@ -229,14 +102,12 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         // That includes all nmethods with moved children.
         // In nursery GCs, that means nmethods added since the previous GC.
         let mut nmethods_to_fix = Vec::new();
-        let no_fix_relocation = class_unloading_enabled
-            && (pause == Some(Pause::FinalMark) || pause == Some(Pause::Full));
 
         {
             let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
 
             // Only scan mature roots in full-heap collections.
-            if !is_current_gc_nursery && !(is_lxr && (class_unloading_enabled || is_rc_pause)) {
+            if !is_current_gc_nursery && !(is_lxr && is_rc_pause) {
                 for (key, roots) in mature.iter() {
                     mature_slots += roots.len();
                     add_roots(roots);
@@ -246,14 +117,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 }
             }
 
-            if no_fix_relocation {
-                let mut nursery = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
-                for (key, roots) in nursery.drain() {
-                    nursery_slots += roots.len();
-                    add_roots(&roots);
-                    mature.insert(key, roots);
-                }
-            } else {
+            {
                 let mut nursery = crate::NURSERY_CODE_CACHE_ROOTS.lock().unwrap();
                 for (key, roots) in nursery.drain() {
                     nursery_slots += roots.len();
@@ -279,6 +143,10 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             self.factory
                 .create_process_roots_work(slots, RootKind::Strong);
         }
+        // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
+        // unsafe {
+        //     ((*UPCALLS).scan_code_cache_roots)(to_slots_closure(&mut self.factory));
+        // }
 
         if moves_object && !nmethods_to_fix.is_empty() {
             // Note: If the current GC doesn't move objects at all, we don't need to fix relocation.
@@ -322,9 +190,6 @@ extern "C" fn report_slots_and_renew_buffer_weak<S: Slot, F: RootsWorkFactory<S>
     if !ptr.is_null() {
         let ptr = ptr as *mut S;
         let buf = unsafe { Vec::<S>::from_raw_parts(ptr, length, capacity) };
-        if cfg!(feature = "roots_breakdown") {
-            record_roots(buf.len());
-        }
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
         let kind = RootKind::Weak;
         factory.create_process_roots_work(buf, kind);
@@ -364,22 +229,11 @@ impl<S: Slot, F: RootsWorkFactory<S>> ScanWeakProcessorRoots<S, F> {
 impl<VM: VMBinding, F: RootsWorkFactory<VM::VMSlot>> GCWork<VM>
     for ScanWeakProcessorRoots<VM::VMSlot, F>
 {
-    fn do_work(&mut self, _worker: &mut GCWorker<VM>, mmtk: &'static MMTK<VM>) {
-        let t = if cfg!(feature = "roots_breakdown") {
-            Some(std::time::SystemTime::now())
-        } else {
-            None
-        };
-        // let scan_all_strong_roots = mmtk.get_plan().current_gc_should_perform_class_unloading();
-        // assert!(scan_all_strong_roots);
+    fn do_work(&mut self, _worker: &mut GCWorker<VM>, _mmtk: &'static MMTK<VM>) {
         unsafe {
             ((*UPCALLS).scan_weak_processor_roots)(to_slots_closure_weak::<VM::VMSlot, F>(
                 &mut self.factory,
             ));
-        }
-        if cfg!(feature = "roots_breakdown") {
-            let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-            report_roots("WeakProcessorRoots", ms);
         }
     }
 }
@@ -421,6 +275,6 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
                 num_nmethods,
             );
         }
-        // probe!(mmtk_openjdk, fix_relocations, num_nmethods);
+        probe!(mmtk_openjdk, fix_relocations, num_nmethods);
     }
 }

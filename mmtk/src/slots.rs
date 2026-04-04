@@ -37,25 +37,13 @@ pub fn use_compressed_oops() -> bool {
 
 /// Set compressed pointer base and shift based on heap range
 pub fn initialize_compressed_oops_base_and_shift() {
-    let heap_start = mmtk::memory_manager::starting_heap_address().as_usize();
     let heap_end = mmtk::memory_manager::last_heap_address().as_usize();
-    if cfg!(feature = "force_narrow_oop_mode") {
-        println!("heap_start: 0x{:x}", heap_start);
-        println!("heap_end: 0x{:x}", heap_end);
-    }
     if heap_end <= (4usize << 30) {
         BASE.store(Address::ZERO, Ordering::Relaxed);
         SHIFT.store(0, Ordering::Relaxed);
     } else if heap_end <= (32usize << 30) {
         BASE.store(Address::ZERO, Ordering::Relaxed);
         SHIFT.store(3, Ordering::Relaxed);
-    } else if cfg!(feature = "narrow_oop_mode_base") && (heap_end - heap_start) <= (4usize << 30) {
-        // set heap base as HEAP_START - 4096, to make sure null pointer value is not conflict with HEAP_START
-        BASE.store(
-            mmtk::memory_manager::starting_heap_address() - 4096,
-            Ordering::Relaxed,
-        );
-        SHIFT.store(0, Ordering::Relaxed);
     } else {
         // set heap base as HEAP_START - 4096, to make sure null pointer value does not conflict with HEAP_START
         BASE.store(

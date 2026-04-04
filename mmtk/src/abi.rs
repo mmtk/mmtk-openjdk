@@ -1,17 +1,13 @@
 use super::UPCALLS;
 use crate::OpenJDKSlot;
-use crate::Slot;
 use atomic::Atomic;
 use atomic::Ordering;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
 use mmtk::util::ObjectReference;
 use mmtk::util::{Address, OpaquePointer};
-use mmtk::vm::SlotVisitor;
 use std::ffi::CStr;
 use std::fmt;
-use std::sync::atomic::AtomicPtr;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicUsize;
 use std::{mem, slice};
 
@@ -67,7 +63,7 @@ pub enum BasicType {
 #[repr(C)]
 pub struct Klass {
     vptr: OpaquePointer,
-    #[cfg(all(debug_assertions, not(feature = "release_debug_assertions")))]
+    #[cfg(debug_assertions)]
     valid: i32,
     pub layout_helper: i32,
     pub kind: KlassKind,
@@ -82,7 +78,7 @@ pub struct Klass {
     pub subklass: &'static Klass,
     pub next_sibling: &'static Klass,
     pub next_link: &'static Klass,
-    pub class_loader_data: &'static ClassLoaderData,
+    pub class_loader_data: OpaquePointer, // ClassLoaderData*
     pub bitmap: usize,
     pub hash_slot: u8,
     pub vtable_len: i32,
@@ -164,7 +160,7 @@ pub struct InstanceKlass {
     // #if INCLUDE_JVMTI
     pub jvmti_cached_class_field_map: OpaquePointer, // JvmtiCachedClassFieldMap*
     // #endif
-    #[cfg(all(debug_assertions, not(feature = "release_debug_assertions")))]
+    #[cfg(debug_assertions)]
     verify_count: i32,
     #[cfg(debug_assertions)]
     _shared_class_load_count: i32,
@@ -192,7 +188,6 @@ pub enum ReferenceType {
 impl InstanceKlass {
     const HEADER_SIZE: usize = mem::size_of::<Self>() / BYTES_IN_WORD;
     const VTABLE_START_OFFSET: usize = Self::HEADER_SIZE * BYTES_IN_WORD;
-    const MISC_IS_ANONYMOUS: u16 = 1 << 5;
 
     fn start_of_vtable(&self) -> *const usize {
         (Address::from_ref(self) + Self::VTABLE_START_OFFSET).to_ptr()
@@ -214,10 +209,6 @@ impl InstanceKlass {
         let start = unsafe { start_of_itable.add(self.itable_len as _) as *const OopMapBlock };
         let count = self.nonstatic_oop_map_count();
         unsafe { slice::from_raw_parts(start, count) }
-    }
-
-    pub fn is_anonymous(&self) -> bool {
-        self.misc_flags & Self::MISC_IS_ANONYMOUS != 0
     }
 }
 
@@ -373,7 +364,6 @@ impl fmt::Debug for OopDesc {
 
 /// 32-bit compressed klass pointers
 #[repr(transparent)]
-#[allow(unused)]
 #[derive(Clone, Copy)]
 pub struct NarrowKlass(u32);
 
@@ -381,7 +371,6 @@ pub type Oop = &'static OopDesc;
 
 /// 32-bit compressed reference pointers
 #[repr(transparent)]
-#[allow(unused)]
 #[derive(Clone, Copy)]
 pub struct NarrowOop(u32);
 
@@ -539,87 +528,4 @@ pub fn validate_memory_layouts() {
         panic!("Rust and C++ definitions don't match");
     }
     assert_eq!(vm_checksum, binding_checksum);
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct Chunk {
-    data: [*mut OopDesc; 32],
-    size: AtomicU32,
-    next: *mut Chunk,
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct ChunkedHandleList {
-    head: AtomicPtr<Chunk>,
-}
-
-impl ChunkedHandleList {
-    unsafe fn oops_do_chunk<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(
-        &self,
-        chunk: &'static Chunk,
-        size: u32,
-        closure: &mut V,
-    ) {
-        for i in 0..size {
-            if !chunk.data[i as usize].is_null() {
-                let mut word =
-                    Address::from_ref::<*mut OopDesc>(&chunk.data[i as usize]).as_usize();
-                if COMPRESSED {
-                    word = word | (1usize << 63);
-                }
-                closure.visit_slot(S::from_address(Address::from_usize(word)), true)
-            }
-        }
-    }
-
-    fn oops_do<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(&self, closure: &mut V) {
-        let head = self.head.load(Ordering::Acquire);
-        if !head.is_null() {
-            let head = unsafe { &*head };
-            let size = head.size.load(Ordering::Acquire);
-            unsafe { self.oops_do_chunk::<_, _, COMPRESSED>(head, size, closure) };
-            let mut c = head.next;
-            while !c.is_null() {
-                let chunk = unsafe { &*c };
-                let size = chunk.size.load(Ordering::Relaxed);
-                unsafe { self.oops_do_chunk::<_, _, COMPRESSED>(chunk, size, closure) };
-                c = chunk.next;
-            }
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct ClassLoaderData {
-    holder: OpaquePointer,         // WeakHandle<vm_class_loader_data>
-    class_loader: OpaquePointer,   // OopHandle
-    metaspace: OpaquePointer,      // ClassLoaderMetaspace*volatile
-    metaspace_lock: OpaquePointer, // Mutex*
-    unloading: u8,                 // bool
-    is_anonymous: u8,              // bool
-    modified_oops: u8,             // bool
-    keep_alive: i32,
-    claimed: AtomicU32,
-    handles: ChunkedHandleList,
-}
-
-impl ClassLoaderData {
-    fn claim(&self) -> bool {
-        if self.claimed.load(Ordering::Relaxed) == 1 {
-            return false;
-        }
-        self.claimed
-            .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
-            .is_ok()
-    }
-
-    pub fn oops_do<S: Slot, V: SlotVisitor<S>, const COMPRESSED: bool>(&self, closure: &mut V) {
-        if closure.should_claim_clds() && !self.claim() {
-            return;
-        }
-        self.handles.oops_do::<_, _, COMPRESSED>(closure);
-    }
 }

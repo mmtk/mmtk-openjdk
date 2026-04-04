@@ -1,14 +1,6 @@
-#[cfg(not(feature = "g3_compatibilities"))]
 mod raw {
     // The include imports a full list of the constants in built.rs from https://docs.rs/built/latest/built/index.html
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
-#[cfg(feature = "g3_compatibilities")]
-mod raw {
-    pub const PKG_VERSION: &str = "<unknown>";
-    pub const GIT_COMMIT_HASH: Option<&str> = None;
-    pub const GIT_DIRTY: Option<bool> = None;
 }
 
 lazy_static! {

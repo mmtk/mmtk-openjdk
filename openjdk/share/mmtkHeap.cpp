@@ -60,7 +60,6 @@
 #include "services/memoryManager.hpp"
 #include "services/memTracker.hpp"
 #include "utilities/vmError.hpp"
-#include "mmtkParallelCleaning.hpp"
 #include "mmtkRootsClosure.hpp"
 #include "gc/shared/workerPolicy.hpp"
 
@@ -149,7 +148,6 @@ jint MMTkHeap::initialize() {
   const size_t max_heap_size = MaxHeapSize;
 
   if (UseCompressedOops) mmtk_enable_compressed_oops();
-  CLASS_UNLOADING_ENABLED = ClassUnloading ? 1 : 0;
 
   // Note that MMTk options may be set from several different sources, with increasing priorities:
   // 1. Default values defined in mmtk::util::options::Options
@@ -472,22 +470,9 @@ void MMTkHeap::scan_code_cache_roots(OopClosure& cl) {
   CodeCache::blobs_do(&cb_cl);
 }
 
-void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl, OopClosure& weak_cl, bool scan_all_strong_roots) {
-  if (!ClassUnloading) {
-    CLDToOopClosure cld_cl(&cl, false);
-    CLDToOopClosure weak_cld_cl(&weak_cl, false);
-    ClassLoaderDataGraph::roots_cld_do(&cld_cl, &weak_cld_cl);
-  } else if (scan_all_strong_roots) {
-    // At the start of full heap trace, we want to scan all the strong CLD roots + all the modified CLDs.
-    MMTkScanCLDClosure</*MODIFIED_ONLY*/ false, /*WEAK*/ false, /*CLAIM*/ false> cld_cl(&cl);
-    MMTkScanCLDClosure</*MODIFIED_ONLY*/ true, /*WEAK*/ true, /*CLAIM*/ false> weak_cld_cl(&weak_cl);
-    ClassLoaderDataGraph::roots_cld_do(&cld_cl, &weak_cld_cl);
-  } else {
-    // Normal RC pause: We simply apply increments to modified CLD roots. No decrements will be applied on these roots.
-    MMTkScanCLDClosure</*MODIFIED_ONLY*/ true, /*WEAK*/ false> cld_cl(&cl);
-    MMTkScanCLDClosure</*MODIFIED_ONLY*/ true, /*WEAK*/ true> weak_cld_cl(&weak_cl);
-    ClassLoaderDataGraph::roots_cld_do(&cld_cl, &weak_cld_cl);
-  }
+void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
+  CLDToOopClosure cld_cl(&cl, false);
+  ClassLoaderDataGraph::cld_do(&cld_cl);
 }
 void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
   for (auto id : EnumRange<OopStorageSet::StrongId>()) {
@@ -571,13 +556,6 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
 
 HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
   return alloc_fast(size << LogHeapWordSize, AllocatorLos);
-}
-
-void MMTkHeap::complete_cleaning(bool purged_classes) {
-  ResourceMark rm;
-  uint num_workers = _workers->active_workers();
-  mmtk::ParallelCleaningTask unlink_task(num_workers, purged_classes);
-  _workers->run_task(&unlink_task);
 }
 
 void MMTkHeap::register_new_weak_handle(oop* handle) {}

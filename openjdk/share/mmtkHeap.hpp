@@ -213,12 +213,10 @@ public:
   void scan_roots_in_all_mutator_threads(OopClosure& cl);
 
   void scan_code_cache_roots(OopClosure& cl);
-  void scan_class_loader_data_graph_roots(OopClosure& cl, OopClosure& weak_cl, bool scan_all_strong_roots);
+  void scan_class_loader_data_graph_roots(OopClosure& cl);
   void scan_oop_storage_set_roots(OopClosure& cl);
   void scan_weak_processor_roots(OopClosure& cl);
   void scan_vm_thread_roots(OopClosure& cl);
-
-  void complete_cleaning(bool purged_classes);
 };
 
 
