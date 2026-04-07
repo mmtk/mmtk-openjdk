@@ -5,13 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define ENABLE_CLASS_UNLOADING_LOGS false
-#if ENABLE_CLASS_UNLOADING_LOGS
-#define LOG_CLS_UNLOAD(...) log_info(gc)(__VA_ARGS__)
-#else
-#define LOG_CLS_UNLOAD(...)
-#endif // ENABLE_CLASS_UNLOADING_LOGS
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,27 +20,13 @@ typedef enum {
 
 extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
 extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
-extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS_COMPRESSED;
 extern const uintptr_t RC_TABLE_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
-extern const int DISABLE_ALLOCATION_FAST_PATH;
 extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
 extern uint8_t RC_ENABLED;
 extern uint8_t REQUIRES_WEAK_HANDLE_BARRIER;
-extern uint8_t FIELD_BARRIER_NO_EAGER_BRANCH;
-extern uint8_t FIELD_BARRIER_NO_ARRAYCOPY;
-extern uint8_t FIELD_BARRIER_NO_ARRAYCOPY_SLOW;
-extern uint8_t FIELD_BARRIER_NO_C2_SLOW_CALL;
-extern uint8_t FIELD_BARRIER_NO_C2_RUST_CALL;
-extern uint8_t CLASS_UNLOADING_ENABLED;
-
-inline bool disable_fast_alloc() {
-    return DISABLE_ALLOCATION_FAST_PATH != 0;
-}
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
-extern uintptr_t HEAP_START;
-extern uintptr_t HEAP_END;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
 
 extern const char* get_mmtk_version();

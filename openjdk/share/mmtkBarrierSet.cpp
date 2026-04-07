@@ -103,7 +103,7 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
              BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
   _whole_heap(whole_heap),
   _runtime(get_selected_barrier()->create_runtime()) {
-    if (!mmtk_enable_allocation_fastpath || disable_fast_alloc()) {
+    if (!mmtk_enable_allocation_fastpath) {
       fprintf(stderr, "Allocation fast-path disabled\n");
     }
   }
@@ -159,17 +159,14 @@ void MMTkBarrierSetRuntime::object_reference_write_post_call(void* src, void* sl
 }
 
 void MMTkBarrierSetRuntime::object_reference_write_slow_call(void* src, void* slot, void* target) {
-  if (FIELD_BARRIER_NO_C2_RUST_CALL) return;
   ::mmtk_object_reference_write_slow(src, slot, target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
 }
 
 void MMTkBarrierSetRuntime::object_reference_array_copy_pre_call(void* src, void* dst, size_t count) {
-  if (FIELD_BARRIER_NO_ARRAYCOPY_SLOW) return;
   ::mmtk_array_copy_pre(src, dst, count, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
 }
 
 void MMTkBarrierSetRuntime::object_reference_array_copy_post_call(void* src, void* dst, size_t count) {
-  if (FIELD_BARRIER_NO_ARRAYCOPY_SLOW) return;
   ::mmtk_array_copy_post((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, src, dst, count);
 }
 

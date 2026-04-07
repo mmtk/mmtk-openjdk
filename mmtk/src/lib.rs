@@ -152,23 +152,8 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK<false>>>();
 
 #[no_mangle]
-pub static DISABLE_ALLOCATION_FAST_PATH: i32 = cfg!(feature = "no_fast_alloc") as _;
-
-#[no_mangle]
 pub static IMMIX_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::ImmixAllocator<OpenJDK<false>>>();
-
-#[no_mangle]
-pub static FIELD_BARRIER_NO_EAGER_BRANCH: u8 = cfg!(feature = "field_barrier_no_eager_branch") as _;
-#[no_mangle]
-pub static FIELD_BARRIER_NO_ARRAYCOPY: u8 = cfg!(feature = "field_barrier_no_arraycopy") as _;
-#[no_mangle]
-pub static FIELD_BARRIER_NO_ARRAYCOPY_SLOW: u8 =
-    cfg!(feature = "field_barrier_no_arraycopy_slow") as _;
-#[no_mangle]
-pub static FIELD_BARRIER_NO_C2_SLOW_CALL: u8 = cfg!(feature = "field_barrier_no_c2_slow_call") as _;
-#[no_mangle]
-pub static FIELD_BARRIER_NO_C2_RUST_CALL: u8 = cfg!(feature = "field_barrier_no_c2_rust_call") as _;
 
 #[no_mangle]
 pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;
