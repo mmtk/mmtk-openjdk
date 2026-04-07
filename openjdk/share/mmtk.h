@@ -199,7 +199,6 @@ typedef struct {
     const char* (*dump_object_string) (void* object);
     void (*scan_roots_in_all_mutator_threads)(SlotsClosure closure);
     void (*scan_roots_in_mutator_thread)(SlotsClosure closure, void* tls);
-    void (*scan_multiple_thread_roots)(SlotsClosure closure, void* ptr, size_t len);
     void (*scan_code_cache_roots) (SlotsClosure closure);
     void (*scan_class_loader_data_graph_roots) (SlotsClosure closure);
     void (*scan_oop_storage_set_roots) (SlotsClosure closure);

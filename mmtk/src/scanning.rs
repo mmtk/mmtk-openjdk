@@ -86,31 +86,6 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         }
     }
 
-    fn scan_multiple_thread_root(
-        _tls: VMWorkerThread,
-        mutators: Vec<VMMutatorThread>,
-        mut factory: impl RootsWorkFactory<<OpenJDK<COMPRESSED> as mmtk::vm::VMBinding>::VMSlot>,
-    ) {
-        // let t = if cfg!(feature = "roots_breakdown") {
-        //     Some(std::time::SystemTime::now())
-        // } else {
-        //     None
-        // };
-        let len = mutators.len();
-        let ptr = mutators.as_ptr();
-        unsafe {
-            ((*UPCALLS).scan_multiple_thread_roots)(
-                to_slots_closure(&mut factory),
-                std::mem::transmute(ptr),
-                len,
-            );
-        }
-        // if cfg!(feature = "roots_breakdown") {
-        //     let ms = t.unwrap().elapsed().unwrap().as_micros() as f32 / 1000f32;
-        //     eprintln!(" - ScanThreadRoots ({:.3}ms)", ms);
-        // }
-    }
-
     fn scan_vm_specific_roots(
         _tls: VMWorkerThread,
         factory: impl RootsWorkFactory<OpenJDKSlot<COMPRESSED>>,

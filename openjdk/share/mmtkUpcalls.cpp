@@ -350,15 +350,6 @@ static void mmtk_scan_roots_in_mutator_thread(SlotsClosure closure, void* tls) {
   thread->oops_do(&cl, &cb_cl);
 }
 
-static void mmtk_scan_multiple_thread_roots(SlotsClosure closure, void* ptr, size_t len) {
-  ResourceMark rm;
-  auto mutators = (JavaThread**) ptr;
-  MMTkRootsClosure cl(closure);
-  MarkingCodeBlobClosure cb_cl(&cl, false, true);
-  for (size_t i = 0; i < len; i++)
-    mutators[i]->oops_do(&cl, &cb_cl);
-}
-
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
   MMTkScanObjectClosure cl(trace);
   ((oop) object)->oop_iterate(&cl);
@@ -552,7 +543,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   dump_object_string,
   mmtk_scan_roots_in_all_mutator_threads,
   mmtk_scan_roots_in_mutator_thread,
-  mmtk_scan_multiple_thread_roots,
   mmtk_scan_code_cache_roots,
   mmtk_scan_class_loader_data_graph_roots,
   mmtk_scan_oop_storage_set_roots,

@@ -107,8 +107,6 @@ pub struct OpenJDK_Upcalls {
     pub dump_object_string: extern "C" fn(object: ObjectReference) -> *const c_char,
     pub scan_roots_in_all_mutator_threads: extern "C" fn(closure: SlotsClosure),
     pub scan_roots_in_mutator_thread: extern "C" fn(closure: SlotsClosure, tls: VMMutatorThread),
-    pub scan_multiple_thread_roots:
-        extern "C" fn(closure: SlotsClosure, ptr: OpaquePointer, len: usize),
     pub scan_code_cache_roots: extern "C" fn(closure: SlotsClosure),
     pub scan_class_loader_data_graph_roots: extern "C" fn(closure: SlotsClosure),
     pub scan_oop_storage_set_roots: extern "C" fn(closure: SlotsClosure),
