@@ -44,7 +44,7 @@ mmtk = { git = "https://github.com/qinsoon/mmtk-core.git", rev = "825c634592f8f1
 built = { version = "0.7.7", features = ["git2"] }
 
 [features]
-default = ["mmtk/work_packet_stats"]
+default = []
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc_lock_free = ["mmtk/nogc_lock_free"]
 nogc_no_zeroing = ["mmtk/nogc_no_zeroing"]
