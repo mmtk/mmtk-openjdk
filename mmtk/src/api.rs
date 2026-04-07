@@ -539,7 +539,7 @@ pub extern "C" fn mmtk_get_forwarded_ref(
 ) -> NullableObjectReference {
     let o: Option<ObjectReference> = object.into();
     let Some(o) = o else {
-        return ObjectReference::NULL.into();
+        return None.into();
     };
     match o.get_forwarded_object() {
         Some(o) => Some(o).into(),

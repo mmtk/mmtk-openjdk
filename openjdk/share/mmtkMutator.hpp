@@ -56,9 +56,6 @@ struct ImmixAllocator {
   uint8_t _align[7];
   uint8_t line_opt_tag;
   uintptr_t line_opt;
-  uintptr_t mutator_recycled_blocks;
-  uintptr_t mutator_recycled_lines;
-  uint8_t retry;
 };
 
 struct FLBlock {
@@ -114,7 +111,6 @@ struct MMTkMutatorContext {
   void* mutator_tls;
   RustDynPtr plan;
   MutatorConfig config;
-  MMTkMutatorContext* original_rust_mutator_pointer;
 
   HeapWord* alloc(size_t bytes, Allocator allocator = AllocatorDefault);
 

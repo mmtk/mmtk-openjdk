@@ -197,7 +197,7 @@ extern "C" fn report_slots_and_renew_buffer_weak<S: Slot, F: RootsWorkFactory<S>
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
         use std::mem::ManuallyDrop;
-        let new_vec = Vec::with_capacity(F::BUFFER_SIZE);
+        let new_vec = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
         let mut me = ManuallyDrop::new(new_vec);
         (me.as_mut_ptr(), me.len(), me.capacity())
     };

@@ -124,19 +124,6 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<
         println!("{}", s)
     }
 
-    fn dump_object_s(object: ObjectReference) -> String {
-        use std::ffi::CStr;
-        let c_string = unsafe { ((*UPCALLS).dump_object_string)(std::mem::transmute(object)) };
-        let c_str: &CStr = unsafe { CStr::from_ptr(c_string) };
-        let s: &str = c_str.to_str().unwrap();
-        s.to_string()
-    }
-
-    fn get_class_pointer(object: ObjectReference) -> Address {
-        let oop: Oop = unsafe { std::mem::transmute(object) };
-        oop.klass_ptr::<COMPRESSED>()
-    }
-
     fn is_object_sane(object: ObjectReference) -> bool {
         let oop = Oop::from(object);
         // The KlassKind must be one of the known variants, and cannot be InstanceStackChunk which we don't support.
