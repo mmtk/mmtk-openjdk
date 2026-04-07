@@ -4,7 +4,6 @@ use super::abi::*;
 use super::UPCALLS;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::ObjectKind;
 use mmtk::vm::SlotVisitor;
 use std::cell::UnsafeCell;
 use std::{mem, slice};
@@ -223,32 +222,6 @@ fn oop_iterate<const COMPRESSED: bool>(oop: Oop, closure: &mut impl SlotVisitor<
         KlassKind::Unknown => {
             unreachable!("Unknown KlassKind")
         }
-    }
-}
-
-pub fn is_obj_array<const COMPRESSED: bool>(oop: Oop) -> bool {
-    oop.klass::<COMPRESSED>().kind == KlassKind::ObjArray
-}
-
-pub fn is_val_array<const COMPRESSED: bool>(oop: Oop) -> bool {
-    oop.klass::<COMPRESSED>().kind == KlassKind::TypeArray
-}
-
-pub fn get_obj_kind<const COMPRESSED: bool>(oop: Oop) -> ObjectKind {
-    let cls_id = oop.klass::<COMPRESSED>().kind;
-    match cls_id {
-        KlassKind::TypeArray => ObjectKind::ValArray,
-        KlassKind::ObjArray => {
-            ObjectKind::ObjArray(unsafe { oop.as_array_oop().length::<COMPRESSED>() as u32 })
-        }
-        _ => ObjectKind::Scalar,
-    }
-}
-
-pub fn obj_array_data<const COMPRESSED: bool>(oop: Oop) -> crate::OpenJDKSlotRange<COMPRESSED> {
-    unsafe {
-        let array = oop.as_array_oop();
-        array.slice::<COMPRESSED>(BasicType::T_OBJECT)
     }
 }
 

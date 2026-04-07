@@ -6,7 +6,6 @@ use mmtk::memory_manager;
 use mmtk::scheduler::RootKind;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::ObjectKind;
 use mmtk::vm::{RootsWorkFactory, Scanning, SlotVisitor};
 use mmtk::Mutator;
 use mmtk::MutatorContext;
@@ -52,22 +51,6 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
     ) {
         crate::object_scanning::scan_object::<COMPRESSED>(object, slot_visitor, tls);
-    }
-
-    fn obj_array_data(o: ObjectReference) -> crate::OpenJDKSlotRange<COMPRESSED> {
-        crate::object_scanning::obj_array_data::<COMPRESSED>(unsafe { std::mem::transmute(o) })
-    }
-
-    fn is_obj_array(o: ObjectReference) -> bool {
-        crate::object_scanning::is_obj_array::<COMPRESSED>(unsafe { std::mem::transmute(o) })
-    }
-
-    fn is_val_array(o: ObjectReference) -> bool {
-        crate::object_scanning::is_val_array::<COMPRESSED>(unsafe { std::mem::transmute(o) })
-    }
-
-    fn get_obj_kind(o: ObjectReference) -> ObjectKind {
-        crate::object_scanning::get_obj_kind::<COMPRESSED>(unsafe { std::mem::transmute(o) })
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
