@@ -388,9 +388,9 @@ impl From<ObjectReference> for &OopDesc {
 }
 
 /// Convert Oop to ObjectReference
-impl Into<ObjectReference> for &OopDesc {
-    fn into(self) -> ObjectReference {
-        unsafe { mem::transmute::<&OopDesc, _>(self) }
+impl From<&OopDesc> for ObjectReference {
+    fn from(o: &OopDesc) -> Self {
+        unsafe { mem::transmute(o) }
     }
 }
 

@@ -32,7 +32,5 @@ MMTkCollectorThread::MMTkCollectorThread(void* context): NamedThread() {
 }
 
 void MMTkCollectorThread::run() {
-  // this->initialize_named_thread();
-  os::set_priority(this, NearMaxPriority);
   start_worker((void*) this, third_party_heap_collector);
 }

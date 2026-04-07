@@ -159,8 +159,6 @@ public:
   virtual void collect_as_vm_thread(GCCause::Cause cause) override;
 
 
-  // Return the CollectorPolicy for the heap
-
   virtual SoftRefPolicy* soft_ref_policy() override;
 
   virtual GrowableArray<GCMemoryManager*> memory_managers() override;
@@ -200,7 +198,11 @@ public:
 
   virtual void register_nmethod(nmethod* nm) override;
   virtual void unregister_nmethod(nmethod* nm) override;
-  virtual void verify_nmethod(nmethod* nm) override {}
+
+  virtual void verify_nmethod(nmethod* nm) override;
+
+  // An object is scavengable if its location may move during a scavenge.
+  // (A scavenge is a GC which is not a full GC.)
   inline bool is_scavengable(oop obj) { return true; }
 
   // Heap verification

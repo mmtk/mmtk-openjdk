@@ -197,10 +197,6 @@ static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure) {
   nmethod::oops_do_marking_prologue();
 }
 
-static void mmtk_clear_claimed_marks() {
-  ClassLoaderDataGraph::clear_claimed_marks();
-}
-
 static void mmtk_update_weak_processor(bool lxr) {
   // HandleMark hm(THREAD);
   if (lxr) {
@@ -364,7 +360,7 @@ static void mmtk_scan_multiple_thread_roots(SlotsClosure closure, void* ptr, siz
 }
 
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
-  MMTkScanObjectClosure cl(trace, false, false);
+  MMTkScanObjectClosure cl(trace);
   ((oop) object)->oop_iterate(&cl);
 }
 
@@ -515,9 +511,6 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
   assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
 }
 
-static void* mmtk_swap_reference_pending_list(void* object) {
-  return Universe::swap_reference_pending_list((oop) object);
-}
 
 void mmtk_fix_oop_relocations(bool lxr,  void* nmethods, size_t len) {
   if (lxr) {
@@ -570,8 +563,6 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_prepare_for_roots_re_scanning,
   mmtk_update_weak_processor,
   mmtk_enqueue_references,
-  mmtk_swap_reference_pending_list,
   mmtk_fix_oop_relocations,
-  mmtk_clear_claimed_marks,
   mmtk_gc_epilogue,
 };

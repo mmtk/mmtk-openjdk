@@ -119,9 +119,7 @@ pub struct OpenJDK_Upcalls {
     pub prepare_for_roots_re_scanning: extern "C" fn(),
     pub update_weak_processor: extern "C" fn(lxr: bool),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
-    pub swap_reference_pending_list: extern "C" fn(objects: ObjectReference) -> ObjectReference,
     pub fix_oop_relocations: extern "C" fn(lxr: bool, nmethods: *mut libc::c_void, len: usize),
-    pub clear_claimed_marks: extern "C" fn(),
     pub gc_epilogue: extern "C" fn(),
 }
 

@@ -1,10 +1,8 @@
-use mmtk::scheduler::{GCWorker, ProcessEdgesWork};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::Mutator;
 
-use crate::reference_glue::DISCOVERED_LISTS;
 use crate::{singleton, UPCALLS};
 use crate::{MutatorClosure, OpenJDK};
 
@@ -26,7 +24,6 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn resume_mutators(tls: VMWorkerThread) {
-        DISCOVERED_LISTS.enable_discover();
         if *crate::singleton::<COMPRESSED>().get_options().plan
             == mmtk::util::options::PlanSelector::ConcurrentImmix
         {
@@ -68,25 +65,9 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn schedule_finalization(_tls: VMWorkerThread) {
-        unreachable!()
-    }
-
-    fn process_weak_refs<E: ProcessEdgesWork<VM = OpenJDK<COMPRESSED>>>(
-        worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
-    ) {
-        DISCOVERED_LISTS.process_soft_weak_final_refs::<E, COMPRESSED>(worker)
-    }
-
-    fn process_final_refs<E: ProcessEdgesWork<VM = OpenJDK<COMPRESSED>>>(
-        worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
-    ) {
-        DISCOVERED_LISTS.resurrect_final_refs::<E, COMPRESSED>(worker)
-    }
-
-    fn process_phantom_refs<E: ProcessEdgesWork<VM = OpenJDK<COMPRESSED>>>(
-        worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
-    ) {
-        DISCOVERED_LISTS.process_phantom_refs::<E, COMPRESSED>(worker)
+        unsafe {
+            ((*UPCALLS).schedule_finalizer)();
+        }
     }
 
     fn update_weak_processor(lxr: bool) {

@@ -210,9 +210,7 @@ typedef struct {
     void (*prepare_for_roots_re_scanning)();
     void (*mmtk_update_weak_processor)(bool lxr);
     void (*enqueue_references)(void** objects, size_t len);
-    void* (*swap_reference_pending_list)(void* objects);
     void (*fix_oop_relocations)(bool lxr, void* nmethods, size_t len);
-    void (*clear_claimed_marks)();
     void (*gc_epilogue)();
 } OpenJDK_Upcalls;
 

@@ -31,17 +31,6 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
   assert(MMTkMutatorContext::max_non_los_default_alloc_bytes != 0, "max_non_los_default_alloc_bytes hasn't been initialized");
   if (bytes >= MMTkMutatorContext::max_non_los_default_alloc_bytes) {
     allocator = AllocatorLos;
-  } else {
-    AllocatorSelector selector = MMTkHeap::heap()->default_allocator_selector;
-    if (selector.tag == TAG_IMMIX && !disable_fast_alloc()) {
-      auto& allocator = allocators.immix[selector.index];
-      auto cursor = uintptr_t(allocator.cursor);
-      auto limit = uintptr_t(allocator.limit);
-      if (cursor + bytes <= limit) {
-        allocator.cursor = (void*) (cursor + bytes);
-        return (HeapWord*) cursor;
-      }
-    }
   }
 
   // FIXME: Proper use of slow-path api
@@ -60,9 +49,4 @@ void MMTkMutatorContext::flush() {
 
 void MMTkMutatorContext::destroy() {
   ::destroy_mutator((MMTk_Mutator) this);
-  // if (original_rust_mutator_pointer != NULL) {
-  //   *original_rust_mutator_pointer = *this;
-  //   release_mutator(original_rust_mutator_pointer);
-  //   original_rust_mutator_pointer = NULL;
-  // }
 }
