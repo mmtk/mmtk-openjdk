@@ -175,7 +175,7 @@ pub struct InstanceKlass {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug)]
 #[allow(dead_code)]
 pub enum ReferenceType {
     None,    // Regular class
@@ -328,17 +328,6 @@ impl OopDesc {
         unsafe { mem::transmute(self) }
     }
 
-    pub(crate) fn klass_ptr<const COMPRESSED: bool>(&self) -> Address {
-        if COMPRESSED {
-            let compressed = unsafe { self.klass.narrow_klass };
-            let addr = COMPRESSED_KLASS_BASE.load(Ordering::Relaxed)
-                + ((compressed as usize) << COMPRESSED_KLASS_SHIFT.load(Ordering::Relaxed));
-            addr
-        } else {
-            unsafe { Address::from_ref(self.klass.klass) }
-        }
-    }
-
     pub fn klass<const COMPRESSED: bool>(&self) -> &'static Klass {
         if COMPRESSED {
             let compressed = unsafe { self.klass.narrow_klass };
@@ -466,7 +455,7 @@ impl ArrayOopDesc {
             typesize_in_bytes / BYTES_IN_WORD
         }
     }
-    pub fn length<const COMPRESSED: bool>(&self) -> i32 {
+    fn length<const COMPRESSED: bool>(&self) -> i32 {
         unsafe { (Address::from_ref(self) + Self::length_offset::<COMPRESSED>()).load::<i32>() }
     }
     fn base<const COMPRESSED: bool>(&self, ty: BasicType) -> Address {

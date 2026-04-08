@@ -1,6 +1,6 @@
 use std::{
     ops::Range,
-    sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
 use super::abi::LOG_BYTES_IN_INT;
@@ -209,77 +209,6 @@ impl<const COMPRESSED: bool> Slot for OpenJDKSlot<COMPRESSED> {
     fn to_address(&self) -> Address {
         self.untagged_address()
     }
-
-    fn raw_address(&self) -> Address {
-        self.addr
-    }
-
-    fn from_address(a: Address) -> Self {
-        Self { addr: a }
-    }
-
-    fn compare_exchange(
-        &self,
-        old_object: Option<ObjectReference>,
-        new_object: Option<ObjectReference>,
-        success: Ordering,
-        failure: Ordering,
-    ) -> Result<Option<ObjectReference>, Option<ObjectReference>> {
-        if COMPRESSED {
-            if self.is_compressed() {
-                let old_value = if let Some(o) = old_object {
-                    Self::compress(o)
-                } else {
-                    0
-                };
-                let new_value = if let Some(o) = new_object {
-                    Self::compress(o)
-                } else {
-                    0
-                };
-                let slot = self.untagged_address();
-                unsafe {
-                    match slot.compare_exchange::<AtomicU32>(old_value, new_value, success, failure)
-                    {
-                        Ok(v) => Ok(Self::decompress(v)),
-                        Err(v) => Err(Self::decompress(v)),
-                    }
-                }
-            } else {
-                let slot = self.untagged_address();
-                let old_value = old_object
-                    .map(|o| o.to_raw_address().as_usize())
-                    .unwrap_or(0);
-                let new_value = new_object
-                    .map(|o| o.to_raw_address().as_usize())
-                    .unwrap_or(0);
-                unsafe {
-                    match slot
-                        .compare_exchange::<AtomicUsize>(old_value, new_value, success, failure)
-                    {
-                        Ok(v) => Ok(ObjectReference::from_raw_address(Address::from_usize(v))),
-                        Err(v) => Err(ObjectReference::from_raw_address(Address::from_usize(v))),
-                    }
-                }
-            }
-        } else {
-            let old_value = old_object
-                .map(|o| o.to_raw_address().as_usize())
-                .unwrap_or(0);
-            let new_value = new_object
-                .map(|o| o.to_raw_address().as_usize())
-                .unwrap_or(0);
-            unsafe {
-                match self
-                    .addr
-                    .compare_exchange::<AtomicUsize>(old_value, new_value, success, failure)
-                {
-                    Ok(v) => Ok(ObjectReference::from_raw_address(Address::from_usize(v))),
-                    Err(v) => Err(ObjectReference::from_raw_address(Address::from_usize(v))),
-                }
-            }
-        }
-    }
 }
 
 /// A range of OpenJDKSlot, usually used for arrays.
@@ -295,30 +224,6 @@ impl<const COMPRESSED: bool> From<Range<Address>> for OpenJDKSlotRange<COMPRESSE
                 start: value.start.into(),
                 end: value.end.into(),
             },
-        }
-    }
-}
-
-pub struct ChunkIterator<const COMPRESSED: bool> {
-    cursor: Address,
-    limit: Address,
-    step: usize,
-}
-
-impl<const COMPRESSED: bool> Iterator for ChunkIterator<COMPRESSED> {
-    type Item = OpenJDKSlotRange<COMPRESSED>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.cursor >= self.limit {
-            None
-        } else {
-            let start = self.cursor;
-            let mut end = start + self.step;
-            if end > self.limit {
-                end = self.limit;
-            }
-            self.cursor = end;
-            Some((start..end).into())
         }
     }
 }
@@ -353,20 +258,11 @@ impl<const COMPRESSED: bool> From<OpenJDKSlotRange<COMPRESSED>> for Range<Addres
 impl<const COMPRESSED: bool> MemorySlice for OpenJDKSlotRange<COMPRESSED> {
     type SlotType = OpenJDKSlot<COMPRESSED>;
     type SlotIterator = OpenJDKSlotRangeIterator<COMPRESSED>;
-    type ChunkIterator = ChunkIterator<COMPRESSED>;
 
     fn iter_slots(&self) -> Self::SlotIterator {
         OpenJDKSlotRangeIterator {
             cursor: self.range.start.addr,
             limit: self.range.end.addr,
-        }
-    }
-
-    fn chunks(&self, chunk_size: usize) -> Self::ChunkIterator {
-        ChunkIterator {
-            cursor: self.range.start.addr,
-            limit: self.range.end.addr,
-            step: chunk_size << OpenJDKSlot::<COMPRESSED>::LOG_BYTES_IN_SLOT,
         }
     }
 
@@ -380,10 +276,6 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKSlotRange<COMPRESSED> {
 
     fn bytes(&self) -> usize {
         self.range.end.addr - self.range.start.addr
-    }
-
-    fn len(&self) -> usize {
-        self.bytes() >> OpenJDKSlot::<COMPRESSED>::LOG_BYTES_IN_SLOT
     }
 
     fn copy(src: &Self, tgt: &Self) {
@@ -409,10 +301,5 @@ impl<const COMPRESSED: bool> MemorySlice for OpenJDKSlotRange<COMPRESSED> {
             );
             Range::<Address>::copy(&src.clone().into(), &tgt.clone().into())
         }
-    }
-
-    fn get(&self, index: usize) -> Self::SlotType {
-        let addr = self.range.start.addr + (index << OpenJDKSlot::<COMPRESSED>::LOG_BYTES_IN_SLOT);
-        addr.into()
     }
 }

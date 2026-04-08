@@ -117,11 +117,9 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<
     }
 
     fn dump_object(object: ObjectReference) {
-        use std::ffi::CStr;
-        let c_string = unsafe { ((*UPCALLS).dump_object_string)(std::mem::transmute(object)) };
-        let c_str: &CStr = unsafe { CStr::from_ptr(c_string) };
-        let s: &str = c_str.to_str().unwrap();
-        println!("{}", s)
+        unsafe {
+            ((*UPCALLS).dump_object)(object);
+        }
     }
 
     fn is_object_sane(object: ObjectReference) -> bool {
