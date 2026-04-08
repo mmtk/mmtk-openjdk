@@ -102,11 +102,7 @@ MMTkBarrierSet::MMTkBarrierSet(MemRegion whole_heap):
              NULL,
              BarrierSet::FakeRtti(BarrierSet::ThirdPartyHeapBarrierSet)),
   _whole_heap(whole_heap),
-  _runtime(get_selected_barrier()->create_runtime()) {
-    if (!mmtk_enable_allocation_fastpath) {
-      fprintf(stderr, "Allocation fast-path disabled\n");
-    }
-  }
+  _runtime(get_selected_barrier()->create_runtime()) {}
 
 void MMTkBarrierSet::write_ref_array_work(MemRegion mr) {
   guarantee(false, "NoBarrier::write_ref_arrey_work not supported");

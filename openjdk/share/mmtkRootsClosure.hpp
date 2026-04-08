@@ -6,7 +6,6 @@
 #include "oops/oop.hpp"
 #include "oops/oop.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
-#include "classfile/classLoaderData.inline.hpp"
 
 class MMTkRootsClosure : public OopClosure {
   SlotsClosure _slots_closure;
