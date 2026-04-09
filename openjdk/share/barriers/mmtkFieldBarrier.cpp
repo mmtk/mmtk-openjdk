@@ -38,7 +38,7 @@ void MMTkFieldBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, 
       ::mmtk_object_reference_write_slow((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
     }
   } else {
-    ::mmtk_object_reference_write_pre((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) src, (void*) slot, (void*) target);
+    ::mmtk_object_reference_write_pre((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
   }
 }
 
@@ -130,7 +130,9 @@ void MMTkFieldBarrierSetAssembler::object_reference_write_pre(MacroAssembler* ma
       __ movptr(c_rarg2, NULL_WORD);
     else
       __ movptr(c_rarg2, val);
-    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
+    __ lea(c_rarg3, mutator);
+    __ call_VM_leaf_base(FN_ADDR(mmtk_object_reference_write_pre), 4);
     __ popa();
   }
 }
@@ -371,8 +373,8 @@ static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* sl
     } __ end_if();
     __ end_if();
   } else {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
-    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
+    Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_pre), "mmtk_barrier_call", src, slot, val, mutator);
     // Looks like this is necessary
     // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
     Node* call = __ ctrl()->in(0);

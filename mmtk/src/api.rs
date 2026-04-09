@@ -417,10 +417,10 @@ pub extern "C" fn mmtk_load_reference(o: ObjectReference, mutator: *mut libc::c_
 /// Full pre barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
-    mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
+    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
@@ -432,10 +432,10 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 /// Full post barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_post(
-    mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
+    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
@@ -486,10 +486,10 @@ pub extern "C" fn mmtk_array_copy_pre(
 /// Array-copy post-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_post(
-    mutator: *mut libc::c_void,
     src: Address,
     dst: Address,
     count: usize,
+    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         let bytes = count << log_bytes_in_slot();

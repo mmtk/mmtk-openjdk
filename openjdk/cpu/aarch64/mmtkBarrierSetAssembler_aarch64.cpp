@@ -148,7 +148,10 @@ void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sa
     guarantee(false, "Too many args");
   }
 
-  __ call_VM_leaf(entry_point, 3);
+  // Load mutator from thread-local storage as the last argument, then call Rust directly.
+  Register mutator_reg = (argc == 1) ? c_rarg1 : (argc == 2) ? c_rarg2 : c_rarg3;
+  __ lea(mutator_reg, Address(rthread, in_bytes(JavaThread::third_party_heap_mutator_offset())));
+  __ call_VM_leaf(entry_point, argc + 1);
 
   __ pop_call_clobbered_registers();
   __ epilogue();
@@ -188,19 +191,19 @@ void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sa
 // }
 
 void MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub(StubAssembler* sasm) {
-  generate_c1_runtime_stub_general(sasm, "c1_load_reference_runtime_stub", FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
+  generate_c1_runtime_stub_general(sasm, "c1_load_reference_runtime_stub", FN_ADDR(mmtk_load_reference), 1);
 }
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm) {
-  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(mmtk_object_reference_write_slow), 3);
 }
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm) {
-  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_post_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call), 3);
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_post_stub", FN_ADDR(mmtk_object_reference_write_slow), 3);
 }
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm) {
-  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_slow_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_slow_stub", FN_ADDR(mmtk_object_reference_write_slow), 3);
 }
 
 #undef __
