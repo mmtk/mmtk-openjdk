@@ -1,0 +1,12 @@
+pull_request_rules:
+  - name: backport to jdk-11
+    conditions:
+      - base=jdk-21
+      - label=backport-jdk-11
+    actions:
+      backport:
+        branches:
+          - jdk-11
+        assignees:
+          - "{{ author }}"
+        label_conflicts: backport-conflicts
