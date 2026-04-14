@@ -42,8 +42,6 @@ clean_binding_mmtk() {
 
 clean_binding_mmtk
 
-sh configure --disable-warnings-as-errors --with-debug-level=release
-
 # Compile with profiling support
 sh configure --disable-warnings-as-errors --with-debug-level=$OPENJDK_DEBUG_LEVEL
 RUSTFLAGS="-Cprofile-generate=$PROFILE_DATA_DIR" make CONF=$OPENJDK_CONFIG THIRD_PARTY_HEAP=$BINDING_OPENJDK_DIR images
