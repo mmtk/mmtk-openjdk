@@ -69,15 +69,28 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector);
 
 class MMTkBarrierSetRuntime: public CHeapObj<mtGC> {
 public:
+  /// Weak ref load barrier
+  static void load_reference_call(void* ref);
+  /// Generic pre-write barrier. Called by fast-paths.
+  static void object_reference_write_pre_call(void* src, void* slot, void* target);
+  /// Generic post-write barrier. Called by fast-paths.
+  static void object_reference_write_post_call(void* src, void* slot, void* target);
+  /// Generic slow-path. Called by fast-paths.
+  static void object_reference_write_slow_call(void* src, void* slot, void* target);
+  /// Generic arraycopy post-barrier. Called by fast-paths.
+  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
+  /// Generic arraycopy pre-barrier. Called by fast-paths.
+  static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
+  /// 
   static void object_probable_write_pre_call(void* obj);
   /// Check if the address is a slow-path function.
   virtual bool is_slow_path_call(address call) const {
-    return call == CAST_FROM_FN_PTR(address, mmtk_object_reference_write_pre)
-        || call == CAST_FROM_FN_PTR(address, mmtk_object_reference_write_post)
-        || call == CAST_FROM_FN_PTR(address, mmtk_object_reference_write_slow)
-        || call == CAST_FROM_FN_PTR(address, mmtk_array_copy_pre)
-        || call == CAST_FROM_FN_PTR(address, mmtk_array_copy_post)
-        || call == CAST_FROM_FN_PTR(address, mmtk_load_reference)
+    return call == CAST_FROM_FN_PTR(address, object_reference_write_pre_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_post_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
+        || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call)
+        || call == CAST_FROM_FN_PTR(address, load_reference_call)
         || call == CAST_FROM_FN_PTR(address, object_probable_write_pre_call);
   }
 
@@ -96,7 +109,6 @@ public:
   /// So this callback is requierd for any generational collectors.
   virtual void object_probable_write(oop new_obj) const {};
 };
-
 class MMTkBarrierC1;
 class MMTkBarrierSetC1;
 class MMTkBarrierC2;

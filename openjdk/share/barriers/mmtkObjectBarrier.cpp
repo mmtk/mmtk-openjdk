@@ -23,10 +23,10 @@ void MMTkObjectBarrierSetRuntime::object_probable_write(oop new_obj) const {
 void MMTkObjectBarrierSetRuntime::object_reference_write_post(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
     if (is_unlog_bit_set(src)) {
-      ::mmtk_object_reference_write_slow((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+      object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
-    ::mmtk_object_reference_write_post((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+    object_reference_write_post_call((void*) src, (void*) slot, (void*) target);
   }
 }
 

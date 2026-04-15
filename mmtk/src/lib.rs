@@ -4,7 +4,6 @@ extern crate atomic;
 extern crate once_cell;
 #[macro_use]
 extern crate probe;
-extern crate spin;
 
 use std::collections::HashMap;
 use std::ptr::null_mut;
@@ -161,9 +160,6 @@ pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;
 #[no_mangle]
 pub static mut RC_ENABLED: u8 = 0;
 
-#[no_mangle]
-pub static mut REQUIRES_WEAK_HANDLE_BARRIER: u8 = 0;
-
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;
 
@@ -202,7 +198,6 @@ lazy_static! {
                 .get_plan()
                 .downcast_ref::<LXR<OpenJDK<true>>>()
                 .is_some() as _;
-            REQUIRES_WEAK_HANDLE_BARRIER = RC_ENABLED;
         }
         *ret
     };
@@ -217,7 +212,6 @@ lazy_static! {
                 .get_plan()
                 .downcast_ref::<LXR<OpenJDK<false>>>()
                 .is_some() as _;
-            REQUIRES_WEAK_HANDLE_BARRIER = RC_ENABLED;
         }
         *ret
     };

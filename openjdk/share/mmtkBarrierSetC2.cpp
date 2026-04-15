@@ -28,7 +28,6 @@
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetC2.hpp"
 #include "mmtkMutator.hpp"
-#include "mmtkHeap.hpp"
 #include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
 #include "opto/callnode.hpp"

@@ -24,7 +24,6 @@ extern const uintptr_t RC_TABLE_BASE_ADDRESS;
 extern const uintptr_t VO_BIT_ADDRESS;
 extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
 extern uint8_t RC_ENABLED;
-extern uint8_t REQUIRES_WEAK_HANDLE_BARRIER;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
@@ -55,22 +54,22 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     size_t bytes, int allocator);
 
 /// java.lang.Reference load barrier
-extern void mmtk_load_reference(void* obj, MMTk_Mutator mutator);
+extern void mmtk_load_reference(MMTk_Mutator mutator, void* obj);
 
 /// Full pre-barrier
-extern void mmtk_object_reference_write_pre(void* src, void* slot, void* target, MMTk_Mutator mutator);
+extern void mmtk_object_reference_write_pre(MMTk_Mutator mutator, void* src, void* slot, void* target);
 
 /// Full post-barrier
-extern void mmtk_object_reference_write_post(void* src, void* slot, void* target, MMTk_Mutator mutator);
+extern void mmtk_object_reference_write_post(MMTk_Mutator mutator, void* src, void* slot, void* target);
 
 /// Generic slow-path
-extern void mmtk_object_reference_write_slow(void* src, void* slot, void* target, MMTk_Mutator mutator);
+extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, void* slot, void* target);
 
 /// Full array-copy pre-barrier
-extern void mmtk_array_copy_pre(void* src, void* dst, size_t count, MMTk_Mutator mutator);
+extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
 /// Full array-copy post-barrier
-extern void mmtk_array_copy_post(void* src, void* dst, size_t count, MMTk_Mutator mutator);
+extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
 /// C2 slowpath allocation barrier
 extern void mmtk_object_probable_write(MMTk_Mutator mutator, void* obj);
@@ -259,7 +258,5 @@ extern void mmtk_builder_set_transparent_hugepages(bool value);
 #ifdef __cplusplus
 }
 #endif
-
-namespace JavaClassFile {};
 
 #endif // MMTK_OPENJDK_MMTK_H

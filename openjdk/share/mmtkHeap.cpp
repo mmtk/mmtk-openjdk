@@ -63,8 +63,6 @@
 #include "mmtkRootsClosure.hpp"
 #include "gc/shared/workerPolicy.hpp"
 
-using namespace JavaClassFile;
-
 MaybeUninit<OopStorageSetStrongParState<false, false>> oop_storage_set_strong_par_state;
 MaybeUninit<OopStorageSetWeakParState<false, false>> oop_storage_set_weak_par_state;
 

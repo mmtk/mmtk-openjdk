@@ -13,11 +13,11 @@ jobs:
   style-check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup environments
-        run: ./.github/scripts/ci-setup.sh
-      - name: Style checks
-        run: ./.github/scripts/ci-style.sh
+    - uses: actions/checkout@v4
+    - name: Setup environments
+      run: ./.github/scripts/ci-setup.sh
+    - name: Style checks
+      run: ./.github/scripts/ci-style.sh
 
   msrv:
     runs-on: ubuntu-22.04

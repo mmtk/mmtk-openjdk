@@ -32,7 +32,7 @@ public:
   // Interfaces called by `MMTkBarrierSet::AccessBarrier`
   virtual void object_reference_write_post(oop src, oop* slot, oop target) const override;
   virtual void object_reference_array_copy_post(oop* src, oop* dst, size_t count) const override {
-    ::mmtk_array_copy_post((void*) src, (void*) dst, count, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+    object_reference_array_copy_post_call((void*) src, (void*) dst, count);
   }
   virtual void object_probable_write(oop new_obj) const override;
 };

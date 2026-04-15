@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
-#include "mmtkMutator.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
 //////////////////// Assembler ////////////////////
@@ -31,11 +30,10 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
       __ cbz(tmp1, done);
       // if (dst == 0) goto done;
       __ cbz(dst, done);
-      // Do slow-call: call Rust directly with mutator from thread register
+      // Do slow-call
       __ push_call_clobbered_registers();
       __ mov(c_rarg0, dst);
-      __ lea(c_rarg1, Address(rthread, in_bytes(JavaThread::third_party_heap_mutator_offset())));
-      __ MacroAssembler::call_VM_leaf(FN_ADDR(mmtk_load_reference), 2);
+      __ MacroAssembler::call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
       __ pop_call_clobbered_registers();
       __ bind(done);
     }
@@ -56,8 +54,7 @@ void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Decor
     __ mov(c_rarg0, src);
     __ mov(c_rarg1, dst);
     __ mov(c_rarg2, count);
-    __ lea(c_rarg3, Address(rthread, in_bytes(JavaThread::third_party_heap_mutator_offset())));
-    __ call_VM_leaf(FN_ADDR(mmtk_array_copy_pre), 4);
+    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_pre_call), 3);
     __ pop_call_clobbered_registers();
     __ bind(done);
   }

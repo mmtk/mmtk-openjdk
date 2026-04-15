@@ -410,17 +410,17 @@ pub extern "C" fn executable() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn mmtk_load_reference(o: ObjectReference, mutator: *mut libc::c_void) {
+pub extern "C" fn mmtk_load_reference(mutator: *mut libc::c_void, o: ObjectReference) {
     with_mutator!(|mutator| mutator.barrier().load_weak_reference(o))
 }
 
 /// Full pre barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_pre(
+    mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
-    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
@@ -432,10 +432,10 @@ pub extern "C" fn mmtk_object_reference_write_pre(
 /// Full post barrier
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_post(
+    mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
-    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
@@ -447,10 +447,10 @@ pub extern "C" fn mmtk_object_reference_write_post(
 /// Barrier slow-path call
 #[no_mangle]
 pub extern "C" fn mmtk_object_reference_write_slow(
+    mutator: *mut libc::c_void,
     src: ObjectReference,
     slot: Address,
     target: NullableObjectReference,
-    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         mutator
@@ -470,10 +470,10 @@ fn log_bytes_in_slot() -> usize {
 /// Array-copy pre-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_pre(
+    mutator: *mut libc::c_void,
     src: Address,
     dst: Address,
     count: usize,
-    mutator: *mut libc::c_void,
 ) {
     let bytes = count << log_bytes_in_slot();
     with_mutator!(|mutator| {
@@ -486,10 +486,10 @@ pub extern "C" fn mmtk_array_copy_pre(
 /// Array-copy post-barrier
 #[no_mangle]
 pub extern "C" fn mmtk_array_copy_post(
+    mutator: *mut libc::c_void,
     src: Address,
     dst: Address,
     count: usize,
-    mutator: *mut libc::c_void,
 ) {
     with_mutator!(|mutator| {
         let bytes = count << log_bytes_in_slot();

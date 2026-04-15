@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "mmtkSATBBarrier.hpp"
-#include "mmtkMutator.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
 //////////////////// Runtime ////////////////////
@@ -8,7 +7,7 @@
 void MMTkSATBBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
   if (mmtk_enable_reference_load_barrier) {
     if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL)
-      ::mmtk_load_reference((void*) value, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+      ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
   }
 };
 
@@ -22,10 +21,10 @@ void MMTkSATBBarrierSetRuntime::object_probable_write(oop new_obj) const {
 void MMTkSATBBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, oop target) const {
   if (mmtk_enable_barrier_fastpath) {
     if (is_unlog_bit_set(src)) {
-      ::mmtk_object_reference_write_slow((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+      object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
-    ::mmtk_object_reference_write_pre((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+    object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
   }
 }
 
@@ -97,8 +96,6 @@ void MMTkSATBBarrierSetC2::object_reference_write_pre(GraphKit* kit, Node* src, 
 static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool emit_barrier) {
   MMTkIdealKit ideal(kit, true);
   Node* no_base = __ top();
-  Node* tls = __ thread();
-  Node* mutator = __ AddP(no_base, tls, __ ConX(in_bytes(JavaThread::third_party_heap_mutator_offset())));
   float unlikely  = PROB_UNLIKELY(0.999);
   Node* zero  = __ ConI(0);
   Node* cm_flag = __ load(__ ctrl(), __ ConP(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
@@ -106,8 +103,8 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
   __ if_then(cm_flag, BoolTest::ne, zero, unlikely); {
     // No slow-call if dst is NULL
     __ if_then(val, BoolTest::ne, kit->null()); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
-      Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_load_reference), "mmtk_barrier_call", val, mutator);
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
+      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), "mmtk_barrier_call", val);
     } __ end_if();
   } __ end_if();
   kit->sync_kit(ideal);

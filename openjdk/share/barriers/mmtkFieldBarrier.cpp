@@ -17,7 +17,7 @@ static inline intptr_t side_metadata_base_address() {
 void MMTkFieldBarrierSetRuntime::load_reference(DecoratorSet decorators, oop value) const {
 #if SOFT_REFERENCE_LOAD_BARRIER
   if (CONCURRENT_MARKING_ACTIVE == 1 && value != NULL && mmtk_get_rc((void*) value) != 0)
-    ::mmtk_load_reference((void*) value, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+    ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, (void*) value);
 #endif
 };
 
@@ -35,10 +35,10 @@ void MMTkFieldBarrierSetRuntime::object_reference_write_pre(oop src, oop* slot, 
     if (byte_val == 0) return;
     intptr_t shift = (addr >> (UseCompressedOops ? 2 : 3)) & 0b111;
     if (((byte_val >> shift) & 1) == kUnloggedValue) {
-      ::mmtk_object_reference_write_slow((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+      object_reference_write_slow_call((void*) src, (void*) slot, (void*) target);
     }
   } else {
-    ::mmtk_object_reference_write_pre((void*) src, (void*) slot, (void*) target, (MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+    object_reference_write_pre_call((void*) src, (void*) slot, (void*) target);
   }
 }
 
@@ -71,9 +71,7 @@ void MMTkFieldBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet de
     // Do slow-call
     __ push_call_clobbered_registers(false /* save_fpu */);
     __ mov(c_rarg0, dst);
-    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
-    __ lea(c_rarg1, mutator);
-    __ MacroAssembler::call_VM_leaf_base(FN_ADDR(mmtk_load_reference), 2);
+    __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
     __ pop_call_clobbered_registers(false /* save_fpu */);
     __ bind(done);
   }
@@ -116,9 +114,7 @@ void MMTkFieldBarrierSetAssembler::object_reference_write_pre(MacroAssembler* ma
       __ movptr(c_rarg2, NULL_WORD);
     else
       __ movptr(c_rarg2, val);
-    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
-    __ lea(c_rarg3, mutator);
-    __ call_VM_leaf_base(FN_ADDR(mmtk_object_reference_write_slow), 4);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), 3);
     __ pop_call_clobbered_registers(false /* save_fpu */);
 
     __ bind(done);
@@ -130,9 +126,7 @@ void MMTkFieldBarrierSetAssembler::object_reference_write_pre(MacroAssembler* ma
       __ movptr(c_rarg2, NULL_WORD);
     else
       __ movptr(c_rarg2, val);
-    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
-    __ lea(c_rarg3, mutator);
-    __ call_VM_leaf_base(FN_ADDR(mmtk_object_reference_write_pre), 4);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
     __ popa();
   }
 }
@@ -142,7 +136,6 @@ void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Deco
   if (dest_uninitialized) return;
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
-    Address mutator(r15_thread, in_bytes(JavaThread::third_party_heap_mutator_offset()));
     // Bailout if count is zero
     __ cmpptr(count, 0);
     __ jcc(Assembler::equal, done);
@@ -152,8 +145,7 @@ void MMTkFieldBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, Deco
     if (c_rarg0 != src)   __ movptr(c_rarg0, src);
     if (c_rarg1 != dst)   __ movptr(c_rarg1, dst);
     if (c_rarg2 != count) __ movptr(c_rarg2, count);
-    __ lea(c_rarg3, mutator);
-    __ call_VM_leaf_base(FN_ADDR(mmtk_array_copy_pre), 4);
+    __ call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_pre_call), 3);
     __ pop_call_clobbered_registers(false /* save_fpu */);
     __ bind(done);
   }
@@ -355,7 +347,6 @@ void MMTkFieldBarrierSetC1::object_reference_write_pre(LIRAccess& access, LIR_Op
 static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* slot, Node* val) {
   Node* no_base = __ top();
   Node* tls = __ thread();
-  Node* mutator = __ AddP(no_base, tls, __ ConX(in_bytes(JavaThread::third_party_heap_mutator_offset())));
   if (mmtk_enable_barrier_fastpath) {
     float unlikely  = PROB_UNLIKELY(0.999);
 
@@ -368,13 +359,13 @@ static void insert_write_barrier_common(MMTkIdealKit& ideal, Node* src, Node* sl
     shift = __ AndI(__ ConvL2I(shift), __ ConI(7));
     Node* result = __ AndI(__ URShiftI(byte, shift), __ ConI(1));
     __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
-      Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_slow), "mmtk_barrier_call", src, slot, val, mutator);
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call), "mmtk_barrier_call", src, slot, val);
     } __ end_if();
     __ end_if();
   } else {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
-    Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_pre), "mmtk_barrier_call", src, slot, val, mutator);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), "mmtk_barrier_call", src, slot, val);
     // Looks like this is necessary
     // See https://github.com/mmtk/openjdk/blob/c82e5c44adced4383162826c2c3933a83cfb139b/src/hotspot/share/gc/shenandoah/c2/shenandoahBarrierSetC2.cpp#L288-L291
     Node* call = __ ctrl()->in(0);
@@ -396,7 +387,6 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
   MMTkIdealKit ideal(kit, true);
   Node* no_base = __ top();
   Node* tls = __ thread();
-  Node* mutator = __ AddP(no_base, tls, __ ConX(in_bytes(JavaThread::third_party_heap_mutator_offset())));
   float unlikely  = PROB_UNLIKELY(0.999);
   Node* zero  = __ ConI(0);
   Node* cm_flag = __ load(__ ctrl(), __ ConP(uintptr_t(&CONCURRENT_MARKING_ACTIVE)), TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
@@ -404,8 +394,8 @@ static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool em
   __ if_then(cm_flag, BoolTest::ne, zero, unlikely); {
     // No slow-call if dst is NULL
     __ if_then(val, BoolTest::ne, kit->null()); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
-      Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_load_reference), "mmtk_barrier_call", val, mutator);
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
+      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), "mmtk_barrier_call", val);
     } __ end_if();
   } __ end_if();
   kit->sync_kit(ideal);

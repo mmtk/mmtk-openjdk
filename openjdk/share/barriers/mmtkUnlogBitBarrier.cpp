@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "mmtkUnlogBitBarrier.hpp"
-#include "mmtkMutator.hpp"
 
 #include "runtime/interfaceSupport.inline.hpp"
 #include "c1/c1_LIRAssembler.hpp"
@@ -92,23 +91,25 @@ Node* MMTkUnlogBitBarrierSetC2::emit_check_unlog_bit_fast_path(MMTkIdealKit& ide
 }
 
 void MMTkUnlogBitBarrierSetC2::object_reference_write_pre_or_post(MMTkIdealKit& ideal, Node* src, bool pre) {
-  Node* no_base = __ top();
-  Node* tls = __ thread();
-  Node* mutator = __ AddP(no_base, tls, __ ConX(in_bytes(JavaThread::third_party_heap_mutator_offset())));
   if (mmtk_enable_barrier_fastpath) {
     Node* result = emit_check_unlog_bit_fast_path(ideal, src);
 
     Node* zero = __ ConI(0);
     float unlikely = PROB_UNLIKELY(0.999);
     __ if_then(result, BoolTest::ne, zero, unlikely); {
-      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
+      Node* result = emit_check_unlog_bit_fast_path(ideal, src);
+
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+      address entry_point = FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call);
       Node* null_node = __ NullP();
-      Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_slow), "mmtk_barrier_call", src, null_node, null_node, mutator);
+      Node* x = __ make_leaf_call(tf, entry_point, "mmtk_barrier_call", src, null_node, null_node);
     } __ end_if();
   } else {
-    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeRawPtr::NOTNULL);
+    const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM, TypeOopPtr::BOTTOM);
+    address entry_point = pre ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)
+                        :       FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_post_call);
     Node* null_node = __ NullP();
-    Node* x = __ make_leaf_call(tf, FN_ADDR(mmtk_object_reference_write_slow), "mmtk_barrier_call", src, null_node, null_node, mutator);
+    Node* x = __ make_leaf_call(tf, entry_point, "mmtk_barrier_call", src, null_node, null_node);
   }
 }
 

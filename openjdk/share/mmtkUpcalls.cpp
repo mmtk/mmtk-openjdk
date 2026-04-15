@@ -62,8 +62,6 @@
 #include "jfr/jfr.hpp"
 #endif
 
-using namespace JavaClassFile;
-
 // Note: This counter must be accessed using the Atomic class.
 static volatile size_t mmtk_start_the_world_count = 0;
 

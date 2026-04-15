@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "mmtkObjectBarrier.hpp"
-#include "mmtkMutator.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
 //////////////////// Assembler ////////////////////
@@ -20,12 +19,9 @@ void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, Dec
   // if (is_oop && !dest_uninitialized) {
   if (is_oop){
     __ push(saved_regs, sp);
-    // mmtk_array_copy_post(src, dst, count, mutator)
-    __ mov(c_rarg0, src);
     __ mov(c_rarg1, dst);
     __ mov(c_rarg2, count);
-    __ lea(c_rarg3, Address(rthread, in_bytes(JavaThread::third_party_heap_mutator_offset())));
-    __ call_VM_leaf(FN_ADDR(mmtk_array_copy_post), 4);
+    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_reference_array_copy_post_call), 3);
     __ pop(saved_regs, sp);
   }
 }
