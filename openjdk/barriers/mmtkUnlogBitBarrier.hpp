@@ -10,7 +10,9 @@
 
 struct MMTkC1UnlogBitBarrierSlowPathStub;
 
-const uintptr_t UNLOG_BIT_BASE_ADDRESS = GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
+inline uintptr_t unlog_bit_base_address() {
+  return get_global_side_metadata_vm_base_address();
+}
 
 //////////////////// Runtime ////////////////////
 
@@ -18,7 +20,7 @@ class MMTkUnlogBitBarrierSetRuntime: public MMTkBarrierSetRuntime {
 protected:
   static bool is_unlog_bit_set(oop obj) {
     uintptr_t addr = (uintptr_t) (void*) obj;
-    uint8_t* meta_addr = (uint8_t*) (UNLOG_BIT_BASE_ADDRESS + (addr >> 6));
+    uint8_t* meta_addr = (uint8_t*) (unlog_bit_base_address() + (addr >> 6));
     uintptr_t shift = (addr >> 3) & 0b111;
     uint8_t byte_val = *meta_addr;
     return ((byte_val >> shift) & 1) == 1;

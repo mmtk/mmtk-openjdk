@@ -18,9 +18,9 @@ typedef enum {
     MmapOutOfMemory,
 } MMTkAllocationError;
 
-extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
-extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
-extern const uintptr_t VO_BIT_ADDRESS;
+extern uintptr_t get_global_side_metadata_base_address();
+extern uintptr_t get_global_side_metadata_vm_base_address();
+extern uintptr_t get_vo_bit_address();
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
