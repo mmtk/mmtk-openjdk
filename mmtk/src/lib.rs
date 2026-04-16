@@ -118,16 +118,19 @@ pub struct OpenJDK_Upcalls {
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
 #[no_mangle]
-pub static GLOBAL_SIDE_METADATA_BASE_ADDRESS: uintptr_t =
-    mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize();
+pub extern "C" fn get_global_side_metadata_base_address() -> uintptr_t {
+    mmtk::util::metadata::side_metadata::global_side_metadata_base_address().as_usize()
+}
 
 #[no_mangle]
-pub static GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS: uintptr_t =
-    mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize();
+pub extern "C" fn get_global_side_metadata_vm_base_address() -> uintptr_t {
+    mmtk::util::metadata::side_metadata::global_side_metadata_vm_base_address().as_usize()
+}
 
 #[no_mangle]
-pub static VO_BIT_ADDRESS: uintptr_t =
-    mmtk::util::metadata::side_metadata::VO_BIT_SIDE_METADATA_ADDR.as_usize();
+pub extern "C" fn get_vo_bit_address() -> uintptr_t {
+    mmtk::util::metadata::side_metadata::vo_bit_side_metadata_addr().as_usize()
+}
 
 #[no_mangle]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
