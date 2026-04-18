@@ -6,7 +6,7 @@ use crate::OpenJDKSlot;
 use crate::Slot;
 use crate::SlotsClosure;
 use crate::UPCALLS;
-use mmtk::plan::immix::Pause;
+use mmtk::plan::concurrent::Pause;
 use mmtk::scheduler::*;
 use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
