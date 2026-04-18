@@ -76,10 +76,6 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
         }
     }
 
-    fn set_concurrent_marking_state(active: bool) {
-        unsafe { crate::CONCURRENT_MARKING_ACTIVE = if active { 1 } else { 0 } }
-    }
-
     fn vm_release() {
         unsafe {
             ((*UPCALLS).gc_epilogue)();
