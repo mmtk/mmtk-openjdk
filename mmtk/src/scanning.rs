@@ -82,11 +82,11 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
             w.push(Box::new(ScanOopStorageSetRoots::new(factory.clone())));
             w.push(Box::new(ScanWeakProcessorRoots::new(factory.clone())));
         }
-        memory_manager::add_work_packets(
-            crate::singleton::<COMPRESSED>(),
-            factory.roots_stage(),
-            w,
-        );
+        let mmtk = crate::singleton::<COMPRESSED>();
+        let stage = crate::singleton::<COMPRESSED>()
+            .get_plan()
+            .root_scanning_stage();
+        memory_manager::add_work_packets(mmtk, stage, w);
     }
 
     fn supports_return_barrier() -> bool {
