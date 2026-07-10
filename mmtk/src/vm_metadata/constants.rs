@@ -13,7 +13,11 @@ pub(crate) const FORWARDING_POINTER_OFFSET: isize = 0;
 
 /// Global logging bit metadata spec
 /// 1 bit per object
-pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side_first();
+pub(crate) const OBJECT_LOGGING_SIDE_METADATA_SPEC: VMGlobalObjectUnlogBitSpec =
+    VMGlobalObjectUnlogBitSpec::side_first();
+
+pub(crate) const FIELD_LOGGING_SIDE_METADATA_SPEC: VMGlobalFieldUnlogBitSpec =
+    VMGlobalFieldUnlogBitSpec::in_header(0);
 
 // Global MetadataSpecs - End
 
