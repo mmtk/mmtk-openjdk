@@ -62,8 +62,8 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
   // compressed oops, the `val` register will be holding a compressed pointer to the target object
   // due to the way `BarrierSetAssembler::store_at` works. If the write barrier needs to know the
   // target, we will need to decompress it before passing it to the barrier slow path.
-  __ xorptr(c_rarg1, c_rarg1);
-  __ xorptr(c_rarg2, c_rarg2);
+  __ lea(c_rarg1, dst);
+  __ movptr(c_rarg2, val);
 
   address entry_point = mmtk_enable_barrier_fastpath ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_slow_call)
                       : pre                          ? FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call)

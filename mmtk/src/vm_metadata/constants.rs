@@ -17,7 +17,7 @@ pub(crate) const OBJECT_LOGGING_SIDE_METADATA_SPEC: VMGlobalObjectUnlogBitSpec =
     VMGlobalObjectUnlogBitSpec::side_first();
 
 pub(crate) const FIELD_LOGGING_SIDE_METADATA_SPEC: VMGlobalFieldUnlogBitSpec =
-    VMGlobalFieldUnlogBitSpec::in_header(0);
+    VMGlobalFieldUnlogBitSpec::side_after(OBJECT_LOGGING_SIDE_METADATA_SPEC.as_spec());
 
 // Global MetadataSpecs - End
 
