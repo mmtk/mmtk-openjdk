@@ -180,7 +180,6 @@ static void mmtk_stop_all_mutators(void *tls, MutatorClosure closure) {
   oop_storage_set_strong_par_state.init();
   oop_storage_set_weak_par_state.init();
 
-  mmtk_report_gc_start();
   // CodeCache::gc_prologue();
 #if COMPILER2_OR_JVMCI
   DerivedPointerTable::clear();
