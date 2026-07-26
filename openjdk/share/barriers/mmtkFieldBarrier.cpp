@@ -10,7 +10,7 @@
 constexpr int kUnloggedValue = 1;
 
 static inline intptr_t side_metadata_base_address() {
-  return UseCompressedOops ? FIELD_UNLOG_BITS_BASE_ADDRESS_COMPRESSED : FIELD_UNLOG_BITS_BASE_ADDRESS;
+  return UseCompressedOops ? field_unlog_bits_base_address_compressed() : field_unlog_bits_base_address();
 }
 
 

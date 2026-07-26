@@ -18,10 +18,10 @@ typedef enum {
     MmapOutOfMemory,
 } MMTkAllocationError;
 
-extern const uintptr_t GLOBAL_SIDE_METADATA_BASE_ADDRESS;
-extern const uintptr_t GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
-extern const uintptr_t RC_TABLE_BASE_ADDRESS;
-extern const uintptr_t VO_BIT_ADDRESS;
+extern uintptr_t get_global_side_metadata_base_address();
+extern uintptr_t get_global_side_metadata_vm_base_address();
+extern uintptr_t get_rc_table_base_address();
+extern uintptr_t get_vo_bit_address();
 extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
 extern uint8_t RC_ENABLED;
 extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
@@ -228,21 +228,21 @@ constexpr size_t log_min_obj_size = 3;
 
 inline uint8_t mmtk_get_rc_2bits(void* o) {
     const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
-    const uint8_t byte = *((uint8_t*) (RC_TABLE_BASE_ADDRESS + (index >> 2)));
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + (index >> 2)));
     auto v = byte >> ((index & 0b11) << 1);
     return v & 0b11;
 }
 
 inline uint8_t mmtk_get_rc_4bits(void* o) {
     const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
-    const uint8_t byte = *((uint8_t*) (RC_TABLE_BASE_ADDRESS + (index >> 1)));
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + (index >> 1)));
     auto v = byte >> ((index & 0b1) << 2);
     return v & 0b1111;
 }
 
 inline uint8_t mmtk_get_rc_8bits(void* o) {
     const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
-    const uint8_t byte = *((uint8_t*) (RC_TABLE_BASE_ADDRESS + index));
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + index));
     return byte;
 }
 

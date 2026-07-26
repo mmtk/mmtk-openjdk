@@ -17,8 +17,8 @@ void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssemb
   // not the `tmp1` and `tmp2` from `store_at`.
   assert_different_registers(obj, tmp1, tmp2, tmp3);
 
-  // tmp2 = load-byte (UNLOG_BIT_BASE_ADDRESS + (obj >> 6));
-  __ movptr(tmp1, (intptr_t)UNLOG_BIT_BASE_ADDRESS);
+  // tmp2 = load-byte (unlog_bit_base_address() + (obj >> 6));
+  __ movptr(tmp1, (intptr_t)unlog_bit_base_address());
   __ add(tmp2, tmp1, obj, Assembler::LSR, 6);
   // tmp1 = (obj >> 3) & 7
   __ movz(tmp1, 7);

@@ -85,7 +85,7 @@ pub struct Klass {
     pub access_flags: i32, // AccessFlags
     #[cfg(feature = "jfr")]
     pub trace_id: u64, // JFR_ONLY(traceid _trace_id;)
-    pub _shared_class_path_index: u16,
+    pub shared_class_path_index: i16,
     pub shared_class_flags: u16,
     pub archived_mirror_index: i32,
     pub padding: i32,

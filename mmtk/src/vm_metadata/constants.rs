@@ -38,7 +38,7 @@ cfg_if::cfg_if! {
             VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
 
         #[allow(unused)]
-        const LAST_SIDE_SPEC_BEFORE_MARK: &MetadataSpec = LOS_METADATA_SPEC.as_spec();
+        const LAST_SIDE_SPEC_AFTER_MARK: &MetadataSpec = LOS_METADATA_SPEC.as_spec();
     } else {
         /// PolicySpecific mark bit metadata spec
         /// 1 bit per object
@@ -46,7 +46,7 @@ cfg_if::cfg_if! {
             VMLocalMarkBitSpec::side_after(LOS_METADATA_SPEC.as_spec());
 
         #[allow(unused)]
-        const LAST_SIDE_SPEC_BEFORE_MARK: &MetadataSpec = MARKING_METADATA_SPEC.as_spec();
+        const LAST_SIDE_SPEC_AFTER_MARK: &MetadataSpec = MARKING_METADATA_SPEC.as_spec();
     }
 }
 
@@ -55,7 +55,7 @@ cfg_if::cfg_if! {
         /// PolicySpecific object forwarding status metadata spec
         /// 2 bits per object
         pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
-            VMLocalForwardingBitsSpec::side_after(LAST_SIDE_SPEC_BEFORE_MARK);
+            VMLocalForwardingBitsSpec::side_after(LAST_SIDE_SPEC_AFTER_MARK);
     } else {
         /// PolicySpecific object forwarding status metadata spec
         /// 2 bits per object
