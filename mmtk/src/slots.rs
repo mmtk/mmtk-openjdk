@@ -61,11 +61,11 @@ pub fn initialize_compressed_oops_base_and_shift() {
 ///
 /// If `COMPRESSED = true`,
 /// * If this is a field of an object, the slot is compressed.
-/// * If this is a root pointer: The c++ part of the binding should pass all the root pointers to
-///   rust as tagged pointers.
-///   * If the 63rd bit of the pointer is set to 1, the value referenced by the pointer is a
-///     32-bit compressed integer.
-///   * Otherwise, it is a uncompressed root pointer.
+/// * If this is a root pointer: The C++ part of the binding will pass all root pointers to
+///   Rust as tagged pointers.
+///   * If bit 63 of the pointer is set to 1, the value referenced by the pointer is an
+///     uncompressed root pointer.
+///   * Otherwise, it is a 32-bit compressed integer.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[repr(transparent)]
 pub struct OpenJDKSlot<const COMPRESSED: bool> {
