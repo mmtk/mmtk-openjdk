@@ -6,12 +6,12 @@
 
 #define __ masm->
 
-void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) const {
+void MMTkGenBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) const {
   if (can_remove_barrier(decorators, val, /* skip_const_null */ true)) return;
   object_reference_write_pre_or_post(masm, decorators, dst, val, tmp1, tmp2, tmp3, /* pre = */ false);
 }
 
-void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, bool is_oop,
+void MMTkGenBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, bool is_oop,
                                   Register src, Register dst, Register count, Register tmp, RegSet saved_regs) {
   // see also void G1BarrierSetAssembler::gen_write_ref_array_post_barrier
   assert_different_registers(src, dst, count);
