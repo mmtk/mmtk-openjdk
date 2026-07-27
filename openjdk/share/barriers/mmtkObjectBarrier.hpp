@@ -5,7 +5,7 @@
 #include "../mmtkBarrierSet.hpp"
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
-#include CPU_HEADER(mmtkObjectBarrierSetAssembler)
+#include CPU_HEADER(mmtkGenBarrierSetAssembler)
 #include "mmtkUnlogBitBarrier.hpp"
 #ifdef COMPILER1
 #include "../mmtkBarrierSetC1.hpp"
@@ -67,7 +67,7 @@ class MMTkObjectBarrierSetC2;
 
 struct MMTkObjectBarrier: MMTkBarrierImpl<
   MMTkObjectBarrierSetRuntime,
-  MMTkObjectBarrierSetAssembler,
+  MMTkGenBarrierSetAssembler,
   MMTkObjectBarrierSetC1,
   MMTkObjectBarrierSetC2
 > {};

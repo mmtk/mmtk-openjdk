@@ -30,7 +30,7 @@
 //         li      a1,0
 //         mv      a0,a4
 //         tail    _Z32object_reference_write_slow_callPvS_m
-void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
+void MMTkGenBarrierSetAssembler::object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2) const {
   // tmp1 and tmp2 is from MacroAssembler::access_store_at
   // For do_oop_store, we have three tmps, x28/t3, x29/t4, x13/a3
   // printf("object_reference_write_post\n");
@@ -83,7 +83,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
   }
 }
 
-void MMTkObjectBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, bool is_oop,
+void MMTkGenBarrierSetAssembler::arraycopy_epilogue(MacroAssembler* masm, DecoratorSet decorators, bool is_oop,
                                   Register src, Register dst, Register count, Register tmp, RegSet saved_regs) {
   // see also void G1BarrierSetAssembler::gen_write_ref_array_post_barrier
   assert_different_registers(src, dst, count);
