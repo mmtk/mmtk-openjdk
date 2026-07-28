@@ -335,12 +335,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
-
-[[package]]
 name = "idna"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -500,7 +494,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.32.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=603e29bb1384f83711cfc0c7bf25d22ae38b3530#603e29bb1384f83711cfc0c7bf25d22ae38b3530"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=3ce65fbf7b9124267e1fd85c39147ef8b396751a#3ce65fbf7b9124267e1fd85c39147ef8b396751a"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -513,20 +507,20 @@ dependencies = [
  "downcast-rs",
  "enum-map",
  "env_logger",
- "humantime",
  "is-terminal",
  "itertools",
  "lazy_static",
  "libc",
  "log",
- "memoffset",
  "mmtk-macros",
  "num-traits",
  "num_cpus",
  "portable-atomic",
+ "probe",
  "regex",
  "rustversion",
  "spin",
+ "static_assertions",
  "strum",
  "strum_macros",
  "sysinfo",
@@ -535,7 +529,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.32.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=603e29bb1384f83711cfc0c7bf25d22ae38b3530#603e29bb1384f83711cfc0c7bf25d22ae38b3530"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=3ce65fbf7b9124267e1fd85c39147ef8b396751a#3ce65fbf7b9124267e1fd85c39147ef8b396751a"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -805,6 +799,12 @@ checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
 dependencies = [
  "lock_api",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strum"
