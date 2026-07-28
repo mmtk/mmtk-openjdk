@@ -19,3 +19,4 @@ MMTK_PLAN=Immix run_subset 4
 MMTK_PLAN=GenCopy run_subset 4
 MMTK_PLAN=GenImmix run_subset 4
 MMTK_PLAN=StickyImmix run_subset 4
+MMTK_PLAN=LXR run_subset 4
