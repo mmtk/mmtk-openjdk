@@ -462,8 +462,6 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
     return;
   }
 
-  MutexLocker x(Heap_lock);
-
   oop first = (oop) objects[0]; // This points to the first node of the linked list.
   oop last = first; // This points to the last node of the linked list.
 
@@ -496,7 +494,10 @@ static void mmtk_enqueue_references(void** objects, size_t len) {
 
   oop old_first = Universe::swap_reference_pending_list(first);
   HeapAccess<AS_RAW>::oop_store_at(last, java_lang_ref_Reference::discovered_offset(), old_first);
-  assert(Universe::has_reference_pending_list(), "Reference pending list is empty after swap");
+
+  // Note: At this time, `Universe::has_reference_pending_list()` should be true, but we can't assert it.
+  // `has_reference_pending_list` requires either the current thread is the VM thread or is holding the Heap_lock.
+  // But during STW GC, the Heap_lock is held by the VM companion thread.
 }
 
 
