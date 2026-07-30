@@ -58,6 +58,11 @@ struct MaybeUninit {
   void init(Args... args) {
     new (&_data) T(args...);
   }
+  template<class... Args>
+  void reinit(Args... args) {
+    ((T*) &_data)->~T();
+    new (&_data) T(args...);
+  }
 private:
   char _data[sizeof(T)];
 };

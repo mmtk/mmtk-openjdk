@@ -455,6 +455,8 @@ static void mmtk_prepare_for_roots_re_scanning() {
   DerivedPointerTable::update_pointers();
   DerivedPointerTable::clear();
 #endif
+  oop_storage_set_strong_par_state.reinit();
+  oop_storage_set_weak_par_state.reinit();
 }
 
 static void mmtk_enqueue_references(void** objects, size_t len) {
