@@ -34,7 +34,7 @@ HeapWord* MMTkMutatorContext::alloc(size_t bytes, Allocator allocator) {
   HeapWord* o = (HeapWord*) ::alloc((MMTk_Mutator) this, bytes, HeapWordSize, 0, allocator);
   // Post allocation hooks. Note that we can get a nullptr from mmtk core in the case of OOM.
   // Hence, only call post allocation hooks if we have a proper object.
-  if (o != nullptr && allocator != AllocatorDefault) {
+  if (o != nullptr) {
     ::post_alloc((MMTk_Mutator) this, o, bytes, allocator);
   }
   return o;
