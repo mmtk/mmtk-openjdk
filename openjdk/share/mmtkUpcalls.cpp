@@ -27,6 +27,7 @@
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/stringTable.hpp"
 #include "code/nmethod.hpp"
+#include "gc/shared/barrierSetNMethod.hpp"
 #include "memory/iterator.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "mmtkCollectorThread.hpp"
@@ -339,11 +340,31 @@ static void mmtk_scan_roots_in_all_mutator_threads(SlotsClosure closure) {
   MMTkHeap::heap()->scan_roots_in_all_mutator_threads(cl);
 }
 
+// A CodeBlobClosure for use during live stack walks. It performs the same nmethod
+// "on stack" bookkeeping as MarkingCodeBlobClosure (mark_as_maybe_on_stack/disarm),
+// but deliberately does NOT re-scan the nmethod's embedded oops: those are already
+// tracked once, unconditionally, via MMTk's own code-cache-roots remembered set
+// (see MMTkHeap::register_nmethod / ScanCodeCacheRoots). Using MarkingCodeBlobClosure
+// here would report every on-stack nmethod's oops as GC roots twice in the same GC.
+class MMTkBookKeepingCodeBlobClosure : public CodeBlobClosure {
+public:
+  virtual void do_code_blob(CodeBlob* cb) override {
+    nmethod* nm = cb->as_nmethod_or_null();
+    if (nm != nullptr && nm->oops_do_try_claim()) {
+      nm->mark_as_maybe_on_stack();
+      BarrierSetNMethod* bs_nm = BarrierSet::barrier_set()->barrier_set_nmethod();
+      if (bs_nm != nullptr) {
+        bs_nm->disarm(nm);
+      }
+    }
+  }
+};
+
 static void mmtk_scan_roots_in_mutator_thread(SlotsClosure closure, void* tls) {
   ResourceMark rm;
   JavaThread* thread = (JavaThread*) tls;
   MMTkRootsClosure cl(closure);
-  MarkingCodeBlobClosure cb_cl(&cl, false, true);
+  MMTkBookKeepingCodeBlobClosure cb_cl;
   thread->oops_do(&cl, &cb_cl);
 }
 
@@ -512,10 +533,12 @@ void mmtk_fix_oop_relocations(bool lxr,  void* nmethods, size_t len) {
       nm->fix_oop_relocations();
     }
   } else {
-    MMTkUpdateClosure cl;
+    // MMTkUpdateClosure cl;
     for (size_t i = 0; i < len; i++) {
       nmethod* nm = (nmethod*) ((nmethod**) nmethods)[i];
-      nm->oops_do(&cl);
+      // FIXME: This caused crash for mark compact. It is likely that nmethod is already scanned, and we see to-space objects here and still try to forward it.
+      // I am uncertain what to do here. Just comment it out for now so we can proceed. This should be resolved before merging.
+      // nm->oops_do(&cl);
       nm->fix_oop_relocations();
     }
   }
