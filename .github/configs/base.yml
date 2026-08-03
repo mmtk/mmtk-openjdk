@@ -80,6 +80,10 @@ modifiers:
   no_compressed_oops:
     type: JVMArg
     val: "-XX:-UseCompressedOops -XX:-UseCompressedClassPointers"
+  no_reference_types:
+    type: "EnvVar"
+    var: "MMTK_NO_REFERENCE_TYPES"
+    val: "true"
 
 plugins:
   keep_stdout_stderr:
