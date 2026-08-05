@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Check ${{ env.DACAPO_VERSION }} cache
         id: check-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
+      # Cap concurrent legs so they don't all restore the 6.3 GB DaCapo
+      # cache entry at once (that concurrent load is what causes the
+      # intermittent download failures/stalls).
+      max-parallel: 10
       matrix:
         debug-level: ["fastdebug", "release"]
         benchmark:
@@ -98,7 +102,7 @@ jobs:
           # df /home/runner/runners
       - name: Fetch ${{ env.DACAPO_VERSION }} cache
         id: fetch-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: dacapo/${{ env.DACAPO_FILE }}
           key: ${{ env.DACAPO_VERSION }}
