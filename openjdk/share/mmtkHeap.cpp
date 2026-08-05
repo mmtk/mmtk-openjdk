@@ -352,16 +352,15 @@ bool MMTkHeap::card_mark_must_follow_store() const { //OK
 
 void MMTkHeap::collect(GCCause::Cause cause) {//later when gc is implemented in rust
   if (cause == GCCause::_gc_locker) {
-    // #ifndef PRODUCT
-    //   auto safepoint_check_required = JNICritical_lock->_safepoint_check_required;
-    //   JNICritical_lock->_safepoint_check_required = Monitor::_safepoint_check_sometimes;
-    // #endif
-    MutexLocker locker(JNICritical_lock, Mutex::_no_safepoint_check_flag);
+    // This runs on the Java mutator thread that is the last one exiting a
+    // JNI critical region (see GCLocker::jni_unlock), so JNICritical_lock
+    // must be acquired with a safepoint check, same as gcLocker.cpp does.
+    // Acquiring it with Mutex::_no_safepoint_check_flag here trips HotSpot's
+    // "This lock should always have a safepoint check for Java threads"
+    // assertion in Mutex::check_no_safepoint_state.
+    MutexLocker locker(JNICritical_lock);
     // Notify the VMCompanionThread to trigger another VM_MMTkSTWOperation.
     JNICritical_lock->notify_all();
-    // #ifndef PRODUCT
-    //   JNICritical_lock->_safepoint_check_required = safepoint_check_required;
-    // #endif
   }
   handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, cause != GCCause::_java_lang_system_gc);
 }
