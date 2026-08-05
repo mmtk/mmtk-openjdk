@@ -1,3 +1,15 @@
+0.33.0 (2026-08-05)
+===
+
+## What's Changed
+* Fix signedness error of max LOS size in C2 (backport #348) by @mergify[bot] in https://github.com/mmtk/mmtk-openjdk/pull/350
+* Improve pgo-build.sh (backport #351) by @mergify[bot] in https://github.com/mmtk/mmtk-openjdk/pull/352
+* Adapt to dyanmic side metadata address (jdk-11) by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/346
+* Fix confusing variable name (backport #356) by @mergify[bot] in https://github.com/mmtk/mmtk-openjdk/pull/357
+* Fix doc comment for `OpenJDKSlot` (backport #360) by @mergify[bot] in https://github.com/mmtk/mmtk-openjdk/pull/361
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.32.0-jdk-11...v0.33.0-jdk21
+
 0.32.0 (2025-02-04)
 ===
 
