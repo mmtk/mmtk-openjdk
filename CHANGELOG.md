@@ -1,3 +1,17 @@
+0.33.0 (2026-08-05)
+===
+
+## What's Changed
+* Fix mismatching Klass definition by @wks in https://github.com/mmtk/mmtk-openjdk/pull/345
+* Add configurations for mergify to allow backporting to jdk-11 by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/349
+* Fix signedness error of max LOS size in C2 by @wks in https://github.com/mmtk/mmtk-openjdk/pull/348
+* Improve pgo-build.sh by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/351
+* Adapt to dyanmic side metadata address (jdk-21) by @qinsoon in https://github.com/mmtk/mmtk-openjdk/pull/343
+* Fix confusing variable name by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/356
+* Fix doc comment for `OpenJDKSlot` by @k-sareen in https://github.com/mmtk/mmtk-openjdk/pull/360
+
+**Full Changelog**: https://github.com/mmtk/mmtk-openjdk/compare/v0.32.0-jdk-21...v0.33.0-jdk21
+
 0.32.0 (2025-02-04)
 ===
 
