@@ -43,8 +43,8 @@ export MMTK_PLAN=MarkSweep
 
 run_subset 8
 
-# --- Compressor ---
-export MMTK_PLAN=Compressor
+# --- OVC ---
+export MMTK_PLAN=OVC
 
 run_subset 4
 
