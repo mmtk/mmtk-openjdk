@@ -58,8 +58,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     // We need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(allocator);
 
-    // XXX riscv: disallow markcompact and global alloc bit for now
-    assert(selector.tag != TAG_MARK_COMPACT, "mark compact not supported for now");
+    // XXX riscv: disallow lisp2 and global alloc bit for now
+    assert(selector.tag != TAG_LISP2, "mark compact not supported for now");
 
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
