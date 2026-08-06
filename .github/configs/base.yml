@@ -9,11 +9,11 @@ suites:
     type: DaCapo
     release: "23.11"
     path: "DACAPO_PATH/dacapo-23.11-MR2-chopin.jar"
-    minheap: mmtk-openjdk-11-MarkCompact
+    minheap: mmtk-openjdk-11-Lisp2
     # Min heap values are from dacapo-evaluation-git-04132797
-    # TODO: Use the values provided by the released version, and use G1 instead of MarkCompact.
+    # TODO: Use the values provided by the released version, and use G1 instead of Lisp2.
     minheap_values:
-      mmtk-openjdk-11-MarkCompact:
+      mmtk-openjdk-11-Lisp2:
         avrora: 8
         batik: 426
         biojava: 197

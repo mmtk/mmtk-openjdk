@@ -166,7 +166,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             // immediate operands in the machine code.  This can only be done after all fields of an
             // nmethod have been forwarded.
             let stage = if mmtk.get_plan().constraints().needs_forward_after_liveness {
-                // For MarkCompact, we forward the children of nmethods in the transitive closure
+                // For Lisp2 and OVC, we forward the children of nmethods in the transitive closure
                 // starting with SecondRoots.  RefForwarding is the first safe place to call
                 // fix_oop_relocations.
                 WorkBucketStage::RefForwarding

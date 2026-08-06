@@ -136,7 +136,7 @@ jobs:
           popd
       - name: Check free space
         run: df -h
-      - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with ${{ inputs.heap-factor }}x MarkCompact minheap
+      - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with ${{ inputs.heap-factor }}x Lisp2 minheap
         run: |
           DACAPO_PATH=`realpath ./dacapo`
           sed -i "s;DACAPO_PATH;$DACAPO_PATH;g" .github/configs/base.yml

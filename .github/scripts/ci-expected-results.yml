@@ -8,8 +8,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       batik:
@@ -19,8 +19,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       biojava:
@@ -30,8 +30,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       cassandra:
@@ -41,8 +41,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: ignore
-        Compressor: ignore
+        Lisp2: ignore
+        OVC: ignore
         ConcurrentImmix: ignore
         LXR: pass
       eclipse:
@@ -52,8 +52,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       fop:
@@ -63,8 +63,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       graphchi:
@@ -74,8 +74,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       h2:
@@ -85,8 +85,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       h2o:
@@ -96,8 +96,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       jme:
@@ -107,8 +107,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       jython:
@@ -118,8 +118,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       kafka:
@@ -129,8 +129,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: ignore
-        Compressor: pass
+        Lisp2: ignore
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       luindex:
@@ -140,8 +140,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       lusearch:
@@ -151,8 +151,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       pmd:
@@ -162,8 +162,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       sunflow:
@@ -173,8 +173,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       tomcat:
@@ -184,8 +184,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       xalan:
@@ -195,8 +195,8 @@ results:
         GenImmix: pass
         StickyImmix: ignore
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       zxing:
@@ -206,8 +206,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
 
@@ -219,8 +219,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       batik:
@@ -230,8 +230,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       biojava:
@@ -241,8 +241,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       cassandra:
@@ -252,8 +252,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       eclipse:
@@ -263,8 +263,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       fop:
@@ -274,8 +274,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       graphchi:
@@ -285,8 +285,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       h2:
@@ -296,8 +296,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       h2o:
@@ -307,8 +307,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       jme:
@@ -318,8 +318,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       jython:
@@ -329,8 +329,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       kafka:
@@ -340,8 +340,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       luindex:
@@ -351,8 +351,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       lusearch:
@@ -362,8 +362,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       pmd:
@@ -373,8 +373,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       sunflow:
@@ -384,8 +384,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       tomcat:
@@ -395,8 +395,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       xalan:
@@ -406,8 +406,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass
       zxing:
@@ -417,7 +417,7 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
         LXR: pass

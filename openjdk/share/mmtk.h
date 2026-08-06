@@ -24,7 +24,7 @@ extern uintptr_t get_rc_table_base_address();
 extern uintptr_t get_vo_bit_address();
 extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
 extern uint8_t RC_ENABLED;
-extern const size_t MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+extern const size_t MMTK_LISP2_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
 
@@ -89,7 +89,7 @@ struct AllocatorSelector {
 #define TAG_LARGE_OBJECT              1
 #define TAG_MALLOC                    2
 #define TAG_IMMIX                     3
-#define TAG_MARK_COMPACT              4
+#define TAG_LISP2                     4
 #define TAG_FREE_LIST                 5
 
 extern AllocatorSelector get_allocator_mapping(int allocator);

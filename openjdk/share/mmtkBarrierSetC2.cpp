@@ -87,7 +87,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
   // We always use the default allocator.
   // But we need to figure out which allocator we are using by querying MMTk.
   AllocatorSelector selector = get_allocator_mapping(AllocatorDefault);
-  if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+  if (selector.tag == TAG_LISP2) extra_header = MMTK_LISP2_HEADER_RESERVED_IN_BYTES;
 
   // max_non_los_bytes is size_t which can be 32-bit or 64-bit, unsigned,
   // but const_size (see below) is a jlong which is always 64-bit signed (int64_t).
@@ -227,7 +227,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     // See note above concerning the control input when using a TLAB
     Node *old_eden_top;
 
-    if (selector.tag == TAG_MARK_COMPACT) {
+    if (selector.tag == TAG_LISP2) {
       Node *offset = ConLNode::make(extra_header);
       x->transform_later(offset);
       Node *node = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
@@ -289,7 +289,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     #ifdef MMTK_ENABLE_VO_BIT
     enable_vo_bit = true;
     #endif
-  if (enable_vo_bit || selector.tag == TAG_MARK_COMPACT) {
+  if (enable_vo_bit || selector.tag == TAG_LISP2) {
     // set the alloc bit:
     // intptr_t addr = (intptr_t) (void*) fast_oop;
     // uint8_t* meta_addr = (uint8_t*) (vo_bit_base_address() + (addr >> 6));

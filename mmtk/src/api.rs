@@ -101,8 +101,8 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
             Some(PlanSelector::GenCopy)
         } else if cfg!(feature = "marksweep") {
             Some(PlanSelector::MarkSweep)
-        } else if cfg!(feature = "markcompact") {
-            Some(PlanSelector::MarkCompact)
+        } else if cfg!(feature = "lisp2") {
+            Some(PlanSelector::Lisp2)
         } else if cfg!(feature = "pageprotect") {
             Some(PlanSelector::PageProtect)
         } else if cfg!(feature = "immix") {
