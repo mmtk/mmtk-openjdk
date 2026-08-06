@@ -205,8 +205,8 @@ fn singleton<const COMPRESSED: bool>() -> &'static MMTK<OpenJDK<COMPRESSED>> {
 }
 
 #[no_mangle]
-pub static MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES: usize =
-    mmtk::util::alloc::MarkCompactAllocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
+pub static MMTK_LISP2_HEADER_RESERVED_IN_BYTES: usize =
+    mmtk::util::alloc::Lisp2Allocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
 lazy_static! {
     /// A global storage for all the cached CodeCache roots added since the last GC.

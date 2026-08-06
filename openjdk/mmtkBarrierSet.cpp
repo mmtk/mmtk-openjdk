@@ -57,11 +57,11 @@ MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
       + selector.index * sizeof(BumpAllocator);
     tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
     tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
-  } else if (selector.tag == TAG_MARK_COMPACT) {
+  } else if (selector.tag == TAG_LISP2) {
     int allocator_base_offset = allocators_base_offset
-      + in_bytes(byte_offset_of(Allocators, markcompact))
-      + selector.index * sizeof(MarkCompactAllocator)
-      + in_bytes(byte_offset_of(MarkCompactAllocator, bump_allocator));
+      + in_bytes(byte_offset_of(Allocators, lisp2))
+      + selector.index * sizeof(Lisp2Allocator)
+      + in_bytes(byte_offset_of(Lisp2Allocator, bump_allocator));
     tlab_top_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, cursor));
     tlab_end_offset = allocator_base_offset + in_bytes(byte_offset_of(BumpAllocator, limit));
   } else {

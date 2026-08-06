@@ -54,7 +54,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     Allocator allocator = AllocatorDefault;
     // We need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(allocator);
-    if (selector.tag == TAG_MARK_COMPACT) extra_header = MMTK_MARK_COMPACT_HEADER_RESERVED_IN_BYTES;
+    if (selector.tag == TAG_LISP2) extra_header = MMTK_LISP2_HEADER_RESERVED_IN_BYTES;
 
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
@@ -82,7 +82,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
     // obj = load lab.cursor
     __ movptr(obj, cursor);
-    if (selector.tag == TAG_MARK_COMPACT) __ addptr(obj, extra_header);
+    if (selector.tag == TAG_LISP2) __ addptr(obj, extra_header);
     // end = obj + size
     Register end = t1;
     if (var_size_in_bytes == noreg) {
@@ -102,7 +102,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
   #ifdef MMTK_ENABLE_VO_BIT
   enable_vo_bit = true;
   #endif
-  if (enable_vo_bit || selector.tag == TAG_MARK_COMPACT) {
+  if (enable_vo_bit || selector.tag == TAG_LISP2) {
     Register tmp3 = rdi;
     Register tmp2 = rscratch1;
     assert_different_registers(obj, tmp2, tmp3, rcx);
