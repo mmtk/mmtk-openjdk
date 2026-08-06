@@ -8,8 +8,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       batik:
         SemiSpace: pass
@@ -18,8 +18,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       biojava:
         SemiSpace: pass
@@ -28,8 +28,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       cassandra:
         SemiSpace: pass
@@ -38,8 +38,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: ignore
-        Compressor: ignore
+        Lisp2: ignore
+        OVC: ignore
         ConcurrentImmix: ignore
       eclipse:
         SemiSpace: pass
@@ -48,8 +48,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       fop:
         SemiSpace: pass
@@ -58,8 +58,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       graphchi:
         SemiSpace: pass
@@ -68,8 +68,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       h2:
         SemiSpace: pass
@@ -78,8 +78,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       h2o:
         SemiSpace: pass
@@ -88,8 +88,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       jme:
         SemiSpace: pass
@@ -98,8 +98,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       jython:
         SemiSpace: pass
@@ -108,8 +108,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       kafka:
         SemiSpace: pass
@@ -118,8 +118,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: ignore
-        Compressor: pass
+        Lisp2: ignore
+        OVC: pass
         ConcurrentImmix: pass
       luindex:
         SemiSpace: pass
@@ -128,8 +128,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       lusearch:
         SemiSpace: pass
@@ -138,8 +138,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       pmd:
         SemiSpace: pass
@@ -148,8 +148,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       sunflow:
         SemiSpace: pass
@@ -158,8 +158,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       tomcat:
         SemiSpace: pass
@@ -168,8 +168,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       xalan:
         SemiSpace: pass
@@ -178,8 +178,8 @@ results:
         GenImmix: pass
         StickyImmix: ignore
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       zxing:
         SemiSpace: pass
@@ -188,8 +188,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
 
     release:
@@ -200,8 +200,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       batik:
         SemiSpace: pass
@@ -210,8 +210,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       biojava:
         SemiSpace: pass
@@ -220,8 +220,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       cassandra:
         SemiSpace: pass
@@ -230,8 +230,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       eclipse:
         SemiSpace: pass
@@ -240,8 +240,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       fop:
         SemiSpace: pass
@@ -250,8 +250,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       graphchi:
         SemiSpace: pass
@@ -260,8 +260,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       h2:
         SemiSpace: pass
@@ -270,8 +270,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       h2o:
         SemiSpace: pass
@@ -280,8 +280,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       jme:
         SemiSpace: pass
@@ -290,8 +290,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       jython:
         SemiSpace: pass
@@ -300,8 +300,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: ignore
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       kafka:
         SemiSpace: pass
@@ -310,8 +310,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       luindex:
         SemiSpace: pass
@@ -320,8 +320,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       lusearch:
         SemiSpace: pass
@@ -330,8 +330,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       pmd:
         SemiSpace: pass
@@ -340,8 +340,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       sunflow:
         SemiSpace: pass
@@ -350,8 +350,8 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       tomcat:
         SemiSpace: pass
@@ -360,8 +360,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       xalan:
         SemiSpace: ignore
@@ -370,8 +370,8 @@ results:
         GenImmix: ignore
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass
       zxing:
         SemiSpace: pass
@@ -380,6 +380,6 @@ results:
         GenImmix: pass
         StickyImmix: pass
         MarkSweep: pass
-        MarkCompact: pass
-        Compressor: pass
+        Lisp2: pass
+        OVC: pass
         ConcurrentImmix: pass

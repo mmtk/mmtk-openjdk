@@ -57,8 +57,8 @@ runbms_dacapo2006_with_heap_size antlr 1000 1000
 runbms_dacapo2006_with_heap_size fop 1000 1000
 runbms_dacapo2006_with_heap_size luindex 1000 1000
 
-# --- MarkCompact ---
-export MMTK_PLAN=MarkCompact
+# --- Lisp2 ---
+export MMTK_PLAN=Lisp2
 
 run_all 4
 
