@@ -88,7 +88,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             for root in roots {
                 slots.push(OpenJDKSlot::<COMPRESSED>::from(*root));
                 if slots.len() >= scanning::WORK_PACKET_CAPACITY {
-                    self.factory.create_process_roots_work(
+                    self.factory.create_process_roots_work_with_root_kind(
                         std::mem::take(&mut slots),
                         RootKind::YoungCodeCacheRoots,
                     );
@@ -141,7 +141,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
 
         if !slots.is_empty() {
             self.factory
-                .create_process_roots_work(slots, RootKind::Strong);
+                .create_process_roots_work_with_root_kind(slots, RootKind::Strong);
         }
         // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
         // unsafe {
@@ -192,7 +192,7 @@ extern "C" fn report_slots_and_renew_buffer_weak<S: Slot, F: RootsWorkFactory<S>
         let buf = unsafe { Vec::<S>::from_raw_parts(ptr, length, capacity) };
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
         let kind = RootKind::Weak;
-        factory.create_process_roots_work(buf, kind);
+        factory.create_process_roots_work_with_root_kind(buf, kind);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
