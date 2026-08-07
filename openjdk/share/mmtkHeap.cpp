@@ -237,7 +237,9 @@ const char* MMTkHeap::version() {
 }
 
 void MMTkHeap::schedule_finalizer() {
-  // MMTkFinalizerThread::instance->schedule();
+  if (!RC_ENABLED) {
+    MMTkFinalizerThread::instance->schedule();
+  }
 }
 
 class MMTkIsScavengable : public BoolObjectClosure {
@@ -263,7 +265,9 @@ void MMTkHeap::post_initialize() {
 void MMTkHeap::enable_collection() {
   // Initialize finalizer thread before enable_collection().
   // Otherwise it is possible that we schedule finalizer (during a GC) before the finalizer thread is ready.
-  // MMTkFinalizerThread::initialize();
+  if (!RC_ENABLED) {
+    MMTkFinalizerThread::initialize();
+  }
 
   ::initialize_collection(0);
 }
