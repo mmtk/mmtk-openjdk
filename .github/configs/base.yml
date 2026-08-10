@@ -4,9 +4,14 @@ includes:
 suites:
   dacapo-23.9-RC3-chopin-ci:
     type: DaCapo
+<<<<<<< HEAD
     # Need running-ng to support 23.9
     release: evaluation
     path: "DACAPO_PATH/dacapo-23.9-RC3-chopin.jar"
+=======
+    release: "23.11"
+    path: "DACAPO_PATH/dacapo-23.11-MR2-chopin-minimal.jar"
+>>>>>>> 7a52906 (Use the Dacapo Chopin minimal zip for CI (#369))
     minheap: mmtk-openjdk-11-Lisp2
     # Min heap values are from dacapo-evaluation-git-04132797
     minheap_values:

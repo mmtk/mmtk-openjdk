@@ -13,9 +13,16 @@ on:
         type: string
 
 env:
+<<<<<<< HEAD
   DACAPO_VERSION: dacapo-23.9-RC3-chopin
   DACAPO_FILE: dacapo-23.9-RC3-chopin.zip
   DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.9-RC3-chopin.zip
+=======
+  # Minimal variant (~1.4GB) instead of the full zip (~6.3GB).
+  DACAPO_VERSION: dacapo-23.11-MR2-chopin-minimal
+  DACAPO_FILE: dacapo-23.11-MR2-chopin-minimal.zip
+  DACAPO_DOWNLOAD_URL: https://download.dacapobench.org/chopin/dacapo-23.11-MR2-chopin-minimal.zip
+>>>>>>> 7a52906 (Use the Dacapo Chopin minimal zip for CI (#369))
 
 jobs:
   cache-dacapo:
