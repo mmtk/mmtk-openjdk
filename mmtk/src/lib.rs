@@ -10,10 +10,10 @@ use std::ptr::null_mut;
 use std::sync::Mutex;
 
 use libc::{c_char, c_void, uintptr_t};
-use mmtk::plan::lxr::LXR;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
 use mmtk::util::heap::vm_layout::VMLayout;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::slot::Slot;
@@ -190,10 +190,7 @@ lazy_static! {
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         slots::initialize_compressed_oops_base_and_shift();
         unsafe {
-            RC_ENABLED = ret
-                .get_plan()
-                .downcast_ref::<LXR<OpenJDK<true>>>()
-                .is_some() as _;
+            RC_ENABLED = (*ret.get_options().plan == PlanSelector::LXR) as _;
         }
         *ret
     };
@@ -204,10 +201,7 @@ lazy_static! {
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         unsafe {
-            RC_ENABLED = ret
-                .get_plan()
-                .downcast_ref::<LXR<OpenJDK<false>>>()
-                .is_some() as _;
+            RC_ENABLED = (*ret.get_options().plan == PlanSelector::LXR) as _;
         }
         *ret
     };

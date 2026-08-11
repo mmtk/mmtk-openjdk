@@ -6,8 +6,9 @@ use crate::OpenJDKSlot;
 use crate::Slot;
 use crate::SlotsClosure;
 use crate::UPCALLS;
-use mmtk::plan::concurrent::Pause;
+use mmtk::plan::Pause;
 use mmtk::scheduler::*;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
@@ -73,11 +74,12 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             .get_plan()
             .generational()
             .is_some_and(|gen| gen.is_current_gc_nursery());
-        let lxr = mmtk
-            .get_plan()
-            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>();
-        let is_lxr = lxr.is_some();
-        let is_rc_pause = lxr.is_some_and(|lxr| lxr.current_pause() == Some(Pause::RefCount));
+        let is_lxr = *mmtk.get_options().plan == PlanSelector::LXR;
+        let is_rc_pause = is_lxr
+            && mmtk
+                .get_plan()
+                .concurrent()
+                .is_some_and(|cp| cp.current_pause() == Some(Pause::RefCount));
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 
@@ -254,18 +256,11 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
         _worker: &mut GCWorker<OpenJDK<COMPRESSED>>,
         mmtk: &'static MMTK<OpenJDK<COMPRESSED>>,
     ) {
-        let is_lxr = mmtk
-            .get_plan()
-            .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
-            .is_some();
+        let is_lxr = *mmtk.get_options().plan == PlanSelector::LXR;
         let fast_mode = is_lxr
-            && mmtk
-                .get_plan()
-                .downcast_ref::<mmtk::plan::lxr::LXR<OpenJDK<COMPRESSED>>>()
-                .is_some_and(|lxr| {
-                    lxr.current_pause() == Some(Pause::RefCount)
-                        || lxr.current_pause() == Some(Pause::InitialMark)
-                });
+            && mmtk.get_plan().concurrent().is_some_and(|cp| {
+                matches!(cp.current_pause(), Some(Pause::RefCount) | Some(Pause::InitialMark))
+            });
 
         let num_nmethods = self.nmethods.len();
         unsafe {
