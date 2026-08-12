@@ -643,7 +643,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.33.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=ada1909af18f0947a78b5d718ae7963d3289d620#ada1909af18f0947a78b5d718ae7963d3289d620"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=91420001abdb875607cd5c97852ccecf73c308c1#91420001abdb875607cd5c97852ccecf73c308c1"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -678,7 +678,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.33.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=ada1909af18f0947a78b5d718ae7963d3289d620#ada1909af18f0947a78b5d718ae7963d3289d620"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=91420001abdb875607cd5c97852ccecf73c308c1#91420001abdb875607cd5c97852ccecf73c308c1"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
