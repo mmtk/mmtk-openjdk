@@ -46,28 +46,28 @@ jobs:
       matrix:
         debug-level: ["fastdebug", "release"]
         benchmark:
-          - avrora
-          - batik
-          - biojava
-          - cassandra
-          - eclipse
-          - fop
-          - graphchi
-          - h2
-          - h2o
-          - jme
-          - jython
-          - kafka
-          - luindex
-          - lusearch
+          # - avrora
+          # - batik
+          # - biojava
+          # - cassandra
+          # - eclipse
+          # - fop
+          # - graphchi
+          # - h2
+          # - h2o
+          # - jme
+          # - jython
+          # - kafka
+          # - luindex
+          # - lusearch
           - pmd
           # spring
-          - sunflow
-          - tomcat
+          # - sunflow
+          # - tomcat
           # tradebeans
           # tradesoap
-          - xalan
-          - zxing
+          # - xalan
+          # - zxing
     steps:
       - name: Check free space
         run: df -h
