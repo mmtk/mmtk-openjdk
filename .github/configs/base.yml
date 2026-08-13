@@ -87,6 +87,7 @@ plugins:
     patterns:
       - "scratch/stdout.log"
       - "scratch/stderr.log"
+      - "scratch/pmd-report.txt"
 
 runtimes:
   jdk21-master:
