@@ -80,6 +80,20 @@ modifiers:
   no_compressed_oops:
     type: JVMArg
     val: "-XX:-UseCompressedOops -XX:-UseCompressedClassPointers"
+  pmd_no_validation:
+    # pmd's own multi-threaded analysis has a known, pre-existing data race
+    # (unsynchronized "sig" field) that occasionally makes it throw a
+    # NullPointerException instead of reporting a lint violation. This changes
+    # pmd-report.txt just enough to fail DaCapo's digest check, even though
+    # nothing is actually wrong. This reproduces with stock OpenJDK/GraalVM
+    # with no MMTk involvement at all -- see
+    # https://github.com/dacapobench/dacapobench/issues/310. GraalVM works
+    # around it the same way: https://github.com/oracle/graal/commit/531528724b71131a3fadfa10288ccb8c28bc6482
+    type: ProgramArg
+    val: "--no-validation"
+    includes:
+      dacapochopin:
+        - pmd
 
 plugins:
   keep_stdout_stderr:
