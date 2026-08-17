@@ -260,7 +260,10 @@ impl<const COMPRESSED: bool> GCWork<OpenJDK<COMPRESSED>> for FixRelocations {
         let is_lxr = *mmtk.get_options().plan == PlanSelector::LXR;
         let fast_mode = is_lxr
             && mmtk.get_plan().concurrent().is_some_and(|cp| {
-                matches!(cp.current_pause(), Some(Pause::RefCount) | Some(Pause::InitialMark))
+                matches!(
+                    cp.current_pause(),
+                    Some(Pause::RefCount) | Some(Pause::InitialMark)
+                )
             });
 
         let num_nmethods = self.nmethods.len();
