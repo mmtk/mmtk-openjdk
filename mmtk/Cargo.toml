@@ -44,7 +44,9 @@ mmtk = { git = "https://github.com/wenyuzhao/mmtk-core.git", rev = "cb2f31c591d6
 # mmtk = { path = "../../mmtk-core" }
 
 [build-dependencies]
-built = { version = "0.7.7", features = ["git2"] }
+# Pinned below 0.8.1: that release requires edition2024, which needs a newer
+# cargo than our MSRV (1.84.0) provides.
+built = { version = ">=0.8.0, <0.8.1", features = ["git2"] }
 
 [features]
 default = []

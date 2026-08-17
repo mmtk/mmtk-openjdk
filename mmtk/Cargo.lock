@@ -106,20 +106,11 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 
 [[package]]
 name = "built"
-version = "0.7.7"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ed6191a7e78c36abdb16ab65341eefd73d64d303fffccdbb00d51e4205967b"
+checksum = "f4ad8f11f288f48ca24471bbd51ac257aaeaaa07adae295591266b792902ae64"
 dependencies = [
- "git2 0.20.4",
-]
-
-[[package]]
-name = "built"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c0e531d93d39c34eef561e929e8a7f86d77a5af08aac4f6d6e39976c51858e9"
-dependencies = [
- "git2 0.21.0",
+ "git2",
 ]
 
 [[package]]
@@ -367,18 +358,6 @@ dependencies = [
  "libgit2-sys",
  "log",
  "url",
-]
-
-[[package]]
-name = "git2"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddddbf932745a6be37109b6112d3ee09696106f848449069d3a57bba937ab82e"
-dependencies = [
- "bitflags 2.13.1",
- "libc",
- "libgit2-sys",
- "log",
 ]
 
 [[package]]
@@ -648,7 +627,7 @@ dependencies = [
  "atomic",
  "atomic-traits",
  "atomic_refcell",
- "built 0.8.1",
+ "built",
  "bytemuck",
  "cfg-if",
  "crossbeam",
@@ -691,7 +670,7 @@ name = "mmtk_openjdk"
 version = "0.32.0"
 dependencies = [
  "atomic",
- "built 0.7.7",
+ "built",
  "cfg-if",
  "lazy_static",
  "libc",
