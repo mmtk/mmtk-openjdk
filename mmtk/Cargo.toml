@@ -5,6 +5,8 @@ authors = [" <>"]
 rust-version = "1.84.0"
 build = "build.rs"
 edition = "2021"
+# Use the MSRV-aware resolver (stable since Rust 1.84)
+resolver = "3"
 
 [lib]
 name = "mmtk_openjdk"
@@ -39,34 +41,12 @@ probe = "0.5"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/wenyuzhao/mmtk-core.git", rev = "cb2f31c591d6555eb8606a8275e54de05762285e" }
+mmtk = { git = "https://github.com/wenyuzhao/mmtk-core.git", rev = "6d7566fc56ad2a98a6760adaa4915f39a5e0c580" }
 # Uncomment the following to build locally
 # mmtk = { path = "../../mmtk-core" }
 
 [build-dependencies]
-# Pinned below 0.8.1: that release requires edition2024, which needs a newer
-# cargo than our MSRV (1.84.0) provides.
-built = { version = ">=0.8.0, <0.8.1", features = ["git2"] }
-# `built`'s git2 feature pulls in git2 -> url -> idna -> idna_adapter. idna_adapter
-# 1.2.2 requires edition2024, so pin it below that too (this crate isn't used
-# directly, but declaring a version bound here still constrains resolution).
-idna_adapter = ">=1.2.0, <1.2.2"
-# idna_adapter pulls in the icu_* crate family, which released 2.3.0 (edition2024,
-# rust-version 1.88) in lockstep on 2026-08-13. Pin the whole group below that.
-icu_normalizer = ">=2.2.0, <2.3.0"
-icu_properties = ">=2.2.0, <2.3.0"
-icu_provider = ">=2.2.0, <2.3.0"
-icu_locale_core = ">=2.2.0, <2.3.0"
-icu_collections = ">=2.2.0, <2.3.0"
-# jobserver 0.1.35 (pulled in transitively via `cc`) requires getrandom 0.4 on the
-# Windows target, and getrandom's whole 0.4.x line is edition2024. Cargo.lock
-# includes Windows-only deps too, so pin jobserver back to avoid it.
-jobserver = ">=0.1.30, <0.1.35"
-# getrandom 0.3.x depends on wit-bindgen (via wasip2) for the wasm32-wasip2 target,
-# which is also resolved into Cargo.lock even though we don't target wasm. wasip2
-# >=1.0.2 requires wit-bindgen 0.57.1, which is edition2024. Pin wasip2 back to the
-# last release that resolves to an edition2021 wit-bindgen.
-wasip2 = ">=1.0.0, <1.0.2"
+built = { version = "0.8.0", features = ["git2"] }
 
 [features]
 default = []
