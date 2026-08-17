@@ -109,6 +109,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
             let mut mature = crate::MATURE_CODE_CACHE_ROOTS.lock().unwrap();
 
             // Only scan mature roots in full-heap collections.
+            #[allow(clippy::nonminimal_bool)]
             if !is_current_gc_nursery && !(is_lxr && is_rc_pause) {
                 for (key, roots) in mature.iter() {
                     mature_slots += roots.len();
