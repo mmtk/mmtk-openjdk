@@ -40,6 +40,24 @@ impl<const COMPRESSED: bool> ObjectModel<OpenJDK<COMPRESSED>> for VMObjectModel<
         to_obj
     }
 
+    fn try_copy(
+        from: ObjectReference,
+        copy: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<OpenJDK<COMPRESSED>>,
+    ) -> Option<ObjectReference> {
+        let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, copy);
+        if dst.is_zero() {
+            return None;
+        }
+        // Copy
+        let src = from.to_raw_address();
+        unsafe { std::ptr::copy_nonoverlapping::<u8>(src.to_ptr(), dst.to_mut_ptr(), bytes) }
+        let to_obj = unsafe { ObjectReference::from_raw_address_unchecked(dst) };
+        copy_context.post_copy(to_obj, bytes, copy);
+        Some(to_obj)
+    }
+
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         let need_copy = from != to;
         let bytes = unsafe { Oop::from(from).size::<COMPRESSED>() };
