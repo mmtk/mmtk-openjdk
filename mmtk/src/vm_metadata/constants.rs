@@ -15,6 +15,13 @@ pub(crate) const FORWARDING_POINTER_OFFSET: isize = 0;
 /// 1 bit per object
 pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side_first();
 
+/// Global per-field unlogging bit metadata spec, used by LXR's field barrier.
+/// This binding does not implement LXR, but the spec must still be defined to satisfy the
+/// `ObjectModel` trait.
+/// 1 bit per field-sized slot
+pub(crate) const FIELD_UNLOGGING_SIDE_METADATA_SPEC: VMGlobalFieldUnlogBitSpec =
+    VMGlobalFieldUnlogBitSpec::side_after(LOGGING_SIDE_METADATA_SPEC.as_spec());
+
 // Global MetadataSpecs - End
 
 // PolicySpecific MetadataSpecs - Start

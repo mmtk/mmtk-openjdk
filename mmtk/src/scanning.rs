@@ -45,10 +45,10 @@ pub(crate) fn to_slots_closure<S: Slot, F: RootsWorkFactory<S>>(factory: &mut F)
 }
 
 impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
-    fn scan_object<SV: SlotVisitor<OpenJDKSlot<COMPRESSED>>>(
+    fn scan_object(
         tls: VMWorkerThread,
         object: ObjectReference,
-        slot_visitor: &mut SV,
+        slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
     ) {
         crate::object_scanning::scan_object::<COMPRESSED>(object, slot_visitor, tls);
     }

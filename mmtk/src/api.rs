@@ -240,7 +240,7 @@ pub extern "C" fn total_bytes() -> usize {
 #[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     with_singleton!(|singleton| {
-        memory_manager::handle_user_collection_request(singleton, tls);
+        memory_manager::handle_user_collection_request(singleton, tls, false);
     })
 }
 
