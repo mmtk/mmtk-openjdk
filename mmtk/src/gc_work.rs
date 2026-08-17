@@ -143,7 +143,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
 
         if !slots.is_empty() {
             self.factory
-                .create_process_roots_work_with_root_kind(slots, RootKind::Strong);
+                .create_process_roots_work_with_root_kind(slots, RootKind::YoungCodeCacheRoots);
         }
         // Use the following code to scan CodeCache directly, instead of scanning the "remembered set".
         // unsafe {
