@@ -622,7 +622,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.33.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=94d66afcf593f5633c64b5a3b367a577b1ec9e23#94d66afcf593f5633c64b5a3b367a577b1ec9e23"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=88c9c3e6d3cbae6108f4b423bfaace4626d3064b#88c9c3e6d3cbae6108f4b423bfaace4626d3064b"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -657,7 +657,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.33.0"
-source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=94d66afcf593f5633c64b5a3b367a577b1ec9e23#94d66afcf593f5633c64b5a3b367a577b1ec9e23"
+source = "git+https://github.com/wenyuzhao/mmtk-core.git?rev=88c9c3e6d3cbae6108f4b423bfaace4626d3064b#88c9c3e6d3cbae6108f4b423bfaace4626d3064b"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1332,9 +1332,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec-derive"
-version = "0.11.4"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47402523226a02bfe5230160dc3ccc089aa6f6f19e7fcbb4e6f824bbb1b4aa62"
+checksum = "9f212a141d820099d57ffafb9569be9617a6f27d3dc881fbee8fb56642f917a9"
 dependencies = [
  "proc-macro2",
  "quote",
