@@ -81,11 +81,11 @@ public:
   static void object_reference_write_post_call(void* src, void* slot, void* target);
   /// Generic slow-path. Called by fast-paths.
   static void object_reference_write_slow_call(void* src, void* slot, void* target);
-  /// Generic arraycopy post-barrier. Called by fast-paths.
-  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
   /// Generic arraycopy pre-barrier. Called by fast-paths.
+  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
+  /// Generic arraycopy post-barrier. Called by fast-paths.
   static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
-  /// 
+  /// A pre-barrier indicating some fields will be modified soon. Called by fast-paths.
   static void object_probable_write_pre_call(void* obj);
   /// Check if the address is a slow-path function.
   virtual bool is_slow_path_call(address call) const {
