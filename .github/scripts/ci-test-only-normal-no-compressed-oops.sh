@@ -77,6 +77,12 @@ export MMTK_PLAN=MarkSweep
 
 run_all_no_compressed_oop 4
 
+# --- LXR ---
+export MMTK_PLAN=LXR
+export MMTK_NO_REFERENCE_TYPES=true
+run_all_no_compressed_oop 4
+unset MMTK_NO_REFERENCE_TYPES
+
 # --- PageProtect ---
 # Make sure this runs last in our tests unless we want to set it back to the default limit.
 sudo sysctl -w vm.max_map_count=655300

@@ -47,6 +47,12 @@ export MMTK_PLAN=MarkSweep
 
 run_subset 8
 
+# --- LXR ---
+export MMTK_PLAN=LXR
+export MMTK_NO_REFERENCE_TYPES=true
+run_subset 4
+unset MMTK_NO_REFERENCE_TYPES
+
 # -- PageProtect --
 sudo sysctl -w vm.max_map_count=655300
 export MMTK_PLAN=PageProtect
