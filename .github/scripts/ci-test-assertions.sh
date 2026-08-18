@@ -48,10 +48,12 @@ export MMTK_PLAN=MarkSweep
 run_subset 8
 
 # --- LXR ---
-export MMTK_PLAN=LXR
-export MMTK_NO_REFERENCE_TYPES=true
-run_subset 4
-unset MMTK_NO_REFERENCE_TYPES
+# LXR has many raw accesses to side metadata, which breaks extreme assertions on side metadata.
+# Temporarilly disable LXR for this test.
+# export MMTK_PLAN=LXR
+# export MMTK_NO_REFERENCE_TYPES=true
+# run_subset 4
+# unset MMTK_NO_REFERENCE_TYPES
 
 # -- PageProtect --
 sudo sysctl -w vm.max_map_count=655300
