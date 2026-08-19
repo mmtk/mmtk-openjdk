@@ -52,7 +52,7 @@ void MMTkObjectBarrierSetAssembler::object_reference_write_post(MacroAssembler* 
     // tmp1 = load-byte (SIDE_METADATA_BASE_ADDRESS + (obj >> 6));
     __ mv(tmp1, obj);
     __ srli(tmp1, tmp1, 6); // tmp1 = obj >> 6;
-    __ li(tmp2, SIDE_METADATA_BASE_ADDRESS);
+    __ li(tmp2, field_unlog_bits_base_address());
     __ add(tmp1, tmp1, tmp2); // tmp1 = SIDE_METADATA_BASE_ADDRESS + (obj >> 6);
     __ lbu(tmp1, Address(tmp1, 0));
     // tmp2 = (obj >> 3) & 7

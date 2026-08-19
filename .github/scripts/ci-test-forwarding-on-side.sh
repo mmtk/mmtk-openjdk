@@ -19,3 +19,5 @@ MMTK_PLAN=Immix run_subset 4
 MMTK_PLAN=GenCopy run_subset 4
 MMTK_PLAN=GenImmix run_subset 4
 MMTK_PLAN=StickyImmix run_subset 4
+# TODO: We should try get LXR support side forwarding bits.
+# MMTK_PLAN=LXR MMTK_NO_REFERENCE_TYPES=true run_subset 4

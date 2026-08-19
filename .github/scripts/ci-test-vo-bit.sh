@@ -55,3 +55,10 @@ export MMTK_PLAN=NoGC
 runbms_dacapo2006_with_heap_size antlr 1000 1000
 runbms_dacapo2006_with_heap_size fop 1000 1000
 runbms_dacapo2006_with_heap_size luindex 1000 1000
+
+# --- LXR ---
+
+export MMTK_PLAN=LXR
+export MMTK_NO_REFERENCE_TYPES=true
+run_subset 4
+unset MMTK_NO_REFERENCE_TYPES

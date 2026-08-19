@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate atomic;
+extern crate once_cell;
 #[macro_use]
 extern crate probe;
 
@@ -11,6 +13,7 @@ use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
 use mmtk::util::heap::vm_layout::VMLayout;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::slot::Slot;
@@ -111,8 +114,10 @@ pub struct OpenJDK_Upcalls {
     pub number_of_mutators: extern "C" fn() -> usize,
     pub schedule_finalizer: extern "C" fn(),
     pub prepare_for_roots_re_scanning: extern "C" fn(),
+    pub update_weak_processor: extern "C" fn(lxr: bool),
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
-    pub fix_oop_relocations: extern "C" fn(nmethod: *mut libc::c_void),
+    pub fix_oop_relocations: extern "C" fn(lxr: bool, nmethods: *mut libc::c_void, len: usize),
+    pub gc_epilogue: extern "C" fn(),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
@@ -128,6 +133,11 @@ pub extern "C" fn get_global_side_metadata_vm_base_address() -> uintptr_t {
 }
 
 #[no_mangle]
+pub extern "C" fn get_rc_table_base_address() -> uintptr_t {
+    mmtk::util::metadata::side_metadata::rc_table_start_address().as_usize()
+}
+
+#[no_mangle]
 pub extern "C" fn get_vo_bit_address() -> uintptr_t {
     mmtk::util::metadata::side_metadata::vo_bit_side_metadata_addr().as_usize()
 }
@@ -137,7 +147,14 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK<false>>>();
 
 #[no_mangle]
+pub static IMMIX_ALLOCATOR_SIZE: uintptr_t =
+    std::mem::size_of::<mmtk::util::alloc::ImmixAllocator<OpenJDK<false>>>();
+
+#[no_mangle]
 pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;
+
+#[no_mangle]
+pub static mut RC_ENABLED: u8 = 0;
 
 #[derive(Default)]
 pub struct OpenJDK<const COMPRESSED: bool>;
@@ -172,6 +189,9 @@ lazy_static! {
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         slots::initialize_compressed_oops_base_and_shift();
+        unsafe {
+            RC_ENABLED = (*ret.get_options().plan == PlanSelector::LXR) as _;
+        }
         *ret
     };
     pub static ref SINGLETON_UNCOMPRESSED: MMTK<OpenJDK<false>> = {
@@ -180,6 +200,9 @@ lazy_static! {
         assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
         let ret = mmtk::memory_manager::mmtk_init(&builder);
         MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+        unsafe {
+            RC_ENABLED = (*ret.get_options().plan == PlanSelector::LXR) as _;
+        }
         *ret
     };
 }

@@ -31,8 +31,10 @@
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/oopStorage.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+#include "gc/shared/oopStorageSetParState.hpp"
 #include "gc/shared/space.hpp"
 #include "gc/shared/strongRootsScope.hpp"
+#include "gc/shared/workerThread.hpp"
 #include "gc/shared/softRefPolicy.hpp"
 #include "memory/iterator.hpp"
 #include "memory/metaspace.hpp"
@@ -40,6 +42,30 @@
 #include "mmtkMemoryPool.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/ostream.hpp"
+
+#define WORKER_STACK_SIZE (64 * 1024 * 1024)
+
+template <class T>
+struct MaybeUninit {
+  MaybeUninit() {}
+  T* operator->() {
+    return (T*) &_data;
+  }
+  T& operator*() {
+    return *((T*) &_data);
+  }
+  template<class... Args>
+  void init(Args... args) {
+    new (&_data) T(args...);
+  }
+  template<class... Args>
+  void reinit(Args... args) {
+    ((T*) &_data)->~T();
+    new (&_data) T(args...);
+  }
+private:
+  char _data[sizeof(T)];
+};
 
 class GCMemoryManager;
 class MemoryPool;
@@ -53,7 +79,10 @@ class MMTkHeap : public CollectedHeap {
   ContiguousSpace* _space;
   int _num_root_scan_tasks;
   MMTkVMCompanionThread* _companion_thread;
+  WorkerThreads* _workers;
   SoftRefPolicy _soft_ref_policy;
+public:
+  AllocatorSelector default_allocator_selector;
 
 public:
   jlong _last_gc_time;
@@ -64,7 +93,13 @@ private:
 public:
   MMTkHeap();
 
+  WorkerThreads* workers() const { return _workers; }
+
   void schedule_finalizer();
+
+  void set_is_gc_active(bool is_gc_active) {
+    _is_stw_gc_active = is_gc_active;
+  }
 
   inline static MMTkHeap* heap() {
     return _heap;
@@ -72,10 +107,10 @@ public:
 
   static HeapWord* allocate_from_tlab(Klass* klass, Thread* thread, size_t size);
 
-  jint initialize();
-  void enable_collection();
+  virtual jint initialize() override;
+  virtual void enable_collection() override;
 
-  virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
+  virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) override;
   HeapWord* mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded);
 
   MMTkVMCompanionThread* companion_thread() const {
@@ -83,33 +118,27 @@ public:
   }
 
 
-  Name kind() const {
+  virtual Name kind() const override {
     return CollectedHeap::ThirdPartyHeap;
   }
-  const char* name() const {
+  virtual const char* name() const override {
     return "MMTk";
   }
   static const char* version();
 
-  size_t capacity() const;
-  size_t used() const;
+  virtual size_t capacity() const override;
+  virtual size_t used() const override;
 
-  bool is_maximal_no_gc() const;
+  virtual bool is_maximal_no_gc() const override;
 
-  size_t max_capacity() const;
-  bool is_in(const void* p) const;
-  bool is_in_reserved(const void* p) const;
-  bool supports_tlab_allocation() const;
-
-  bool supports_inline_contig_alloc() const {
-    return mmtk_enable_allocation_fastpath;
-  }
+  virtual size_t max_capacity() const override;
+  virtual bool is_in(const void* p) const override;
 
   // The amount of space available for thread-local allocation buffers.
-  size_t tlab_capacity(Thread *thr) const;
+  virtual size_t tlab_capacity(Thread *thr) const override;
 
   // The amount of used space for thread-local allocation buffers for the given thread.
-  size_t tlab_used(Thread *thr) const;
+  virtual size_t tlab_used(Thread *thr) const override;
 
   void new_collector_thread() {
     _n_workers += 1;
@@ -127,79 +156,64 @@ public:
   // mark to be thus strictly sequenced after the stores.
   bool card_mark_must_follow_store() const;
 
-  void collect(GCCause::Cause cause);
+  virtual void collect(GCCause::Cause cause) override;
 
   // Perform a full collection
-  void do_full_collection(bool clear_all_soft_refs);
+  virtual void do_full_collection(bool clear_all_soft_refs) override;
+
+  virtual void collect_as_vm_thread(GCCause::Cause cause) override;
 
 
-  SoftRefPolicy* soft_ref_policy();
+  virtual SoftRefPolicy* soft_ref_policy() override;
 
-  GrowableArray<GCMemoryManager*> memory_managers() ;
-  GrowableArray<MemoryPool*> memory_pools();
+  virtual GrowableArray<GCMemoryManager*> memory_managers() override;
+  virtual GrowableArray<MemoryPool*> memory_pools() override;
 
   // Iterate over all objects, calling "cl.do_object" on each.
-  void object_iterate(ObjectClosure* cl);
+  virtual void object_iterate(ObjectClosure* cl) override;
 
   void pin_object(JavaThread* thread, oop obj);
   void unpin_object(JavaThread* thread, oop obj);
 
-  // Similar to object_iterate() except iterates only
-  // over live objects.
-  void safe_object_iterate(ObjectClosure* cl) ;
+  virtual void prepare_for_verify() override;
 
-  HeapWord* block_start(const void* addr) const ;
-
-  size_t block_size(const HeapWord* addr) const ;
-
-  bool block_is_obj(const HeapWord* addr) const;
-
-  jlong millis_since_last_gc() ;
-
-  void prepare_for_verify() ;
-
+  virtual void register_new_weak_handle(oop* handle) /*override*/;
 
 private:
 
-  void initialize_serviceability() ;
+  virtual void initialize_serviceability() override;
 
   void set_mmtk_options(bool set_defaults);
 
 public:
 
   // Print heap information on the given outputStream.
-  void print_on(outputStream* st) const ;
-
-
-  // Print all GC threads (other than the VM thread)
-  // used by this heap.
-  void print_gc_threads_on(outputStream* st) const;
+  virtual void print_on(outputStream* st) const override;
 
   // Iterator for all GC threads (other than VM thread)
-  void gc_threads_do(ThreadClosure* tc) const;
+  virtual void gc_threads_do(ThreadClosure* tc) const override;
 
   // Print any relevant tracing info that flags imply.
   // Default implementation does nothing.
-  void print_tracing_info() const ;
+  virtual void print_tracing_info() const override;
 
   bool print_location(outputStream* st, void* addr) const;
 
   bool requires_barriers(stackChunkOop obj) const;
 
-  void register_nmethod(nmethod* nm);
-  void unregister_nmethod(nmethod* nm);
+  virtual void register_nmethod(nmethod* nm) override;
+  virtual void unregister_nmethod(nmethod* nm) override;
 
-  void flush_nmethod(nmethod* nm);
-  void verify_nmethod(nmethod* nm);
+  virtual void verify_nmethod(nmethod* nm) override;
 
   // An object is scavengable if its location may move during a scavenge.
   // (A scavenge is a GC which is not a full GC.)
   inline bool is_scavengable(oop obj) { return true; }
 
   // Heap verification
-  void verify(VerifyOption option);
+  virtual void verify(VerifyOption option) override;
 
-  void post_initialize();
+  virtual void post_initialize() override;
 
   void scan_roots(OopClosure& cl);
 

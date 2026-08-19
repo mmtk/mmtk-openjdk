@@ -47,6 +47,8 @@ macro_rules! with_mutator {
 static NO_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("NoBarrier").unwrap());
 static OBJECT_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("ObjectBarrier").unwrap());
+static FIELD_LOGGING_BARRIER: sync::Lazy<CString> =
+    sync::Lazy::new(|| CString::new("FieldBarrier").unwrap());
 static SATB_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("SATBBarrier").unwrap());
 
 #[no_mangle]
@@ -60,12 +62,18 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
         match singleton.get_plan().constraints().barrier {
             BarrierSelector::NoBarrier => NO_BARRIER.as_ptr(),
             BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
+            BarrierSelector::FieldBarrier => FIELD_LOGGING_BARRIER.as_ptr(),
             BarrierSelector::SATBBarrier => SATB_BARRIER.as_ptr(),
             // In case we have more barriers in mmtk-core.
             #[allow(unreachable_patterns)]
             _ => unimplemented!(),
         }
     })
+}
+
+#[no_mangle]
+pub extern "C" fn mmtk_report_gc_start() {
+    with_singleton!(|singleton| mmtk::memory_manager::report_gc_start(singleton));
 }
 
 /// # Safety
@@ -238,9 +246,9 @@ pub extern "C" fn total_bytes() -> usize {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
+pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread, force: bool) {
     with_singleton!(|singleton| {
-        memory_manager::handle_user_collection_request(singleton, tls);
+        memory_manager::handle_user_collection_request(singleton, tls, force);
     })
 }
 
@@ -333,6 +341,13 @@ pub extern "C" fn mmtk_builder_read_env_var_settings() {
 pub extern "C" fn mmtk_builder_set_threads(value: usize) {
     let mut builder = BUILDER.lock().unwrap();
     builder.options.threads.set(value);
+}
+
+/// Pass hotspot `ConcGCThreads` flag to mmtk
+#[no_mangle]
+pub extern "C" fn mmtk_builder_set_conc_threads(value: usize) {
+    let mut builder = BUILDER.lock().unwrap();
+    builder.options.concurrent_threads.set(value);
 }
 
 /// Pass hotspot `UseTransparentHugePages` flag to mmtk
@@ -488,6 +503,37 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 #[no_mangle]
 pub extern "C" fn get_finalized_object() -> NullableObjectReference {
     with_singleton!(|singleton| memory_manager::get_finalized_object(singleton).into())
+}
+
+/// Test if an object is live at the end of a GC.
+/// Note: only call this method after the liveness tracing and before gc release.
+#[no_mangle]
+pub extern "C" fn mmtk_is_live(object: NullableObjectReference) -> usize {
+    let o: Option<ObjectReference> = object.into();
+    let Some(object) = o else {
+        return 0;
+    };
+    debug_assert!(
+        object.to_raw_address().is_mapped(),
+        "{:?} is not mapped",
+        object
+    );
+    object.is_live() as _
+}
+
+/// If the object is non-null and forwarded, return the forwarded pointer. Otherwise, return the original pointer.
+#[no_mangle]
+pub extern "C" fn mmtk_get_forwarded_ref(
+    object: NullableObjectReference,
+) -> NullableObjectReference {
+    let o: Option<ObjectReference> = object.into();
+    let Some(o) = o else {
+        return None.into();
+    };
+    match o.get_forwarded_object() {
+        Some(o) => Some(o).into(),
+        None => object,
+    }
 }
 
 thread_local! {

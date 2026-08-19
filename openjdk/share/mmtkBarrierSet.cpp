@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "barriers/mmtkNoBarrier.hpp"
 #include "barriers/mmtkObjectBarrier.hpp"
+#include "barriers/mmtkFieldBarrier.hpp"
 #include "barriers/mmtkSATBBarrier.hpp"
 #include "mmtkBarrierSet.hpp"
 #include "utilities/macros.hpp"
@@ -36,6 +37,7 @@
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
+#include "mmtkBarrierSetAssembler_x86.hpp"
 
 bool mmtk_enable_allocation_fastpath = true;
 bool mmtk_enable_barrier_fastpath = true;
@@ -87,6 +89,7 @@ MMTkBarrierBase* get_selected_barrier() {
   if (strcmp(barrier, "NoBarrier") == 0) selected_barrier = new MMTkNoBarrier();
   else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
   else if (strcmp(barrier, "SATBBarrier") == 0) selected_barrier = new MMTkSATBBarrier();
+  else if (strcmp(barrier, "FieldBarrier") == 0) selected_barrier = new MMTkFieldBarrier();
   else guarantee(false, "Unimplemented");
   return selected_barrier;
 }
@@ -165,4 +168,8 @@ void MMTkBarrierSetRuntime::object_reference_array_copy_post_call(void* src, voi
 
 void MMTkBarrierSetRuntime::load_reference_call(void* ref) {
   ::mmtk_load_reference((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, ref);
+}
+
+void MMTkBarrierSetRuntime::object_probable_write_pre_call(void* ref) {
+  ::mmtk_object_probable_write((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, ref);
 }

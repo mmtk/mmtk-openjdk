@@ -27,6 +27,7 @@
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetC1.hpp"
 #include "mmtkMutator.hpp"
+#include "mmtkHeap.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
 #include "c1/c1_LIRAssembler.hpp"
@@ -93,8 +94,8 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
       __ lea(end, Address(obj, var_size_in_bytes, Address::times_1));
     }
     // slowpath if end < obj
-    __ cmpptr(end, obj);
-    __ jcc(Assembler::below, slow_case);
+    // __ cmpptr(end, obj);
+    // __ jcc(Assembler::below, slow_case);
     // slowpath if end > lab.limit
     __ cmpptr(end, limit);
     __ jcc(Assembler::above, slow_case);
@@ -150,7 +151,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
 
 #define __ sasm->
 
-void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc) {
+void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc, bool do_code_patch) {
   __ prologue(name, false);
   __ save_live_registers_no_oop_map(true);
 
@@ -161,7 +162,13 @@ void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sa
     guarantee(false, "Too many args");
   }
 
-  __ call_VM_leaf_base(entry_point, 3);
+  if (do_code_patch) {
+    // We don't know the field offset when a code patching is required.
+    // As a temporary fix, we apply field barrier to all fields in this object.
+    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_probable_write_pre_call), c_rarg0);
+  } else {
+    __ call_VM_leaf_base(entry_point, argc);
+  }
 
   __ restore_live_registers(true);
   __ epilogue();
@@ -173,6 +180,10 @@ void MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub(StubAssemb
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm) {
   generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+}
+
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub_with_patch_fix(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(mmtk_object_reference_write_slow), 3, true);
 }
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm) {

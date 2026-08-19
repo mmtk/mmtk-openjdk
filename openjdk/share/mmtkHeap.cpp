@@ -31,6 +31,7 @@
 #include "gc/shared/gcLocker.inline.hpp"
 #include "gc/shared/gcWhen.hpp"
 #include "gc/shared/oopStorageSet.inline.hpp"
+#include "gc/shared/oopStorageSetParState.inline.hpp"
 #include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/weakProcessor.hpp"
@@ -59,6 +60,12 @@
 #include "services/memoryManager.hpp"
 #include "services/memTracker.hpp"
 #include "utilities/vmError.hpp"
+#include "mmtkRootsClosure.hpp"
+#include "gc/shared/workerPolicy.hpp"
+
+MaybeUninit<OopStorageSetStrongParState<false, false>> oop_storage_set_strong_par_state;
+MaybeUninit<OopStorageSetWeakParState<false, false>> oop_storage_set_weak_par_state;
+
 /*
 needed support from rust
 heap capacity
@@ -195,6 +202,12 @@ jint MMTkHeap::initialize() {
     fprintf(stderr, "Failed to create thread");
     guarantee(false, "panic");
   }
+
+  unsigned int ncpus = (unsigned int) os::initial_active_processor_count();
+  _workers = new WorkerThreads("GC Thread", ncpus);
+  _workers->initialize_workers();
+  _workers->set_active_workers(WorkerPolicy::parallel_worker_threads());
+
   os::start_thread(_companion_thread);
   // Set up the GCTaskManager
   //  _mmtk_gc_task_manager = mmtkGCTaskManager::create(ParallelGCThreads);
@@ -209,6 +222,10 @@ void MMTkHeap::set_mmtk_options(bool set_defaults) {
     mmtk_builder_set_threads(ParallelGCThreads);
   }
 
+  if (FLAG_IS_DEFAULT(ConcGCThreads) == set_defaults) {
+    mmtk_builder_set_conc_threads(ConcGCThreads);
+  }
+
   if (FLAG_IS_DEFAULT(UseTransparentHugePages) == set_defaults) {
     mmtk_builder_set_transparent_hugepages(UseTransparentHugePages);
   }
@@ -220,7 +237,9 @@ const char* MMTkHeap::version() {
 }
 
 void MMTkHeap::schedule_finalizer() {
-  MMTkFinalizerThread::instance->schedule();
+  if (!RC_ENABLED) {
+    MMTkFinalizerThread::instance->schedule();
+  }
 }
 
 class MMTkIsScavengable : public BoolObjectClosure {
@@ -246,7 +265,9 @@ void MMTkHeap::post_initialize() {
 void MMTkHeap::enable_collection() {
   // Initialize finalizer thread before enable_collection().
   // Otherwise it is possible that we schedule finalizer (during a GC) before the finalizer thread is ready.
-  MMTkFinalizerThread::initialize();
+  if (!RC_ENABLED) {
+    MMTkFinalizerThread::initialize();
+  }
 
   ::initialize_collection(0);
 }
@@ -300,16 +321,6 @@ bool MMTkHeap::is_in(const void* p) const {
   return is_in_mmtk_spaces(const_cast<void *>(p));
 }
 
-bool MMTkHeap::is_in_reserved(const void* p) const {
-  //printf("calling MMTkHeap::is_in_reserved\n");
-  return is_in(p);
-}
-
-bool MMTkHeap::supports_tlab_allocation() const {
-  //returning false is good enough...used in universe.cpp
-  return false;
-}
-
 // The amount of space available for thread-local allocation buffers.
 size_t MMTkHeap::tlab_capacity(Thread *thr) const {
   //no need to further implement but we need UseTLAB=False
@@ -344,17 +355,30 @@ bool MMTkHeap::card_mark_must_follow_store() const { //OK
 }
 
 void MMTkHeap::collect(GCCause::Cause cause) {//later when gc is implemented in rust
-  handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
-  // guarantee(false, "collect not supported");
+  if (cause == GCCause::_gc_locker) {
+    // This runs on the Java mutator thread that is the last one exiting a
+    // JNI critical region (see GCLocker::jni_unlock), so JNICritical_lock
+    // must be acquired with a safepoint check, same as gcLocker.cpp does.
+    // Acquiring it with Mutex::_no_safepoint_check_flag here trips HotSpot's
+    // "This lock should always have a safepoint check for Java threads"
+    // assertion in Mutex::check_no_safepoint_state.
+    MutexLocker locker(JNICritical_lock);
+    // Notify the VMCompanionThread to trigger another VM_MMTkSTWOperation.
+    JNICritical_lock->notify_all();
+  }
+  handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, cause != GCCause::_java_lang_system_gc);
 }
 
 // Perform a full collection
 void MMTkHeap::do_full_collection(bool clear_all_soft_refs) {//later when gc is implemented in rust
-  // guarantee(false, "do full collection not supported");
-
-  // handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator);
+  handle_user_collection_request((MMTk_Mutator) &Thread::current()->third_party_heap_mutator, true);
 }
 
+void MMTkHeap::collect_as_vm_thread(GCCause::Cause cause) {
+  MMTkHeap::heap()->companion_thread()->vm_thread_requires_gc_pause();
+  handle_user_collection_request(NULL, true);
+  MMTkHeap::heap()->companion_thread()->block_vm_thread();
+}
 
 SoftRefPolicy* MMTkHeap::soft_ref_policy() {return &_soft_ref_policy;}//OK
 
@@ -376,37 +400,6 @@ void MMTkHeap::object_iterate(ObjectClosure* cl) { //No need to implement.Traced
   fprintf(stderr, "WARNING: MMTkHeap::object_iterate is not implemented, yet.\n");
 }
 
-// Similar to object_iterate() except iterates only
-// over live objects.
-void MMTkHeap::safe_object_iterate(ObjectClosure* cl) { //not sure..many dependencies from vm
-  fprintf(stderr, "WARNING: MMTkHeap::safe_object_iterate is not implemented, yet.\n");
-}
-
-HeapWord* MMTkHeap::block_start(const void* addr) const {//OK
-  guarantee(false, "block start not supported");
-  return NULL;
-}
-
-size_t MMTkHeap::block_size(const HeapWord* addr) const { //OK
-  guarantee(false, "block size not supported");
-  return 0;
-}
-
-bool MMTkHeap::block_is_obj(const HeapWord* addr) const { //OK
-  guarantee(false, "block is obj not supported");
-  return false;
-}
-
-jlong MMTkHeap::millis_since_last_gc() {//later when gc is implemented in rust
-  jlong ret_val = (os::javaTimeNanos() / NANOSECS_PER_MILLISEC) - _last_gc_time;
-  if (ret_val < 0) {
-    log_warning(gc)("millis_since_last_gc() would return : " JLONG_FORMAT
-                    ". returning zero instead.", ret_val);
-    return 0;
-  }
-  return ret_val;
-}
-
 
 void MMTkHeap::prepare_for_verify() {
   // guarantee(false, "prepare for verify not supported");
@@ -421,12 +414,7 @@ void MMTkHeap::initialize_serviceability() {//OK
 }
 
 // Print heap information on the given outputStream.
-void MMTkHeap::print_on(outputStream* st) const {guarantee(false, "print on not supported");}
-
-
-// Print all GC threads (other than the VM thread)
-// used by this heap.
-void MMTkHeap::print_gc_threads_on(outputStream* st) const {guarantee(false, "print gc threads on not supported");}
+void MMTkHeap::print_on(outputStream* st) const {}
 
 // Iterator for all GC threads (other than VM thread)
 void MMTkHeap::gc_threads_do(ThreadClosure* tc) const {
@@ -441,7 +429,7 @@ void MMTkHeap::print_tracing_info() const {
 
 // Used to print information about locations in the hs_err file.
 bool MMTkHeap::print_location(outputStream* st, void* addr) const {
-  guarantee(false, "print location not supported");
+  // guarantee(false, "print location not supported");
   return false;
 }
 
@@ -470,9 +458,7 @@ void MMTkHeap::register_nmethod(nmethod* nm) {
   // Register the nmethod
   mmtk_register_nmethod((void*) nm);
 }
-// Callback for when nmethod is about to be deleted.
-void MMTkHeap::flush_nmethod(nmethod* nm) {
-}
+
 void MMTkHeap::verify_nmethod(nmethod* nm) {
 }
 
@@ -492,17 +478,20 @@ void MMTkHeap::scan_class_loader_data_graph_roots(OopClosure& cl) {
   ClassLoaderDataGraph::cld_do(&cld_cl);
 }
 void MMTkHeap::scan_oop_storage_set_roots(OopClosure& cl) {
-  OopStorageSet::strong_oops_do(&cl);
+  for (auto id : EnumRange<OopStorageSet::StrongId>()) {
+    oop_storage_set_strong_par_state->par_state(id)->oops_do(&cl);
+  }
 }
 void MMTkHeap::scan_weak_processor_roots(OopClosure& cl) {
-  // XXX zixianc: I don't understand why this is removed in
-  // 24b90dd889da0ea58aaa2b2311ded6f262573830
-  // ResourceMark rm;
-  WeakProcessor::oops_do(&cl); // (really needed???)
+  ResourceMark rm;
+  for (auto id : EnumRange<OopStorageSet::WeakId>()) {
+    oop_storage_set_weak_par_state->par_state(id)->weak_oops_do(&cl);
+  }
 }
 void MMTkHeap::scan_vm_thread_roots(OopClosure& cl) {
   ResourceMark rm;
-  VMThread::vm_thread()->oops_do(&cl, NULL);
+  MarkingCodeBlobClosure cb_cl(&cl, false, true);
+  VMThread::vm_thread()->oops_do(&cl, &cb_cl);
 }
 
 void MMTkHeap::scan_roots_in_all_mutator_threads(OopClosure& cl) {
@@ -543,6 +532,8 @@ HeapWord* MMTkHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceed
 HeapWord* MMTkHeap::mem_allocate_nonmove(size_t size, bool* gc_overhead_limit_was_exceeded) {
   return Thread::current()->third_party_heap_mutator.alloc(size << LogHeapWordSize, AllocatorLos);
 }
+
+void MMTkHeap::register_new_weak_handle(oop* handle) {}
 
 bool MMTkHeap::requires_barriers(stackChunkOop obj) const {
   ShouldNotReachHere();

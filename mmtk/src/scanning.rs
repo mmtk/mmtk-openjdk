@@ -3,7 +3,7 @@ use crate::Slot;
 use crate::{NewBuffer, OpenJDKSlot, UPCALLS};
 use crate::{OpenJDK, SlotsClosure};
 use mmtk::memory_manager;
-use mmtk::scheduler::WorkBucketStage;
+use mmtk::scheduler::RootKind;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{RootsWorkFactory, Scanning, SlotVisitor};
@@ -25,7 +25,7 @@ extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
         // should fix the Rust-to-C interface.
         let buf = unsafe { Vec::<S>::from_raw_parts(ptr as _, length, capacity) };
         let factory: &mut F = unsafe { &mut *(factory_ptr as *mut F) };
-        factory.create_process_roots_work(buf);
+        factory.create_process_roots_work_with_root_kind(buf, RootKind::Strong);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
@@ -45,10 +45,10 @@ pub(crate) fn to_slots_closure<S: Slot, F: RootsWorkFactory<S>>(factory: &mut F)
 }
 
 impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
-    fn scan_object<SV: SlotVisitor<OpenJDKSlot<COMPRESSED>>>(
+    fn scan_object(
         tls: VMWorkerThread,
         object: ObjectReference,
-        slot_visitor: &mut SV,
+        slot_visitor: &mut impl SlotVisitor<OpenJDKSlot<COMPRESSED>>,
     ) {
         crate::object_scanning::scan_object::<COMPRESSED>(object, slot_visitor, tls);
     }
@@ -73,17 +73,20 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
         _tls: VMWorkerThread,
         factory: impl RootsWorkFactory<OpenJDKSlot<COMPRESSED>>,
     ) {
-        memory_manager::add_work_packets(
-            crate::singleton::<COMPRESSED>(),
-            WorkBucketStage::Prepare,
-            vec![
-                Box::new(ScanCodeCacheRoots::new(factory.clone())) as _,
-                Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())) as _,
-                Box::new(ScanOopStorageSetRoots::new(factory.clone())) as _, // FIXME17: Several removed roots are all put to this work packet, may cause slowdown.
-                Box::new(ScanWeakProcessorRoots::new(factory.clone())) as _,
-                Box::new(ScanVMThreadRoots::new(factory)) as _,
-            ],
-        );
+        let mut w: Vec<Box<dyn mmtk::scheduler::GCWork<OpenJDK<COMPRESSED>>>> = vec![
+            Box::new(ScanCodeCacheRoots::new(factory.clone())),
+            Box::new(ScanClassLoaderDataGraphRoots::new(factory.clone())),
+            Box::new(ScanVMThreadRoots::new(factory.clone())),
+        ];
+        for _ in 0..*crate::singleton::<COMPRESSED>().get_options().threads {
+            w.push(Box::new(ScanOopStorageSetRoots::new(factory.clone())));
+            w.push(Box::new(ScanWeakProcessorRoots::new(factory.clone())));
+        }
+        let mmtk = crate::singleton::<COMPRESSED>();
+        let stage = crate::singleton::<COMPRESSED>()
+            .get_plan()
+            .root_scanning_stage();
+        memory_manager::add_work_packets(mmtk, stage, w);
     }
 
     fn supports_return_barrier() -> bool {

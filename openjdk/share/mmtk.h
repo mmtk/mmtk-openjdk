@@ -20,7 +20,10 @@ typedef enum {
 
 extern uintptr_t get_global_side_metadata_base_address();
 extern uintptr_t get_global_side_metadata_vm_base_address();
+extern uintptr_t get_rc_table_base_address();
 extern uintptr_t get_vo_bit_address();
+extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
+extern uint8_t RC_ENABLED;
 extern const size_t MMTK_LISP2_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
@@ -33,6 +36,9 @@ extern const char* get_mmtk_version();
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
 extern void flush_mutator(MMTk_Mutator mutator);
+extern void release_mutator(MMTk_Mutator mutator);
+
+extern void mmtk_report_gc_start();
 
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
@@ -105,9 +111,13 @@ extern bool will_never_move(void* object);
 extern bool process(char* name, char* value);
 extern bool process_bulk(char* options);
 extern void scan_region();
-extern void handle_user_collection_request(void *tls);
+extern void handle_user_collection_request(void *tls, bool force);
 
 extern void start_worker(void *tls, void* worker);
+
+extern size_t mmtk_is_live(void* object);
+extern void* mmtk_get_forwarded_ref(void* object);
+
 
 extern size_t mmtk_add_nmethod_oop(void* object);
 extern size_t mmtk_register_nmethod(void* nm);
@@ -164,7 +174,7 @@ typedef struct {
     int (*static_oop_field_count_offset) ();
     int (*referent_offset) ();
     int (*discovered_offset) ();
-    char* (*dump_object_string) (void* object);
+    const char* (*dump_object_string) (void* object);
     void (*scan_roots_in_all_mutator_threads)(SlotsClosure closure);
     void (*scan_roots_in_mutator_thread)(SlotsClosure closure, void* tls);
     void (*scan_code_cache_roots) (SlotsClosure closure);
@@ -175,8 +185,10 @@ typedef struct {
     size_t (*number_of_mutators)();
     void (*schedule_finalizer)();
     void (*prepare_for_roots_re_scanning)();
+    void (*mmtk_update_weak_processor)(bool lxr);
     void (*enqueue_references)(void** objects, size_t len);
-    void (*fix_oop_relocations)(void* nmethod);
+    void (*fix_oop_relocations)(bool lxr, void* nmethods, size_t len);
+    void (*gc_epilogue)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls);
@@ -212,8 +224,35 @@ extern void add_phantom_candidate(void* ref, void* referent);
 extern void mmtk_harness_begin_impl();
 extern void mmtk_harness_end_impl();
 
+constexpr size_t log_min_obj_size = 3;
+
+inline uint8_t mmtk_get_rc_2bits(void* o) {
+    const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + (index >> 2)));
+    auto v = byte >> ((index & 0b11) << 1);
+    return v & 0b11;
+}
+
+inline uint8_t mmtk_get_rc_4bits(void* o) {
+    const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + (index >> 1)));
+    auto v = byte >> ((index & 0b1) << 2);
+    return v & 0b1111;
+}
+
+inline uint8_t mmtk_get_rc_8bits(void* o) {
+    const uintptr_t index = uintptr_t((void*) o) >> log_min_obj_size;
+    const uint8_t byte = *((uint8_t*) (get_rc_table_base_address() + index));
+    return byte;
+}
+
+inline uint8_t mmtk_get_rc(void* o) {
+    return mmtk_get_rc_2bits(o);
+}
+
 extern void mmtk_builder_read_env_var_settings();
 extern void mmtk_builder_set_threads(size_t value);
+extern void mmtk_builder_set_conc_threads(size_t value);
 extern void mmtk_builder_set_transparent_hugepages(bool value);
 
 #ifdef __cplusplus

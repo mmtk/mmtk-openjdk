@@ -43,6 +43,14 @@ extern bool mmtk_enable_allocation_fastpath;
 extern bool mmtk_enable_barrier_fastpath;
 extern bool mmtk_enable_reference_load_barrier;
 
+inline intptr_t field_unlog_bits_base_address() {
+  return static_cast<intptr_t>(get_global_side_metadata_vm_base_address());
+}
+
+inline intptr_t field_unlog_bits_base_address_compressed() {
+  return static_cast<intptr_t>(get_global_side_metadata_vm_base_address());
+}
+
 inline intptr_t vo_bit_base_address() {
   return static_cast<intptr_t>(get_vo_bit_address());
 }
@@ -73,10 +81,12 @@ public:
   static void object_reference_write_post_call(void* src, void* slot, void* target);
   /// Generic slow-path. Called by fast-paths.
   static void object_reference_write_slow_call(void* src, void* slot, void* target);
-  /// Generic arraycopy post-barrier. Called by fast-paths.
-  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
   /// Generic arraycopy pre-barrier. Called by fast-paths.
+  static void object_reference_array_copy_pre_call(void* src, void* dst, size_t count);
+  /// Generic arraycopy post-barrier. Called by fast-paths.
   static void object_reference_array_copy_post_call(void* src, void* dst, size_t count);
+  /// A pre-barrier indicating some fields will be modified soon. Called by fast-paths.
+  static void object_probable_write_pre_call(void* obj);
   /// Check if the address is a slow-path function.
   virtual bool is_slow_path_call(address call) const {
     return call == CAST_FROM_FN_PTR(address, object_reference_write_pre_call)
@@ -84,7 +94,8 @@ public:
         || call == CAST_FROM_FN_PTR(address, object_reference_write_slow_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_pre_call)
         || call == CAST_FROM_FN_PTR(address, object_reference_array_copy_post_call)
-        || call == CAST_FROM_FN_PTR(address, load_reference_call);
+        || call == CAST_FROM_FN_PTR(address, load_reference_call)
+        || call == CAST_FROM_FN_PTR(address, object_probable_write_pre_call);
   }
 
   /// Full pre-barrier
@@ -102,7 +113,6 @@ public:
   /// So this callback is requierd for any generational collectors.
   virtual void object_probable_write(oop new_obj) const {};
 };
-
 class MMTkBarrierC1;
 class MMTkBarrierSetC1;
 class MMTkBarrierC2;
@@ -135,7 +145,7 @@ class MMTkBarrierSet : public BarrierSet {
   MMTkBarrierSetRuntime* _runtime;
 
 protected:
-  virtual void write_ref_array_work(MemRegion mr) ;
+  virtual void write_ref_array_work(MemRegion mr);
 
 public:
   MMTkBarrierSet(MemRegion whole_heap);
@@ -258,7 +268,7 @@ public:
       T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
       T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
       runtime()->object_reference_array_copy_pre((oop*) src, (oop*) dst, length);
-      bool result = Raw::oop_arraycopy(src_obj, src_offset_in_bytes, src_raw,
+      bool result = Raw::oop_arraycopy_in_heap(src_obj, src_offset_in_bytes, src_raw,
                                        dst_obj, dst_offset_in_bytes, dst_raw,
                                        length);
       runtime()->object_reference_array_copy_post((oop*) src, (oop*) dst, length);
@@ -267,7 +277,7 @@ public:
 
     static void clone_in_heap(oop src, oop dst, size_t size) {
       // TODO: We don't need clone barriers at the moment.
-      Raw::clone(src, dst, size);
+      Raw::clone_in_heap(src, dst, size);
     }
   };
 

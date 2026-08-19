@@ -5,11 +5,16 @@ authors = [" <>"]
 rust-version = "1.84.0"
 build = "build.rs"
 edition = "2021"
+# Use the MSRV-aware resolver (stable since Rust 1.84)
+resolver = "3"
 
 [lib]
 name = "mmtk_openjdk"
 # be careful - LTO is only allowed for certain crate types
 crate-type = ["cdylib"]
+
+[profile.dev]
+panic = "abort"
 
 [profile.release]
 lto = true
@@ -36,12 +41,12 @@ probe = "0.5"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "7160a03ecd89affa14d6bf83b613ee79ed8d575f" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "2feeaccb130d95376e248b0aee6bf8f83c56f0ea" }
 # Uncomment the following to build locally
-# mmtk = { path = "../repos/mmtk-core" }
+# mmtk = { path = "../../mmtk-core" }
 
 [build-dependencies]
-built = { version = "0.7.7", features = ["git2"] }
+built = { version = "0.8.0", features = ["git2"] }
 
 [features]
 default = []

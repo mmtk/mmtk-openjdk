@@ -20,6 +20,7 @@ private:
   // we may consider defining new code blobs for specific barriers.
   CodeBlob* _load_reference_c1_runtime_code_blob;
   CodeBlob* _object_reference_write_pre_c1_runtime_code_blob;
+  CodeBlob* _object_reference_write_pre_c1_runtime_code_blob_with_patch_fix;
   CodeBlob* _object_reference_write_post_c1_runtime_code_blob;
   CodeBlob* _object_reference_write_slow_c1_runtime_code_blob;
 
@@ -74,6 +75,7 @@ public:
 
   CodeBlob* load_reference_c1_runtime_code_blob() { return _load_reference_c1_runtime_code_blob; }
   CodeBlob* object_reference_write_pre_c1_runtime_code_blob() { return _object_reference_write_pre_c1_runtime_code_blob; }
+  CodeBlob* object_reference_write_pre_c1_runtime_code_blob_with_patch_fix() { return _object_reference_write_pre_c1_runtime_code_blob_with_patch_fix; }
   CodeBlob* object_reference_write_post_c1_runtime_code_blob() { return _object_reference_write_post_c1_runtime_code_blob; }
   CodeBlob* object_reference_write_slow_c1_runtime_code_blob() { return _object_reference_write_slow_c1_runtime_code_blob; }
 

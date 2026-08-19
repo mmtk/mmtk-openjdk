@@ -114,6 +114,10 @@ impl Klass {
     const fn layout_helper_header_size(lh: i32) -> i32 {
         (lh >> Self::LH_HEADER_SIZE_SHIFT) & Self::LH_HEADER_SIZE_MASK
     }
+
+    pub const fn is_instance_klass(&self) -> bool {
+        self.layout_helper > Self::LH_NEUTRAL_VALUE
+    }
 }
 
 #[repr(C)]

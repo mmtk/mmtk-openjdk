@@ -39,10 +39,11 @@ public:
 
   // Generate runtime stubs for the "runtime code blobs" in MMTkBarrierSetC1
 private:
-  static void generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address func, int argc);
+  static void generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address func, int argc, bool do_code_patch = false);
 public:
   static void generate_c1_load_reference_runtime_stub(StubAssembler* sasm);
   static void generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm);
+  static void generate_c1_object_reference_write_pre_runtime_stub_with_patch_fix(StubAssembler* sasm);
   static void generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm);
   static void generate_c1_object_reference_write_slow_runtime_stub(StubAssembler* sasm);
 

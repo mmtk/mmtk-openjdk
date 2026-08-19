@@ -33,9 +33,15 @@
 #include "runtime/vm_version.hpp"
 #include "thirdPartyHeapArguments.hpp"
 #include "utilities/defaultStream.hpp"
+#include "runtime/abstract_vm_version.hpp"
 
 size_t ThirdPartyHeapArguments::conservative_max_heap_alignment() {
   return compute_heap_alignment();
+}
+
+static uint scale_concurrent_worker_threads(uint num_gc_workers) {
+  auto v = (num_gc_workers + 2) / 4;
+  return v > 1 ? v : 1;
 }
 
 void ThirdPartyHeapArguments::initialize() {
@@ -48,6 +54,8 @@ void ThirdPartyHeapArguments::initialize() {
     assert(!FLAG_IS_DEFAULT(ParallelGCThreads), "ParallelGCThreads should not be 0.");
     vm_exit_during_initialization("The flag -XX:+UseUseThirdPartyHeap can not be combined with -XX:ParallelGCThreads=0", NULL);
   }
+  uint marking_thread_num = scale_concurrent_worker_threads(ParallelGCThreads);
+  FLAG_SET_DEFAULT(ConcGCThreads, marking_thread_num);
   // Note: If you add an option here that may be forwarded to an MMTk option,
   // make sure to add appropriate code to MMTkHeap::set_mmtk_options.
 }

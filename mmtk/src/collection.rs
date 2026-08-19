@@ -69,4 +69,16 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
             ((*UPCALLS).schedule_finalizer)();
         }
     }
+
+    fn update_weak_processor(lxr: bool) {
+        unsafe {
+            ((*UPCALLS).update_weak_processor)(lxr);
+        }
+    }
+
+    fn vm_release() {
+        unsafe {
+            ((*UPCALLS).gc_epilogue)();
+        }
+    }
 }
