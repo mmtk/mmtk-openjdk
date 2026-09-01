@@ -99,6 +99,17 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register threa
     // slowpath if end > lab.limit
     __ cmpptr(end, limit);
     __ jcc(Assembler::above, slow_case);
+    if (selector.tag == TAG_LISP2) {
+      // Zero the reserved forwarding-pointer header word(s) reserved before the cell (at
+      // [obj - extra_header, obj), since obj was already advanced past them above). This is
+      // Lisp2's own bookkeeping the VM binding's own object zeroing never reaches, so an
+      // object that has never been forwarded must have this pre-zeroed here rather than
+      // relying on the VM binding. Mirrors Lisp2Allocator::alloc on the Rust side, which does
+      // the same for the slow-path (non-inlined) allocation call.
+      for (size_t off = 0; off < extra_header; off += 8) {
+        __ movptr(Address(obj, -(int)extra_header + (int)off), (int32_t)0);
+      }
+    }
     // lab.cursor = end
     __ movptr(cursor, end);
   bool enable_vo_bit = false;
