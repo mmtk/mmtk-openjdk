@@ -177,7 +177,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
                 // For scavenging GCs, the mmtk-openjdk binding reports the *slots* of nmethods as
                 // roots. They will be traced at unspecified times during the Closure stage.
                 // SoftRefClosure is the first safe place to call fix_oop_relocations.
-                WorkBucketStage::Release
+                WorkBucketStage::SoftRefClosure
             };
             worker.scheduler().work_buckets[stage].bulk_add(packets);
         }
