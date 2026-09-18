@@ -267,7 +267,15 @@ public:
                                       size_t length) {
       T* src = arrayOopDesc::obj_offset_to_raw(src_obj, src_offset_in_bytes, src_raw);
       T* dst = arrayOopDesc::obj_offset_to_raw(dst_obj, dst_offset_in_bytes, dst_raw);
-      runtime()->object_reference_array_copy_pre((oop*) src, (oop*) dst, length);
+      // If the destination array is uninitialized (e.g. the fast path for Arrays.copyOf /
+      // Object.clone that allocates the destination without zeroing it, relying on this very
+      // copy to fill it in), its slots do not hold real "old" values to snapshot: they are
+      // whatever bytes happened to be in the freshly allocated, possibly unzeroed memory. Mirror
+      // G1BarrierSet::write_ref_array_pre (see IS_DEST_UNINITIALIZED in accessDecorators.hpp) and
+      // skip the pre-barrier's read of the destination slots in that case.
+      if (!HasDecorator<decorators, IS_DEST_UNINITIALIZED>::value) {
+        runtime()->object_reference_array_copy_pre((oop*) src, (oop*) dst, length);
+      }
       bool result = Raw::oop_arraycopy_in_heap(src_obj, src_offset_in_bytes, src_raw,
                                        dst_obj, dst_offset_in_bytes, dst_raw,
                                        length);

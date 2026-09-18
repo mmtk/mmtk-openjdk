@@ -226,12 +226,16 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     // Load(-locked) the heap top.
     // See note above concerning the control input when using a TLAB
     Node *old_eden_top;
+    // For TAG_LISP2, this is the raw cursor (i.e. old_eden_top before adding extra_header),
+    // which is where the reserved forwarding-pointer header word(s) live. Only set for TAG_LISP2.
+    Node *lisp2_header_adr = NULL;
 
     if (selector.tag == TAG_LISP2) {
       Node *offset = ConLNode::make(extra_header);
       x->transform_later(offset);
       Node *node = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
       x->transform_later(node);
+      lisp2_header_adr = node;
       old_eden_top = new AddPNode(x->top(), node, offset);
     } else {
       old_eden_top = new LoadPNode(ctrl, contended_phi_rawmem, eden_top_adr, TypeRawPtr::BOTTOM, TypeRawPtr::BOTTOM, MemNode::unordered);
@@ -275,11 +279,33 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     Node* fast_oop_ctrl;
     Node* fast_oop_rawmem;
 
+    // Zero the reserved forwarding-pointer header word(s) reserved before the cell.
+    // This is Lisp2's own bookkeeping: the VM binding's object initialization never
+    // reaches it (it lives before the address handed out as the object's start), so
+    // an object that has never been forwarded must have this pre-zeroed here rather
+    // than relying on the VM binding to zero it. Mirrors Lisp2Allocator::alloc on the
+    // Rust side, which does the same for the slow-path (non-inlined) allocation call.
+    Node* fast_path_rawmem = contended_phi_rawmem;
+    if (selector.tag == TAG_LISP2) {
+      for (size_t off = 0; off < extra_header; off += 8) {
+        Node* off_con = ConLNode::make((jlong) off);
+        x->transform_later(off_con);
+        Node* hdr_adr = new AddPNode(x->top(), lisp2_header_adr, off_con);
+        x->transform_later(hdr_adr);
+        Node* zero_con = ConLNode::make((jlong) 0);
+        x->transform_later(zero_con);
+        Node* zero_store = new StoreLNode(needgc_false, fast_path_rawmem, hdr_adr,
+                                          TypeRawPtr::BOTTOM, zero_con, MemNode::unordered);
+        x->transform_later(zero_store);
+        fast_path_rawmem = zero_store;
+      }
+    }
+
     // Store (-conditional) the modified eden top back down.
     // StorePConditional produces flags for a test PLUS a modified raw
     // memory state.
     Node* store_eden_top =
-      new StorePNode(needgc_false, contended_phi_rawmem, eden_top_adr,
+      new StorePNode(needgc_false, fast_path_rawmem, eden_top_adr,
                      TypeRawPtr::BOTTOM, new_eden_top, MemNode::unordered);
     x->transform_later(store_eden_top);
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
