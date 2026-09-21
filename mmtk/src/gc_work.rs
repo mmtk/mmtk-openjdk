@@ -73,7 +73,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         let is_current_gc_nursery = mmtk
             .get_plan()
             .generational()
-            .is_some_and(|gen| gen.is_current_gc_nursery());
+            .is_some_and(|r#gen| r#gen.is_current_gc_nursery());
         let is_lxr = *mmtk.get_options().plan == PlanSelector::LXR;
         let is_rc_pause = is_lxr
             && mmtk
