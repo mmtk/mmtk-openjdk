@@ -1,18 +1,18 @@
-use crate::scanning;
-use crate::scanning::to_slots_closure;
 use crate::NewBuffer;
 use crate::OpenJDK;
 use crate::OpenJDKSlot;
 use crate::Slot;
 use crate::SlotsClosure;
 use crate::UPCALLS;
+use crate::scanning;
+use crate::scanning::to_slots_closure;
+use mmtk::MMTK;
 use mmtk::plan::Pause;
 use mmtk::scheduler::*;
-use mmtk::util::options::PlanSelector;
 use mmtk::util::Address;
+use mmtk::util::options::PlanSelector;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
-use mmtk::MMTK;
 use std::marker::PhantomData;
 
 macro_rules! scan_roots_work {
