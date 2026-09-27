@@ -24,11 +24,10 @@ impl<const COMPRESSED: bool> Collection<OpenJDK<COMPRESSED>> for VMCollection {
     }
 
     fn resume_mutators(tls: VMWorkerThread) {
-        if *crate::singleton::<COMPRESSED>().get_options().plan
-            == mmtk::util::options::PlanSelector::ConcurrentImmix
-        {
-            // For concurrent Immix, we need to check if SATB is active
-            let concurrent_plan = singleton::<COMPRESSED>().get_plan().concurrent().unwrap();
+        // For plans with concurrent marking (e.g. ConcurrentImmix and LXR), the barriers check
+        // CONCURRENT_MARKING_ACTIVE to decide whether SATB is active. In particular, loads from weak
+        // references and weak roots must keep the referent alive during concurrent marking.
+        if let Some(concurrent_plan) = singleton::<COMPRESSED>().get_plan().concurrent() {
             let concurrent_marking_active = concurrent_plan.concurrent_work_in_progress();
 
             unsafe {
