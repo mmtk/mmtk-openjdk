@@ -137,4 +137,6 @@ ifeq ($(MMTK_VO_BIT), 1)
   JVM_CFLAGS += -DMMTK_ENABLE_VO_BIT
 endif
 
-$(BUILD_LIBJVM): $(LIB_MMTK)
+# This file is included before lib/CompileJvm.gmk, so $(BUILD_LIBJVM) is not defined yet.
+# Name the libjvm target explicitly so that linking waits for libmmtk_openjdk.so.
+$(JVM_LIB_OUTPUTDIR)/$(call SHARED_LIBRARY,jvm): $(LIB_MMTK)

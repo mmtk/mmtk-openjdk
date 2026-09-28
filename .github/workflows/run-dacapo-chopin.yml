@@ -4,15 +4,36 @@ on:
   workflow_call:
 
 jobs:
-  normal-heap:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each entry runs the config file (relative to .github/configs) for all benchmarks on one platform.
+        # The plans tested are listed in the config file. Their expected results are in
+        # `expected-results.yml` in the same directory as the config file.
+        # `heap-factor` is relative to the min heap.
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+            test-name: normal-heap
+            config-file: linux-x86_64/normal-heap.yml
+            heap-factor: "2.5"
+          # We only test a subset of plans on aarch64 for now.
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+            test-name: normal-heap
+            config-file: linux-aarch64/normal-heap.yml
+            heap-factor: "2.5"
+          # In case that we need to run some plans with a larger heap, we can add an entry with a different config file, e.g.
+          # - arch: x86_64
+          #   runner: ubuntu-22.04
+          #   test-name: large-heap
+          #   config-file: linux-x86_64/large-heap.yml
+          #   heap-factor: "7"
     uses: ./.github/workflows/run-dacapo-chopin-inner.yml
     with:
-      config-file: "normal-heap.yml"
-      heap-factor: "2.5"
-
-  # In case that we need to run some plans with a larger heap, we can use a different config file.
-  # large-heap:
-  #   uses: ./.github/workflows/run-dacapo-chopin-inner.yml
-  #   with:
-  #     config-file: "large-heap.yml"
-  #     heap-factor: "7"
+      arch: ${{ matrix.arch }}
+      runner: ${{ matrix.runner }}
+      test-name: ${{ matrix.test-name }}
+      config-file: ${{ matrix.config-file }}
+      heap-factor: ${{ matrix.heap-factor }}

@@ -60,8 +60,16 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     // We need to figure out which allocator we are using by querying MMTk.
     AllocatorSelector selector = get_allocator_mapping(allocator);
 
-    // XXX riscv: disallow lisp2 and global alloc bit for now
-    assert(selector.tag != TAG_LISP2, "mark compact not supported for now");
+    // The fastpath does not implement the extra LISP2 header or setting VO bits.
+    // Use the slowpath for those.
+    bool enable_vo_bit = false;
+  #ifdef MMTK_ENABLE_VO_BIT
+    enable_vo_bit = true;
+  #endif
+    if (selector.tag == TAG_LISP2 || enable_vo_bit) {
+      __ b(slow_case);
+      return;
+    }
 
     if (var_size_in_bytes == noreg) {
       // constant alloc size. If it is larger than max_non_los_bytes, we directly go to slowpath.
@@ -72,12 +80,13 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     } else {
       // var alloc size. We compare with max_non_los_bytes and conditionally jump to slowpath.
       //  printf("max_non_los_bytes %lu\n",max_non_los_bytes);
-      __ movi(rscratch1, max_non_los_bytes - extra_header);
-      __ cmp(rscratch1, var_size_in_bytes);
-      __ br(Assembler::LT, slow_case);
+      // Use mov rather than movi: movi is an orr with a logical immediate, which cannot encode arbitrary values.
+      __ mov(rscratch1, (uint64_t)(max_non_los_bytes - extra_header));
+      __ cmp(var_size_in_bytes, rscratch1);
+      __ br(Assembler::HS, slow_case);
     }
 
-    if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT) {
+    if (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST) {
       __ b(slow_case);
       return;
     }
@@ -123,9 +132,6 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
     // XXX debug use, force double allocation
     // __ j(slow_case);
 
-  #ifdef MMTK_ENABLE_GLOBAL_ALLOC_BIT
-    assert(false, "global alloc bit not supported");
-  #endif
   }
 }
 
@@ -137,7 +143,7 @@ void MMTkBarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj, 
 
 #define __ sasm->
 
-void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc) {
+void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sasm, const char* name, address entry_point, int argc, bool do_code_patch) {
   __ prologue(name, false);
   __ push_call_clobbered_registers();
 
@@ -148,7 +154,13 @@ void MMTkBarrierSetAssembler::generate_c1_runtime_stub_general(StubAssembler* sa
     guarantee(false, "Too many args");
   }
 
-  __ call_VM_leaf(entry_point, 3);
+  if (do_code_patch) {
+    // We don't know the field offset when a code patching is required.
+    // As a temporary fix, we apply field barrier to all fields in this object.
+    __ call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::object_probable_write_pre_call), c_rarg0);
+  } else {
+    __ call_VM_leaf(entry_point, 3);
+  }
 
   __ pop_call_clobbered_registers();
   __ epilogue();
@@ -193,6 +205,10 @@ void MMTkBarrierSetAssembler::generate_c1_load_reference_runtime_stub(StubAssemb
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub(StubAssembler* sasm) {
   generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(MMTkBarrierSetRuntime::object_reference_write_pre_call), 3);
+}
+
+void MMTkBarrierSetAssembler::generate_c1_object_reference_write_pre_runtime_stub_with_patch_fix(StubAssembler* sasm) {
+  generate_c1_runtime_stub_general(sasm, "c1_object_reference_write_pre_stub", FN_ADDR(mmtk_object_reference_write_slow), 3, true);
 }
 
 void MMTkBarrierSetAssembler::generate_c1_object_reference_write_post_runtime_stub(StubAssembler* sasm) {

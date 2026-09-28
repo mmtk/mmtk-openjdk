@@ -36,8 +36,8 @@ jobs:
           popd
 
   test-normal-build:
-    name: Test normal build
-    runs-on: ubuntu-22.04
+    name: Test normal build (linux-${{ matrix.platform.arch }})
+    runs-on: ${{ matrix.platform.runner }}
     env:
       build-debug-level: fastdebug
     needs:
@@ -45,6 +45,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Run the same test scripts on all platforms.
+        platform:
+          - { arch: x86_64, runner: ubuntu-22.04 }
+          - { arch: aarch64, runner: ubuntu-22.04-arm }
         test-script: ["ci-test-only-normal", "ci-test-only-normal-no-compressed-oops"]
     steps:
       # We need to check out the binding repo to get the running configs and test scripts
@@ -64,7 +68,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-normal
+          name: linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |
@@ -80,8 +84,8 @@ jobs:
           ./.github/scripts/${{ matrix.test-script }}.sh
 
   test-feature-build:
-    name: Test feature build
-    runs-on: ubuntu-22.04
+    name: Test feature build (linux-${{ matrix.platform.arch }})
+    runs-on: ${{ matrix.platform.runner }}
     needs:
       - cache-dacapo
     env:
@@ -89,6 +93,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Run the same test scripts on all platforms.
+        platform:
+          - { arch: x86_64, runner: ubuntu-22.04 }
+          - { arch: aarch64, runner: ubuntu-22.04-arm }
         test-script:
           - ci-test-vo-bit
           - ci-test-assertions
@@ -118,7 +126,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-x86_64-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
+          name: linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
           path: bundles
       - name: Extract OpenJDK
         run: |
