@@ -85,7 +85,8 @@ results:
       GenCopy: pass
       Immix: pass
       GenImmix: pass
-      StickyImmix: pass
+      # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
+      StickyImmix: ignore
       MarkSweep: ignore
       Lisp2: pass
       OVC: pass
@@ -295,7 +296,8 @@ results:
       GenCopy: pass
       Immix: pass
       GenImmix: pass
-      StickyImmix: pass
+      # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
+      StickyImmix: ignore
       MarkSweep: ignore
       Lisp2: pass
       OVC: pass
