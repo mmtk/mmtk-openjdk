@@ -492,7 +492,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.33.0"
-source = "git+https://github.com/wks/mmtk-core.git?rev=e3d6522cdbcd0e8fc10711d956a9fd9c7c0d3a38#e3d6522cdbcd0e8fc10711d956a9fd9c7c0d3a38"
+source = "git+https://github.com/wks/mmtk-core.git?rev=680729f0a9c9cceb73b41e77d8f468d5cc05726d#680729f0a9c9cceb73b41e77d8f468d5cc05726d"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -522,12 +522,13 @@ dependencies = [
  "strum",
  "strum_macros",
  "sysinfo",
+ "yoke-derive",
 ]
 
 [[package]]
 name = "mmtk-macros"
 version = "0.33.0"
-source = "git+https://github.com/wks/mmtk-core.git?rev=e3d6522cdbcd0e8fc10711d956a9fd9c7c0d3a38#e3d6522cdbcd0e8fc10711d956a9fd9c7c0d3a38"
+source = "git+https://github.com/wks/mmtk-core.git?rev=680729f0a9c9cceb73b41e77d8f468d5cc05726d#680729f0a9c9cceb73b41e77d8f468d5cc05726d"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -833,6 +834,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "synstructure"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "728a70f3dbaf5bab7f0c4b1ac8d7ae5ea60a4b5549c8a5914361c99147a709d2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "sysinfo"
 version = "0.38.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1029,4 +1041,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37"
 dependencies = [
  "windows-link",
+]
+
+[[package]]
+name = "yoke-derive"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de844c262c8848816172cef550288e7dc6c7b7814b4ee56b3e1553f275f1858e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+ "synstructure",
 ]
