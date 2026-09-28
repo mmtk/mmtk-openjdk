@@ -10,7 +10,7 @@ jobs:
       matrix:
         # Each entry runs the config file (relative to .github/configs) for all benchmarks on one platform.
         # The plans tested are listed in the config file. Their expected results are in
-        # .github/scripts/ci-expected-results.yml under `linux-<arch>`.
+        # `expected-results.yml` in the same directory as the config file.
         # `heap-factor` is relative to the min heap.
         include:
           - arch: x86_64

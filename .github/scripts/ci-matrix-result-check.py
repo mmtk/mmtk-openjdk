@@ -3,17 +3,17 @@ import sys
 import os
 import re
 
-if len(sys.argv) < 6:
+# Usage: ci-matrix-result-check.py <build> <benchmark> <log dir> <config file>
+# The expected results are read from `expected-results.yml` in the same directory as the config file.
+if len(sys.argv) < 5:
     raise ValueError("Invalid arguments")
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-expected_results_path = os.path.join(script_dir, "ci-expected-results.yml")
+build = sys.argv[1]
+benchmark = sys.argv[2]
+log_dir = sys.argv[3]
+config_file = sys.argv[4]
 
-arch = sys.argv[1]
-build = sys.argv[2]
-benchmark = sys.argv[3]
-log_dir = sys.argv[4]
-config_file = sys.argv[5]
+expected_results_path = os.path.join(os.path.dirname(os.path.abspath(config_file)), "expected-results.yml")
 
 def read_in_plans(config_path):
     # Load the YAML file
@@ -93,7 +93,7 @@ def read_in_expected_results(build, benchmark):
     with open(expected_results_path, "r") as f:
         data = yaml.safe_load(f)
 
-    return data["results"][arch][build][benchmark]
+    return data["results"][build][benchmark]
 
 def print_log(directory, search_string):
     import gzip
@@ -151,7 +151,7 @@ for plan in expected:
                 print(f"Expect {plan} to pass, but it failed.")
             else:
                 print(f"Expect {plan} to fail, but it passed.")
-                print(f"- If we have fixed a bug and expect the benchmark to run, please update ci-expected-results.yml")
+                print(f"- If we have fixed a bug and expect the benchmark to run, please update {expected_results_path}")
 
 print(f"\nPrint logs for all failed runs: {failed_plans}\n")
 
