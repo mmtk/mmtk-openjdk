@@ -1,10 +1,10 @@
-use crate::abi::{InstanceRefKlass, Oop};
 use crate::OpenJDK;
 use crate::UPCALLS;
-use mmtk::util::opaque_pointer::VMWorkerThread;
+use crate::abi::{InstanceRefKlass, Oop};
 use mmtk::util::ObjectReference;
-use mmtk::vm::slot::Slot;
+use mmtk::util::opaque_pointer::VMWorkerThread;
 use mmtk::vm::ReferenceGlue;
+use mmtk::vm::slot::Slot;
 
 pub struct VMReferenceGlue {}
 

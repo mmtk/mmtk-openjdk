@@ -6,7 +6,7 @@ use std::{
 use super::abi::LOG_BYTES_IN_INT;
 use atomic::Atomic;
 use mmtk::{
-    util::{constants::LOG_BYTES_IN_WORD, Address, ObjectReference},
+    util::{Address, ObjectReference, constants::LOG_BYTES_IN_WORD},
     vm::slot::{MemorySlice, Slot},
 };
 
