@@ -5,6 +5,10 @@ RUSTUP_TOOLCHAIN=`cat $BINDING_PATH/mmtk/rust-toolchain`
 # But other scripts expect a default path for OpenJDK.
 OPENJDK_PATH=${OPENJDK_PATH:="$BINDING_PATH/repos/openjdk"}
 
+# The CPU architecture used in OpenJDK build configuration names, e.g. linux-x86_64-server-release.
+# For the platforms we support (x86_64 and aarch64), this is the same as `uname -m`.
+OPENJDK_ARCH=${OPENJDK_ARCH:=$(uname -m)}
+
 # dacapo2006 min heap for mark compact
 MINHEAP_ANTLR=5
 MINHEAP_FOP=13

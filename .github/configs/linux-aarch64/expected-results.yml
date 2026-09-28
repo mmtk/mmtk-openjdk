@@ -1,0 +1,426 @@
+# Expected results of DaCapo Chopin tests on linux-aarch64 (see normal-heap.yml in this directory).
+# results.<debug level>.<benchmark>.<plan>: pass, fail or ignore.
+# The initial values were copied from linux-x86_64.
+results:
+  fastdebug:
+    avrora:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    batik:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    biojava:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    cassandra:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: ignore
+      OVC: ignore
+      ConcurrentImmix: ignore
+      LXR: pass
+    eclipse:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    fop:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    graphchi:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    h2:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
+      StickyImmix: ignore
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    h2o:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    jme:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    jython:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    kafka:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: ignore
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    luindex:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    lusearch:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: ignore
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    pmd:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    sunflow:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    tomcat:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    xalan:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: ignore
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    zxing:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+  release:
+    avrora:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    batik:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    biojava:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    cassandra:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    eclipse:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    fop:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    graphchi:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    h2:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
+      StickyImmix: ignore
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    h2o:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    jme:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    jython:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: ignore
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    kafka:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    luindex:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    lusearch:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    pmd:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    sunflow:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    tomcat:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: ignore
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    xalan:
+      SemiSpace: ignore
+      GenCopy: ignore
+      Immix: pass
+      GenImmix: ignore
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass
+    zxing:
+      SemiSpace: pass
+      GenCopy: pass
+      Immix: pass
+      GenImmix: pass
+      StickyImmix: pass
+      MarkSweep: pass
+      Lisp2: pass
+      OVC: pass
+      ConcurrentImmix: pass
+      LXR: pass

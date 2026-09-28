@@ -6,15 +6,25 @@
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "gc/shared/barrierSet.hpp"
+#include "utilities/macros.hpp"
 #include "../mmtk.h"
 #include "../mmtkBarrierSet.hpp"
-#include "../cpu/x86/mmtkBarrierSetAssembler_x86.hpp"
+#include CPU_HEADER(mmtkBarrierSetAssembler)
+#include CPU_HEADER(mmtkFieldBarrierSetAssembler)
 #include "../mmtkBarrierSetC1.hpp"
 #include "../mmtkBarrierSetC2.hpp"
 
 #define SIDE_METADATA_WORST_CASE_RATIO_LOG 1
 #define LOG_BYTES_IN_CHUNK 22
 #define CHUNK_MASK ((1L << LOG_BYTES_IN_CHUNK) - 1)
+
+#define SOFT_REFERENCE_LOAD_BARRIER true
+
+constexpr int kUnloggedValue = 1;
+
+static inline intptr_t side_metadata_base_address() {
+  return UseCompressedOops ? field_unlog_bits_base_address_compressed() : field_unlog_bits_base_address();
+}
 
 class MMTkFieldBarrierSetRuntime: public MMTkBarrierSetRuntime {
 public:
@@ -44,15 +54,6 @@ struct MMTkC1FieldBarrierStub: CodeStub {
   virtual void visit(LIR_OpVisitState* visitor) override;
 
   NOT_PRODUCT(virtual void print_name(outputStream* out) const { out->print("MMTkC1FieldBarrierStub"); });
-};
-
-class MMTkFieldBarrierSetAssembler: public MMTkBarrierSetAssembler {
-protected:
-  virtual void object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) const override;
-public:
-  virtual void generate_c1_pre_write_barrier_stub(LIR_Assembler* ce, MMTkC1FieldBarrierStub* stub) const;
-  virtual void arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) override;
-  virtual void load_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Address src, Register tmp1, Register tmp_thread) override;
 };
 
 class MMTkFieldBarrierSetC1: public MMTkBarrierSetC1 {

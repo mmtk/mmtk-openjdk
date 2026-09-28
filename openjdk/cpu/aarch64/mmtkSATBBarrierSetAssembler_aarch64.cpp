@@ -31,10 +31,14 @@ void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet dec
       // if (dst == 0) goto done;
       __ cbz(dst, done);
       // Do slow-call
+      // LR may be live (e.g. in the interpreter's Reference.get entry), and it is not saved by
+      // push_call_clobbered_registers. Save it (and FP) around the call like G1BarrierSetAssembler::load_at.
+      __ enter(/*strip_ret_addr*/true);
       __ push_call_clobbered_registers();
       __ mov(c_rarg0, dst);
       __ MacroAssembler::call_VM_leaf(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
       __ pop_call_clobbered_registers();
+      __ leave();
       __ bind(done);
     }
   }

@@ -1,6 +1,7 @@
 includes:
-  - "./base.yml"
+  - "../base.yml"
 
+# We test the same plans as on x86_64.
 configs:
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-SemiSpace"
   - "jdk21-master|dacapochopin_jdk21|ms|s|fail_on_oom|tph|preserve|mmtk_gc-GenCopy"

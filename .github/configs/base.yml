@@ -96,8 +96,10 @@ runtimes:
   jdk21-master:
     type: OpenJDK
     release: 21
-    home: "/home/runner/work/mmtk-openjdk/mmtk-openjdk/bundles/jdk"
+    # Replaced with the path of the extracted JDK bundle in CI.
+    home: "OPENJDK_HOME"
 
 # We don't include `configs` or `benchmarks` here.
-# This file will be included by `large-heap.yml` and `normal-heap.yml`
-# so that we can test different plans with different heap sizes.
+# This file will be included by the config files in the per-platform directories
+# (e.g. `linux-x86_64/normal-heap.yml`) so that we can test different plans with
+# different heap sizes on each platform.

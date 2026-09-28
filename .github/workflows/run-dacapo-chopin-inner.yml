@@ -1,14 +1,26 @@
-name: "Test Normal Build"
+name: "Test Normal Build with DaCapo Chopin"
 
 on:
   workflow_call:
     inputs:
+      arch:
+        description: 'Architecture in OpenJDK build configuration names, e.g. x86_64 or aarch64'
+        required: true
+        type: string
+      runner:
+        description: 'GitHub runner label for the architecture'
+        required: true
+        type: string
+      test-name:
+        description: 'Short name of this test run, used in artifact names'
+        required: true
+        type: string
       config-file:
-        description: 'Config file name'
+        description: 'Config file path relative to .github/configs'
         required: true
         type: string
       heap-factor:
-        description: 'Heap factor'
+        description: 'Heap factor relative to min heap'
         required: true
         type: string
 
@@ -38,9 +50,10 @@ jobs:
           popd
 
   test-normal-build:
+    name: linux-${{ inputs.arch }} ${{ inputs.test-name }} (${{ matrix.benchmark }}, ${{ matrix.debug-level }})
     needs:
       - cache-dacapo
-    runs-on: ubuntu-22.04
+    runs-on: ${{ inputs.runner }}
     strategy:
       fail-fast: false
       matrix:
@@ -73,6 +86,8 @@ jobs:
         run: df -h
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
+        # This is best effort. Runner images differ between architectures.
+        continue-on-error: true
         with:
           android: true
           dotnet: true
@@ -125,7 +140,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-x86_64-server-${{ matrix.debug-level }}-bundles-normal
+          name: linux-${{ inputs.arch }}-server-${{ matrix.debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |
@@ -136,13 +151,15 @@ jobs:
           popd
       - name: Check free space
         run: df -h
-      - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with ${{ inputs.heap-factor }}x Lisp2 minheap
+      - name: Run ${{ env.DACAPO_VERSION }} ${{ matrix.benchmark }} on MMTk OpenJDK ${{ matrix.debug-level }} with ${{ inputs.heap-factor }}x Lisp2 minheap (linux-${{ inputs.arch }}, ${{ inputs.test-name }})
         run: |
           DACAPO_PATH=`realpath ./dacapo`
+          OPENJDK_HOME=`realpath ./bundles/jdk`
           sed -i "s;DACAPO_PATH;$DACAPO_PATH;g" .github/configs/base.yml
+          sed -i "s;OPENJDK_HOME;$OPENJDK_HOME;g" .github/configs/base.yml
           echo "    - ${{ matrix.benchmark }}" >> .github/configs/${{ inputs.config-file }}
           set -o pipefail
-          running runbms /tmp .github/configs/${{ inputs.config-file }} -s ${{ inputs.heap-factor }} -p linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }} | tee /tmp/running.stdout
+          running runbms /tmp .github/configs/${{ inputs.config-file }} -s ${{ inputs.heap-factor }} -p linux-${{ inputs.arch }}-${{ inputs.test-name }}-${{ matrix.benchmark }}-${{ matrix.debug-level }} | tee /tmp/running.stdout
       - name: Extract running run id
         id: extract-running-run-id
         run: |
@@ -151,11 +168,11 @@ jobs:
       - name: Upload running artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64-${{ matrix.benchmark }}-${{ matrix.debug-level }}-${{ inputs.heap-factor }}
+          name: linux-${{ inputs.arch }}-${{ inputs.test-name }}-${{ matrix.benchmark }}-${{ matrix.debug-level }}
           path: /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
       - name: Check for test failures
         run: |
           RUNNING_OUTPUT=`sed -n "s/^\(${{ matrix.benchmark }} .*\)$/\1/p" < /tmp/running.stdout`
           echo $RUNNING_OUTPUT
           pip3 install pyyaml
-          echo $RUNNING_OUTPUT | python3 .github/scripts/ci-matrix-result-check.py linux-x64 ${{ matrix.debug-level }} ${{ matrix.benchmark }} /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/ .github/configs/${{ inputs.config-file}}
+          echo $RUNNING_OUTPUT | python3 .github/scripts/ci-matrix-result-check.py ${{ matrix.debug-level }} ${{ matrix.benchmark }} /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/ .github/configs/${{ inputs.config-file}}

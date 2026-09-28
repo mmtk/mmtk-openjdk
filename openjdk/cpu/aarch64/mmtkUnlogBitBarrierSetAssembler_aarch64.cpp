@@ -15,11 +15,13 @@
 void MMTkUnlogBitBarrierSetAssembler::emit_check_unlog_bit_fast_path(MacroAssembler* masm, Label &done, Register obj, Register tmp1, Register tmp2, Register tmp3) {
   // Note that `tmp1` and `tmp2` are actual temporary registers available for use,
   // not the `tmp1` and `tmp2` from `store_at`.
-  assert_different_registers(obj, tmp1, tmp2, tmp3);
+  // `tmp3` is not used, and it may alias `obj` (see `object_reference_write_pre_or_post`).
+  assert_different_registers(obj, tmp1, tmp2);
 
   // tmp2 = load-byte (unlog_bit_base_address() + (obj >> 6));
   __ movptr(tmp1, (intptr_t)unlog_bit_base_address());
   __ add(tmp2, tmp1, obj, Assembler::LSR, 6);
+  __ ldrb(tmp2, Address(tmp2));
   // tmp1 = (obj >> 3) & 7
   __ movz(tmp1, 7);
   __ andr(tmp1, tmp1, obj, Assembler::LSR, 3);
@@ -37,7 +39,13 @@ void MMTkUnlogBitBarrierSetAssembler::object_reference_write_pre_or_post(MacroAs
   Label done;
   Register obj = dst.base();
   if (mmtk_enable_barrier_fastpath) {
-    assert_different_registers(dst.base(), dst.index(), val, tmp1, tmp2, tmp3);
+    // The fast path clobbers `tmp1` and `tmp2`. They must not alias the object we read, or the
+    // index and the value that the store still needs. `tmp3` is not used, and it may alias
+    // `dst.base()`: the template interpreter's `aastore` passes the array register as both.
+    // `dst.index()` and `val` may both be `noreg`, so we don't check them against each other.
+    assert_different_registers(dst.base(), tmp1, tmp2);
+    assert(dst.index() != tmp1 && dst.index() != tmp2, "must not clobber the index register");
+    assert(val != tmp1 && val != tmp2, "must not clobber the value register");
 
     emit_check_unlog_bit_fast_path(masm, done, obj, tmp1, tmp2, tmp3);
   }

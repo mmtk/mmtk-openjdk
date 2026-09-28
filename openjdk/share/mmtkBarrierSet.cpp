@@ -37,7 +37,6 @@
 #ifdef COMPILER2
 #include "mmtkBarrierSetC2.hpp"
 #endif
-#include "mmtkBarrierSetAssembler_x86.hpp"
 
 bool mmtk_enable_allocation_fastpath = true;
 bool mmtk_enable_barrier_fastpath = true;

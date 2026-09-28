@@ -23,11 +23,8 @@ pub fn enable_compressed_oops() {
         !COMPRESSED_OOPS_INITIALIZED.fetch_or(true, Ordering::Relaxed),
         "cannot enable compressed pointers twice."
     );
-    if cfg!(not(target_arch = "x86_64")) {
-        panic!(
-            "Compressed pointer is only enable on x86_64 platforms.\
-            For other RISC architectures, we need to find a way to process compressed embeded pointers in code objects first."
-        );
+    if cfg!(not(any(target_arch = "x86_64", target_arch = "aarch64"))) {
+        panic!("Compressed pointer is only enabled on x86_64 and aarch64 platforms.");
     }
     USE_COMPRESSED_OOPS.store(true, Ordering::Relaxed)
 }
@@ -95,39 +92,12 @@ impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
         unsafe { Address::from_usize(self.addr.as_usize() << 1 >> 1) }
     }
 
-    fn x86_read_unaligned<T, const UNTAG: bool>(&self) -> T {
-        const {
-            assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
-        }
-        // Workaround: On x86 (including x86_64), machine instructions may contain pointers as
-        // immediates, and they may be unaligned.  It is an undefined behavior in Rust to
-        // dereference unaligned pointers.  We have to explicitly use unaligned memory access
-        // methods.  On x86, ordinary MOV instructions can load and store memory at unaligned
-        // addresses, so we expect `ptr.read_unaligned()` to have no performance penalty over
-        // `ptr.read()` if `ptr` is actually aligned.
-        unsafe {
-            let slot = if UNTAG {
-                self.untagged_address()
-            } else {
-                self.addr
-            };
-            let ptr = slot.to_ptr::<T>();
-            ptr.read_unaligned()
-        }
-    }
-
-    fn x86_write_unaligned<T: Copy, const UNTAG: bool>(&self, v: T) {
-        const {
-            assert!(cfg!(any(target_arch = "x86", target_arch = "x86_64")));
-        }
-        unsafe {
-            let slot = if UNTAG {
-                self.untagged_address()
-            } else {
-                self.addr
-            };
-            let ptr = slot.to_mut_ptr::<T>();
-            ptr.write_unaligned(v)
+    /// The address of the slot, with the tag stripped if `UNTAG` is true.
+    const fn slot_address<const UNTAG: bool>(&self) -> Address {
+        if UNTAG {
+            self.untagged_address()
+        } else {
+            self.addr
         }
     }
 
@@ -154,57 +124,79 @@ impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
 
     /// Store a null reference in the slot.
     pub fn store_null(&self) {
-        if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
-            if COMPRESSED {
-                if self.is_compressed() {
-                    self.x86_write_unaligned::<u32, true>(0)
-                } else {
-                    self.x86_write_unaligned::<Address, true>(Address::ZERO)
-                }
+        if COMPRESSED {
+            if self.is_compressed() {
+                self.write_raw::<u32, true>(0)
             } else {
-                self.x86_write_unaligned::<Address, false>(Address::ZERO)
+                self.write_raw::<Address, true>(Address::ZERO)
             }
         } else {
-            debug_assert!(!COMPRESSED);
-            unsafe { self.addr.store(0) }
+            self.write_raw::<Address, false>(Address::ZERO)
         }
+    }
+}
+
+/// Raw slot access on x86 (including x86_64).
+///
+/// Machine instructions may contain pointers as immediates, and they may be unaligned.  It is an
+/// undefined behavior in Rust to dereference unaligned pointers, so we have to explicitly use
+/// unaligned memory access methods.  On x86, ordinary MOV instructions can load and store memory
+/// at unaligned addresses, so we expect `ptr.read_unaligned()` to have no performance penalty
+/// over `ptr.read()` if `ptr` is actually aligned.
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
+    fn read_raw<T, const UNTAG: bool>(&self) -> T {
+        unsafe { self.slot_address::<UNTAG>().to_ptr::<T>().read_unaligned() }
+    }
+
+    fn write_raw<T, const UNTAG: bool>(&self, v: T) {
+        unsafe {
+            self.slot_address::<UNTAG>()
+                .to_mut_ptr::<T>()
+                .write_unaligned(v)
+        }
+    }
+}
+
+/// Raw slot access on other architectures (e.g. aarch64 and riscv64).
+///
+/// Code objects do not embed pointers as unaligned immediates in the instruction stream on these
+/// architectures, so all slots are aligned. OpenJDK only reports the oop table of an nmethod as
+/// slots (see `relocInfo::mustIterateImmediateOopsInCode`), and the pointers encoded in
+/// instructions are patched from the oop table by `nmethod::fix_oop_relocations`.
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+impl<const COMPRESSED: bool> OpenJDKSlot<COMPRESSED> {
+    fn read_raw<T, const UNTAG: bool>(&self) -> T {
+        unsafe { self.slot_address::<UNTAG>().to_ptr::<T>().read() }
+    }
+
+    fn write_raw<T, const UNTAG: bool>(&self, v: T) {
+        unsafe { self.slot_address::<UNTAG>().to_mut_ptr::<T>().write(v) }
     }
 }
 
 impl<const COMPRESSED: bool> Slot for OpenJDKSlot<COMPRESSED> {
     fn load(&self) -> Option<ObjectReference> {
-        if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
-            if COMPRESSED {
-                if self.is_compressed() {
-                    Self::decompress(self.x86_read_unaligned::<u32, true>())
-                } else {
-                    let addr = self.x86_read_unaligned::<Address, true>();
-                    ObjectReference::from_raw_address(addr)
-                }
+        if COMPRESSED {
+            if self.is_compressed() {
+                Self::decompress(self.read_raw::<u32, true>())
             } else {
-                let addr = self.x86_read_unaligned::<Address, false>();
-                ObjectReference::from_raw_address(addr)
+                ObjectReference::from_raw_address(self.read_raw::<Address, true>())
             }
         } else {
-            debug_assert!(!COMPRESSED);
-            unsafe { self.addr.load() }
+            ObjectReference::from_raw_address(self.read_raw::<Address, false>())
         }
     }
 
     fn store(&self, object: ObjectReference) {
-        if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
-            if COMPRESSED {
-                if self.is_compressed() {
-                    self.x86_write_unaligned::<u32, true>(Self::compress(object))
-                } else {
-                    self.x86_write_unaligned::<ObjectReference, true>(object)
-                }
+        if COMPRESSED {
+            if self.is_compressed() {
+                self.write_raw::<u32, true>(Self::compress(object))
             } else {
-                self.x86_write_unaligned::<ObjectReference, false>(object)
+                self.write_raw::<ObjectReference, true>(object)
             }
         } else {
-            debug_assert!(!COMPRESSED);
-            unsafe { self.addr.store(object) }
+            self.write_raw::<ObjectReference, false>(object)
         }
     }
 
