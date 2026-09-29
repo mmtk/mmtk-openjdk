@@ -2,9 +2,9 @@
 name = "mmtk_openjdk"
 version = "0.32.0"
 authors = [" <>"]
-rust-version = "1.84.0"
+rust-version = "1.92.0"
 build = "build.rs"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "mmtk_openjdk"
@@ -36,12 +36,12 @@ probe = "0.5"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "2feeaccb130d95376e248b0aee6bf8f83c56f0ea" }
+mmtk = { git = "https://github.com/wks/mmtk-core.git", rev = "680729f0a9c9cceb73b41e77d8f468d5cc05726d" }
 # Uncomment the following to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 
 [build-dependencies]
-built = { version = "0.7.7", features = ["git2"] }
+built = { version = "0.8.0", features = ["git2"] }
 
 [features]
 default = []

@@ -1,14 +1,14 @@
-use crate::gc_work::*;
 use crate::Slot;
+use crate::gc_work::*;
 use crate::{NewBuffer, OpenJDKSlot, UPCALLS};
 use crate::{OpenJDK, SlotsClosure};
+use mmtk::Mutator;
+use mmtk::MutatorContext;
 use mmtk::memory_manager;
 use mmtk::scheduler::WorkBucketStage;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{RootsWorkFactory, Scanning, SlotVisitor};
-use mmtk::Mutator;
-use mmtk::MutatorContext;
 
 pub struct VMScanning {}
 
