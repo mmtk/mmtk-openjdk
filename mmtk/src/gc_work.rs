@@ -74,7 +74,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         let is_current_gc_nursery = mmtk
             .get_plan()
             .generational()
-            .is_some_and(|gen| gen.is_current_gc_nursery());
+            .is_some_and(|gen_plan| gen_plan.is_current_gc_nursery());
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 

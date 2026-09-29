@@ -123,26 +123,26 @@ pub struct OpenJDK_Upcalls {
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_global_side_metadata_base_address() -> uintptr_t {
     mmtk::util::metadata::side_metadata::global_side_metadata_base_address().as_usize()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_global_side_metadata_vm_base_address() -> uintptr_t {
     mmtk::util::metadata::side_metadata::global_side_metadata_vm_base_address().as_usize()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_vo_bit_address() -> uintptr_t {
     mmtk::util::metadata::side_metadata::vo_bit_side_metadata_addr().as_usize()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::FreeListAllocator<OpenJDK<false>>>();
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;
 
 #[derive(Default)]
@@ -204,7 +204,7 @@ fn singleton<const COMPRESSED: bool>() -> &'static MMTK<OpenJDK<COMPRESSED>> {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static MMTK_LISP2_HEADER_RESERVED_IN_BYTES: usize =
     mmtk::util::alloc::Lisp2Allocator::<OpenJDK<false>>::HEADER_RESERVED_IN_BYTES;
 
