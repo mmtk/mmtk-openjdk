@@ -1,9 +1,12 @@
-use crate::slots::OpenJDKSlot;
+use crate::BUILDER;
 use crate::OpenJDK;
 use crate::OpenJDK_Upcalls;
-use crate::BUILDER;
 use crate::UPCALLS;
+use crate::slots::OpenJDKSlot;
 use libc::c_char;
+use mmtk::AllocationSemantics;
+use mmtk::Mutator;
+use mmtk::MutatorContext;
 use mmtk::memory_manager;
 use mmtk::plan::BarrierSelector;
 use mmtk::scheduler::GCWorker;
@@ -11,9 +14,6 @@ use mmtk::util::alloc::AllocatorSelector;
 use mmtk::util::api_util::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::AllocationSemantics;
-use mmtk::Mutator;
-use mmtk::MutatorContext;
 use once_cell::sync;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
@@ -72,7 +72,7 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
 /// Caller needs to make sure the ptr is a valid vector pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
-    let _vec = Vec::<Address>::from_raw_parts(ptr, length, capacity);
+    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
 }
 
 #[unsafe(no_mangle)]

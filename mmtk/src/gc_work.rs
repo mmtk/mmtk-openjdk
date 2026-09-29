@@ -1,13 +1,13 @@
-use crate::scanning;
-use crate::scanning::to_slots_closure;
 use crate::OpenJDK;
 use crate::OpenJDKSlot;
 use crate::UPCALLS;
+use crate::scanning;
+use crate::scanning::to_slots_closure;
+use mmtk::MMTK;
 use mmtk::scheduler::*;
 use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
-use mmtk::MMTK;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {

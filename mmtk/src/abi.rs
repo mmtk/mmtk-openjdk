@@ -2,9 +2,9 @@ use super::UPCALLS;
 use crate::OpenJDKSlot;
 use atomic::Atomic;
 use atomic::Ordering;
+use mmtk::util::ObjectReference;
 use mmtk::util::constants::*;
 use mmtk::util::conversions;
-use mmtk::util::ObjectReference;
 use mmtk::util::{Address, OpaquePointer};
 use std::ffi::CStr;
 use std::fmt;
@@ -95,7 +95,7 @@ impl Klass {
     pub const LH_HEADER_SIZE_SHIFT: i32 = BITS_IN_BYTE as i32 * 2;
     pub const LH_HEADER_SIZE_MASK: i32 = (1 << BITS_IN_BYTE) - 1;
     pub unsafe fn cast<'a, T>(&self) -> &'a T {
-        &*(self as *const Self as *const T)
+        unsafe { &*(self as *const Self as *const T) }
     }
     /// Force slow-path for instance size calculation?
     const fn layout_helper_needs_slow_path(lh: i32) -> bool {
@@ -372,7 +372,7 @@ impl From<&OopDesc> for ObjectReference {
 
 impl OopDesc {
     pub unsafe fn as_array_oop(&self) -> ArrayOop {
-        &*(self as *const OopDesc as *const ArrayOopDesc)
+        unsafe { &*(self as *const OopDesc as *const ArrayOopDesc) }
     }
 
     pub fn get_field_address(&self, offset: i32) -> Address {
@@ -380,8 +380,10 @@ impl OopDesc {
     }
 
     /// Slow-path for calculating object instance size
-    unsafe fn size_slow(&self) -> usize {
-        ((*UPCALLS).get_object_size)(self.into())
+    fn size_slow(&self) -> usize {
+        // Safety: Calling `size_slow` should be safe if the caller has a valid OopDesc.
+        // But the dereference of UPCALLS is unsafe.
+        (unsafe { &*UPCALLS }.get_object_size)(self.into())
     }
 
     /// Calculate object instance size
@@ -398,7 +400,7 @@ impl OopDesc {
         } else if lh <= Klass::LH_NEUTRAL_VALUE {
             if lh < Klass::LH_NEUTRAL_VALUE {
                 // Calculate array size
-                let array_length = self.as_array_oop().length::<COMPRESSED>();
+                let array_length = unsafe { self.as_array_oop() }.length::<COMPRESSED>();
                 let mut size_in_bytes: usize =
                     (array_length as usize) << Klass::layout_helper_log2_element_size(lh);
                 size_in_bytes += Klass::layout_helper_header_size(lh) as usize;
@@ -454,10 +456,12 @@ impl ArrayOopDesc {
     /// 1. `<T>` matches the actual Java type
     /// 2. `<T>` matches the argument, BasicType `ty`
     pub unsafe fn data<T, const COMPRESSED: bool>(&self, ty: BasicType) -> &[T] {
-        slice::from_raw_parts(
-            self.base::<COMPRESSED>(ty).to_ptr(),
-            self.length::<COMPRESSED>() as _,
-        )
+        unsafe {
+            slice::from_raw_parts(
+                self.base::<COMPRESSED>(ty).to_ptr(),
+                self.length::<COMPRESSED>() as _,
+            )
+        }
     }
 
     pub unsafe fn slice<const COMPRESSED: bool>(

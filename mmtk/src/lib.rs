@@ -11,11 +11,11 @@ use libc::{c_char, c_void, uintptr_t};
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::constants::LOG_BYTES_IN_GBYTE;
 use mmtk::util::heap::vm_layout::VMLayout;
-use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::slot::Slot;
+use mmtk::util::{conversions, opaque_pointer::*};
 use mmtk::vm::VMBinding;
-use mmtk::{MMTKBuilder, Mutator, MMTK};
+use mmtk::vm::slot::Slot;
+use mmtk::{MMTK, MMTKBuilder, Mutator};
 pub use slots::use_compressed_oops;
 use slots::{OpenJDKSlot, OpenJDKSlotRange};
 
