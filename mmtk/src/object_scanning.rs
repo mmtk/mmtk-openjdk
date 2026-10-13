@@ -138,7 +138,17 @@ impl OopIterate for InstanceRefKlass {
                     panic!("oop_iterate on InstanceRefKlass with reference_type as None")
                 }
                 ReferenceType::Weak => add_weak_candidate(reference),
-                ReferenceType::Soft => add_soft_candidate(reference),
+                ReferenceType::Soft => {
+                    // A concurrent plan may keep every softly reachable object in this cycle, and
+                    // trace soft referents while marking instead of in its final pause.
+                    if mmtk::memory_manager::soft_references_are_strong(
+                        crate::singleton::<COMPRESSED>(),
+                    ) {
+                        Self::process_ref_as_strong(oop, closure)
+                    } else {
+                        add_soft_candidate(reference)
+                    }
+                }
                 ReferenceType::Phantom => add_phantom_candidate(reference),
                 // Process final reference normally.
                 // We will handle final reference later

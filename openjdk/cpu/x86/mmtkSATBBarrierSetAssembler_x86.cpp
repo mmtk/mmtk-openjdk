@@ -7,39 +7,8 @@
 #define __ masm->
 
 void MMTkSATBBarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Address src, Register tmp1, Register tmp_thread) {
-  bool on_oop = type == T_OBJECT || type == T_ARRAY;
-  bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
-  bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
-  bool on_reference = on_weak || on_phantom;
-
   BarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
-
-  if (mmtk_enable_reference_load_barrier) {
-    if (on_oop && on_reference) {
-      Label done;
-
-      assert_different_registers(dst, tmp1);
-
-      // No slow-call if SATB is not active
-      // intptr_t tmp1_q = CONCURRENT_MARKING_ACTIVE;
-      __ movptr(tmp1, intptr_t(&CONCURRENT_MARKING_ACTIVE));
-      // Load with zero extension to 32 bits.
-      // uint32_t tmp1_l = (uint32_t)(*(unt8_t*)tmp1_q);
-      __ movzbl(tmp1, Address(tmp1, 0));
-      // if (tmp1_l == 0) goto done;
-      __ testl(tmp1, tmp1);
-      __ jcc(Assembler::zero, done);
-      // if (dst == 0) goto done;
-      __ testptr(dst, dst);
-      __ jcc(Assembler::zero, done);
-      // Do slow-call
-      __ pusha();
-      __ mov(c_rarg0, dst);
-      __ MacroAssembler::call_VM_leaf_base(FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), 1);
-      __ popa();
-      __ bind(done);
-    }
-  }
+  weak_reference_load_barrier(masm, decorators, type, dst, tmp1, uintptr_t(&CONCURRENT_MARKING_ACTIVE));
 }
 
 void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) const {

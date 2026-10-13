@@ -50,6 +50,8 @@ static OBJECT_BARRIER: sync::Lazy<CString> =
 static FIELD_LOGGING_BARRIER: sync::Lazy<CString> =
     sync::Lazy::new(|| CString::new("FieldBarrier").unwrap());
 static SATB_BARRIER: sync::Lazy<CString> = sync::Lazy::new(|| CString::new("SATBBarrier").unwrap());
+static HYBRID_BARRIER: sync::Lazy<CString> =
+    sync::Lazy::new(|| CString::new("HybridBarrier").unwrap());
 
 #[no_mangle]
 pub extern "C" fn get_mmtk_version() -> *const c_char {
@@ -64,11 +66,41 @@ pub extern "C" fn mmtk_active_barrier() -> *const c_char {
             BarrierSelector::ObjectBarrier => OBJECT_BARRIER.as_ptr(),
             BarrierSelector::FieldBarrier => FIELD_LOGGING_BARRIER.as_ptr(),
             BarrierSelector::SATBBarrier => SATB_BARRIER.as_ptr(),
+            BarrierSelector::HybridBarrier => HYBRID_BARRIER.as_ptr(),
             // In case we have more barriers in mmtk-core.
             #[allow(unreachable_patterns)]
             _ => unimplemented!(),
         }
     })
+}
+
+/// The address of the global flag of the hybrid barrier (a byte that is non-zero while the
+/// barrier is active).  Compiled code tests this byte inline.
+#[no_mangle]
+pub extern "C" fn mmtk_barrier_active_address() -> *mut u8 {
+    memory_manager::barrier_active_address().to_mut_ptr()
+}
+
+/// Debugging aid for the hybrid barrier: if `MMTK_HYBRID_BARRIER_DEBUG_ALWAYS_ON=1`, set the
+/// barrier flag once at start-up and never clear it, so that every barrier path (interpreter, C1,
+/// C2, arraycopy, clone, weak loads) calls into MMTk.  mmtk-core drops the buffered objects while
+/// no marking is in progress, so this only tests that the paths are reached and do not crash.
+fn maybe_force_hybrid_barrier_on() {
+    let force = std::env::var("MMTK_HYBRID_BARRIER_DEBUG_ALWAYS_ON").is_ok_and(|v| v == "1");
+    if !force {
+        return;
+    }
+    let barrier = with_singleton!(|singleton| singleton.get_plan().constraints().barrier);
+    if barrier != BarrierSelector::HybridBarrier {
+        log::warn!(
+            "MMTK_HYBRID_BARRIER_DEBUG_ALWAYS_ON ignored: the plan does not use HybridBarrier"
+        );
+        return;
+    }
+    let flag = memory_manager::barrier_active_address().to_ptr::<std::sync::atomic::AtomicU8>();
+    // Safety: the address is that of a static `AtomicU8` in mmtk-core.
+    unsafe { &*flag }.store(1, Ordering::SeqCst);
+    eprintln!("[mmtk-openjdk] MMTK_HYBRID_BARRIER_DEBUG_ALWAYS_ON=1: the hybrid barrier flag is forced on");
 }
 
 #[no_mangle]
@@ -127,6 +159,7 @@ pub extern "C" fn openjdk_gc_init(calls: *const OpenJDK_Upcalls) {
     } else {
         lazy_static::initialize(&crate::SINGLETON_UNCOMPRESSED);
     }
+    maybe_force_hybrid_barrier_on();
 }
 
 #[no_mangle]
@@ -183,6 +216,150 @@ pub extern "C" fn alloc(
 #[no_mangle]
 pub extern "C" fn get_allocator_mapping(allocator: AllocationSemantics) -> AllocatorSelector {
     with_singleton!(|singleton| memory_manager::get_allocator_mapping(singleton, allocator))
+}
+
+/// What an inline fast path for a `SpanAllocator` (Go's `nextFreeFast`) needs. Mirrored by
+/// `MMTkSpanFastPathInfo` in `mmtk.h`. All offsets are in bytes.
+#[repr(C)]
+pub struct SpanFastPathInfo {
+    /// Whether the allocator for the semantics is a `SpanAllocator` that allocates in scan spans
+    /// (if not, the other fields are zero).
+    pub valid: bool,
+    /// From the mutator to the allocator's array of cached spans, indexed by span class.
+    pub spans_offset: usize,
+    /// From the mutator to the allocator's space pointer.
+    pub space_offset: usize,
+    /// From the space pointer to its allocate-black flag (a byte).
+    pub allocate_black_offset: usize,
+    /// From the space pointer to the flag (a byte) that lets the fast path allocate black.
+    pub inline_black_offset: usize,
+    /// From the mutator to the allocator's count of bytes allocated black.
+    pub black_bytes_offset: usize,
+    /// Fields of a span descriptor.
+    pub alloc_cache_offset: usize,
+    pub freeindex_offset: usize,
+    pub nelems_offset: usize,
+    pub elemsize_offset: usize,
+    pub start_offset: usize,
+    pub alloc_count_offset: usize,
+    pub needzero_offset: usize,
+    pub mark_bits_offset: usize,
+    pub scan_bits_offset: usize,
+    pub black_scan_offset: usize,
+    /// `size_to_span_class[size >> 3]` is the span class index for an allocation of `size` bytes
+    /// (a multiple of 8, at most `max_size`) aligned to 8 bytes. 0 (an unused class whose slot
+    /// always holds the empty span) if no small class fits.
+    pub size_to_span_class: *const u8,
+    pub max_size: usize,
+}
+
+/// Largest size in the span class table: Go's largest small size class.
+const SPAN_TABLE_MAX_SIZE: usize = 32768;
+
+static SPAN_CLASS_TABLE: sync::Lazy<Box<[u8]>> = sync::Lazy::new(|| {
+    use mmtk::util::alloc::span_allocator::span_class_index;
+    (0..=SPAN_TABLE_MAX_SIZE >> 3)
+        .map(|i| {
+            // OpenJDK allocates with an alignment of one heap word and no offset (see
+            // `MMTkMutatorContext::alloc`), from the scan spans of the default allocator.
+            let index = span_class_index(i << 3, 8, false).unwrap_or(0);
+            u8::try_from(index).expect("span class index does not fit in a byte")
+        })
+        .collect()
+});
+
+/// Fill `info` for the allocator of `semantics`.
+///
+/// # Safety
+/// `info` must point to a writable `SpanFastPathInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_span_fastpath_info(
+    semantics: AllocationSemantics,
+    info: *mut SpanFastPathInfo,
+) {
+    use mmtk::util::alloc::AllocatorInfo;
+    let selector = get_allocator_mapping(semantics);
+    let alloc_info = if crate::use_compressed_oops() {
+        AllocatorInfo::new::<OpenJDK<true>>(selector)
+    } else {
+        AllocatorInfo::new::<OpenJDK<false>>(selector)
+    };
+    let result = match (selector, alloc_info) {
+        // Only the scan allocator: `SpanAllocator`s other than the first are noscan in the plans
+        // that have them, and OpenJDK never uses NoScan.
+        (
+            AllocatorSelector::Span(0),
+            AllocatorInfo::Span {
+                spans_offset,
+                space_offset,
+                allocate_black_offset,
+                inline_black_offset,
+                black_bytes_offset,
+                alloc_cache_offset,
+                freeindex_offset,
+                nelems_offset,
+                elemsize_offset,
+                start_offset,
+                alloc_count_offset,
+                needzero_offset,
+                mark_bits_offset,
+                scan_bits_offset,
+                black_scan_offset,
+            },
+        ) => SpanFastPathInfo {
+            valid: true,
+            spans_offset,
+            space_offset,
+            allocate_black_offset,
+            inline_black_offset,
+            black_bytes_offset,
+            alloc_cache_offset,
+            freeindex_offset,
+            nelems_offset,
+            elemsize_offset,
+            start_offset,
+            alloc_count_offset,
+            needzero_offset,
+            mark_bits_offset,
+            scan_bits_offset,
+            black_scan_offset,
+            size_to_span_class: SPAN_CLASS_TABLE.as_ptr(),
+            max_size: SPAN_TABLE_MAX_SIZE,
+        },
+        _ => SpanFastPathInfo {
+            valid: false,
+            spans_offset: 0,
+            space_offset: 0,
+            allocate_black_offset: 0,
+            inline_black_offset: 0,
+            black_bytes_offset: 0,
+            alloc_cache_offset: 0,
+            freeindex_offset: 0,
+            nelems_offset: 0,
+            elemsize_offset: 0,
+            start_offset: 0,
+            alloc_count_offset: 0,
+            needzero_offset: 0,
+            mark_bits_offset: 0,
+            scan_bits_offset: 0,
+            black_scan_offset: 0,
+            size_to_span_class: std::ptr::null(),
+            max_size: 0,
+        },
+    };
+    info.write(result);
+}
+
+/// Allocate-black for an object that C2's inline SpanAllocator fast path allocated at `cell`
+/// (what the interpreter and C1 fast paths do inline). A leaf: it neither blocks nor allocates.
+#[no_mangle]
+pub extern "C" fn mmtk_span_allocate_black(mutator: *mut libc::c_void, cell: Address) {
+    use mmtk::util::alloc::SpanAllocator;
+    with_mutator!(|mutator| unsafe {
+        mutator
+            .allocator_impl_mut_for_semantic::<SpanAllocator<_>>(AllocationSemantics::Default)
+            .allocate_black_inline(cell)
+    })
 }
 
 #[no_mangle]
@@ -469,6 +646,24 @@ pub extern "C" fn mmtk_array_copy_pre(
         mutator
             .barrier()
             .memory_region_copy_pre((src..src + bytes).into(), (dst..dst + bytes).into());
+    })
+}
+
+/// Array-copy pre-barrier that only reads the source.  Used when the destination is not
+/// initialised yet (a new array that is filled by the copy, or an object filled by `clone`), so its
+/// old contents must not be read.  The destination range passed to MMTk is empty.
+#[no_mangle]
+pub extern "C" fn mmtk_array_copy_pre_src_only(
+    mutator: *mut libc::c_void,
+    src: Address,
+    dst: Address,
+    count: usize,
+) {
+    let bytes = count << log_bytes_in_slot();
+    with_mutator!(|mutator| {
+        mutator
+            .barrier()
+            .memory_region_copy_pre((src..src + bytes).into(), (dst..dst).into());
     })
 }
 

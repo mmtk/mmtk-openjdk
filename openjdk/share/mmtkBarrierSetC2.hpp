@@ -54,6 +54,10 @@ protected:
   /// Full post-barrier
   virtual void object_reference_write_post(GraphKit* kit, Node* src, Node* slot, Node* val) const {}
 
+  /// `load_at_resolved` with the weak reference load barrier: if the byte at `flag_addr` is non-zero,
+  /// call `MMTkBarrierSetRuntime::load_reference_call` with the loaded referent.
+  Node* weak_reference_load_at_resolved(C2Access& access, const Type* val_type, uintptr_t flag_addr) const;
+
   virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const {
     if (access.is_oop() && access.is_parse_access()) {
       C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
@@ -103,6 +107,10 @@ public:
                               const TypeFunc* slow_call_type, // Type of slow call
                               address slow_call_address,  // Address of slow call
                               Node* valid_length_test); // whether length is valid or not
+  // The SpanAllocator fast path for expand_allocate. Returns the slow-path control.
+  static Node* expand_span_allocate(PhaseMacroExpand* x, const MMTkSpanFastPathInfo* info,
+                                    Node* ctrl, Node* mem, Node* size_in_bytes, jlong const_size,
+                                    Node*& fast_oop, Node*& fast_oop_ctrl, Node*& fast_oop_rawmem);
 };
 
 class MMTkIdealKit: public IdealKit {

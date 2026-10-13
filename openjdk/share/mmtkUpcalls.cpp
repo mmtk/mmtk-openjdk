@@ -47,6 +47,7 @@
 #include "runtime/thread.inline.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
+#include "runtime/handshake.hpp"
 #include "gc/shared/weakProcessor.hpp"
 #include "prims/resolvedMethodTable.hpp"
 #include "jfr/jfr.hpp"
@@ -371,6 +372,69 @@ static void mmtk_scan_roots_in_mutator_thread(SlotsClosure closure, void* tls) {
   thread->oops_do(&cl, &cb_cl);
 }
 
+// Scans one Java thread's stack while marking is concurrent (ConcurrentSpan's Go-style stack
+// scanning).  A running thread runs this closure itself at its next handshake poll; the VM thread
+// runs it on behalf of a blocked thread.  Either way the thread cannot run Java code meanwhile.
+// The slots are loaded before the closure returns (see mmtk-core's
+// `ConcurrentMarkingRootsWorkFactory`), so it does not matter that the thread resumes afterwards.
+//
+// Unlike `mmtk_scan_roots_in_mutator_thread`, this does no nmethod "on stack" bookkeeping: the
+// claim protocol (`oops_do_try_claim`) only works at a safepoint.  mmtk-openjdk neither arms
+// nmethod entry barriers nor unloads code, so nothing depends on it.
+class MMTkScanStackHandshakeClosure : public HandshakeClosure {
+  SlotsClosure _closure;
+public:
+  MMTkScanStackHandshakeClosure(SlotsClosure closure)
+    : HandshakeClosure("MMTkScanStack"), _closure(closure) {}
+
+  virtual void do_thread(Thread* thread) override {
+    ResourceMark rm;
+    JavaThread* jt = JavaThread::cast(thread);
+    MMTkRootsClosure cl(_closure);
+    jt->oops_do(&cl, nullptr);
+  }
+};
+
+static void mmtk_scan_roots_in_mutator_threads_concurrently(SlotsClosure closure) {
+  MMTkScanStackHandshakeClosure cl(closure);
+  Handshake::execute(&cl);
+}
+
+// Flushes one Java thread's MMTk mutator state (its barrier buffers) without stopping all threads
+// at once.  This is Go's `forEachP` in the ragged barrier of mark termination.
+class MMTkFlushMutatorHandshakeClosure : public HandshakeClosure {
+public:
+  MMTkFlushMutatorHandshakeClosure() : HandshakeClosure("MMTkFlushMutator") {}
+
+  virtual void do_thread(Thread* thread) override {
+    flush_mutator((MMTk_Mutator) &JavaThread::cast(thread)->third_party_heap_mutator);
+  }
+};
+
+static void mmtk_flush_mutators_concurrently() {
+  MMTkFlushMutatorHandshakeClosure cl;
+  Handshake::execute(&cl);
+}
+
+// Blocks the current Java thread until `check(data)` returns true (ConcurrentSpan's mark
+// assists).  Like `mmtk_block_for_gc`, the thread is blocked in the VM, so safepoints and
+// handshakes proceed while it waits.  The condition is re-checked when
+// `mmtk_wake_blocked_mutators` is called, and at least every millisecond.  The monitor is
+// `assist_lock`, which ranks low enough to be notified from inside handshake closures.
+static void mmtk_block_mutator_until(bool (*check)(void* data), void* data) {
+  JavaThread* thread = JavaThread::current();
+  ThreadBlockInVM tbivm(thread);
+  MutexLocker locker(MMTkHeap::heap()->assist_lock(), Mutex::_no_safepoint_check_flag);
+  while (!check(data)) {
+    MMTkHeap::heap()->assist_lock()->wait_without_safepoint_check(1);
+  }
+}
+
+static void mmtk_wake_blocked_mutators() {
+  MutexLocker locker(MMTkHeap::heap()->assist_lock(), Mutex::_no_safepoint_check_flag);
+  MMTkHeap::heap()->assist_lock()->notify_all();
+}
+
 static void mmtk_scan_object(void* trace, void* object, void* tls) {
   MMTkScanObjectClosure cl(trace);
   ((oop) object)->oop_iterate(&cl);
@@ -581,4 +645,8 @@ OpenJDK_Upcalls mmtk_upcalls = {
   mmtk_enqueue_references,
   mmtk_fix_oop_relocations,
   mmtk_gc_epilogue,
+  mmtk_scan_roots_in_mutator_threads_concurrently,
+  mmtk_flush_mutators_concurrently,
+  mmtk_block_mutator_until,
+  mmtk_wake_blocked_mutators,
 };

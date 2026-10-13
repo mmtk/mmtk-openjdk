@@ -25,6 +25,9 @@ const int MAX_MALLOC_ALLOCATORS = 1;
 const int MAX_IMMIX_ALLOCATORS = 2;
 const int MAX_FREE_LIST_ALLOCATORS = 2;
 const int MAX_LISP2_ALLOCATORS = 1;
+const int MAX_SPAN_ALLOCATORS = 2;
+// Go-style span classes: 68 size classes, each in a scan and a noscan variant.
+const int NUM_SPAN_CLASSES = 68 * 2;
 
 // The following types should have the same layout as the types with the same name in MMTk core (Rust)
 
@@ -89,6 +92,17 @@ struct Lisp2Allocator {
   struct BumpAllocator bump_allocator;
 };
 
+// Mirrors `SpanAllocator` in mmtk-core (`#[repr(C)]`).
+struct SpanAllocator {
+  void* alloc[NUM_SPAN_CLASSES];
+  void* tls;
+  bool noscan;
+  void* space;
+  void* context;
+  intptr_t assist_credit;
+  size_t black_bytes;
+};
+
 struct Allocators {
   BumpAllocator bump_pointer[MAX_BUMP_ALLOCATORS];
   LargeObjectAllocator large_object[MAX_LARGE_OBJECT_ALLOCATORS];
@@ -96,6 +110,7 @@ struct Allocators {
   ImmixAllocator immix[MAX_IMMIX_ALLOCATORS];
   MMTkFreeListAllocator free_list[MAX_FREE_LIST_ALLOCATORS];
   Lisp2Allocator lisp2[MAX_LISP2_ALLOCATORS];
+  SpanAllocator span[MAX_SPAN_ALLOCATORS];
 };
 
 struct MutatorConfig {

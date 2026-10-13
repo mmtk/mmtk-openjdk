@@ -118,6 +118,11 @@ pub struct OpenJDK_Upcalls {
     pub enqueue_references: extern "C" fn(objects: *const ObjectReference, len: usize),
     pub fix_oop_relocations: extern "C" fn(lxr: bool, nmethods: *mut libc::c_void, len: usize),
     pub gc_epilogue: extern "C" fn(),
+    pub scan_roots_in_mutator_threads_concurrently: extern "C" fn(closure: SlotsClosure),
+    pub flush_mutators_concurrently: extern "C" fn(),
+    pub block_mutator_until:
+        extern "C" fn(check: extern "C" fn(data: *mut libc::c_void) -> bool, data: *mut libc::c_void),
+    pub wake_blocked_mutators: extern "C" fn(),
 }
 
 pub static mut UPCALLS: *const OpenJDK_Upcalls = null_mut();
@@ -149,6 +154,15 @@ pub static FREE_LIST_ALLOCATOR_SIZE: uintptr_t =
 #[no_mangle]
 pub static IMMIX_ALLOCATOR_SIZE: uintptr_t =
     std::mem::size_of::<mmtk::util::alloc::ImmixAllocator<OpenJDK<false>>>();
+
+#[no_mangle]
+pub static SPAN_ALLOCATOR_SIZE: uintptr_t =
+    std::mem::size_of::<mmtk::util::alloc::SpanAllocator<OpenJDK<false>>>();
+
+/// The size of the whole `Mutator`, checked against the C++ mirror `MMTkMutatorContext` when a
+/// mutator is bound, so that the two layouts cannot drift apart silently.
+#[no_mangle]
+pub static MUTATOR_SIZE: uintptr_t = std::mem::size_of::<mmtk::Mutator<OpenJDK<false>>>();
 
 #[no_mangle]
 pub static mut CONCURRENT_MARKING_ACTIVE: u8 = 0;

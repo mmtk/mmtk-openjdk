@@ -24,6 +24,7 @@
 
 #ifdef COMPILER2
 #include "precompiled.hpp"
+#include "classfile/javaClasses.hpp"
 #include "mmtk.h"
 #include "mmtkBarrierSet.hpp"
 #include "mmtkBarrierSetC2.hpp"
@@ -31,7 +32,13 @@
 #include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
 #include "opto/callnode.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "opto/compile.hpp"
+#include "opto/countbitsnode.hpp"
+#include "opto/matcher.hpp"
+#include "opto/memnode.hpp"
+#include "opto/mulnode.hpp"
+#include "opto/subnode.hpp"
 #include "opto/graphKit.hpp"
 #include "opto/idealKit.hpp"
 #include "opto/macro.hpp"
@@ -42,6 +49,150 @@
 #include "opto/type.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
+
+// The type of mmtk_span_allocate_black(mutator, cell).
+static const TypeFunc* mmtk_span_allocate_black_Type() {
+  const Type** fields = TypeTuple::fields(2);
+  fields[TypeFunc::Parms + 0] = TypeRawPtr::BOTTOM; // mutator
+  fields[TypeFunc::Parms + 1] = TypeRawPtr::BOTTOM; // cell
+  const TypeTuple* domain = TypeTuple::make(TypeFunc::Parms + 2, fields);
+  fields = TypeTuple::fields(0);
+  const TypeTuple* range = TypeTuple::make(TypeFunc::Parms + 0, fields);
+  return TypeFunc::make(domain, range);
+}
+
+// The SpanAllocator fast path (Go's nextFreeFast, mmtk-core's Span::next_free_fast). See
+// MMTkBarrierSetAssembler::span_allocate (x86) for the pseudo code. While allocating black, the
+// marking (Go's gcmarknewobject) is a leaf call to mmtk_span_allocate_black, like Go's call from
+// mallocgc; the interpreter and C1 do it inline. Returns the control of the
+// slow path (a region merging every bail-out) and sets the fast-path result. Nothing is stored
+// before the last check.
+Node* MMTkBarrierSetC2::expand_span_allocate(PhaseMacroExpand* x, const MMTkSpanFastPathInfo* info,
+                                             Node* ctrl, Node* mem, Node* size_in_bytes, jlong const_size,
+                                             Node*& fast_oop, Node*& fast_oop_ctrl, Node*& fast_oop_rawmem) {
+  PhaseIterGVN& igvn = x->_igvn;
+  const int mutator_offset = in_bytes(JavaThread::third_party_heap_mutator_offset());
+  RegionNode* slow = new RegionNode(1);
+
+  // Raw-memory helpers. Every load is control-dependent on the allocation's control and uses its
+  // raw memory state, like the bump-pointer fast path.
+  auto adr = [&](Node* ptr, intptr_t off) -> Node* {
+    return off == 0 ? ptr : x->basic_plus_adr(x->top(), ptr, (int)off);
+  };
+  auto load = [&](Node* c, Node* ptr, intptr_t off, const Type* t, BasicType bt) -> Node* {
+    return x->transform_later(LoadNode::make(igvn, c, mem, adr(ptr, off), TypeRawPtr::BOTTOM, t, bt, MemNode::unordered));
+  };
+  auto store = [&](Node* c, Node* m, Node* ptr, intptr_t off, Node* val, BasicType bt) -> Node* {
+    return x->transform_later(StoreNode::make(igvn, c, m, adr(ptr, off), TypeRawPtr::BOTTOM, val, bt, MemNode::unordered));
+  };
+  // Branch to the slow path if `bol` holds; return the fast-path control.
+  auto bail_if = [&](Node* c, Node* bol) -> Node* {
+    IfNode* iff = new IfNode(c, bol, PROB_UNLIKELY_MAG(4), COUNT_UNKNOWN);
+    x->transform_later(iff);
+    Node* t = x->transform_later(new IfTrueNode(iff));
+    slow->add_req(t);
+    return x->transform_later(new IfFalseNode(iff));
+  };
+  auto bool_of = [&](Node* cmp, BoolTest::mask m) -> Node* {
+    x->transform_later(cmp);
+    return x->transform_later(new BoolNode(cmp, m));
+  };
+
+  Node* thread = x->transform_later(new ThreadLocalNode());
+
+  // Allocate-black. The flags only change at a safepoint. If new objects also need log bits
+  // (inline_black is 0), the slow path allocates.
+  Node* space = load(ctrl, thread, mutator_offset + info->space_offset, TypeRawPtr::BOTTOM, T_ADDRESS);
+  Node* black = load(ctrl, space, info->allocate_black_offset, TypeInt::UBYTE, T_BOOLEAN);
+  Node* inline_black = load(ctrl, space, info->inline_black_offset, TypeInt::UBYTE, T_BOOLEAN);
+  Node* not_inline = x->transform_later(new XorINode(inline_black, x->intcon(1)));
+  Node* black_not_inline = x->transform_later(new AndINode(black, not_inline));
+  ctrl = bail_if(ctrl, bool_of(new CmpINode(black_not_inline, x->intcon(0)), BoolTest::ne));
+
+  // span = mutator.alloc[span class]
+  Node* span_slot;
+  if (const_size >= 0) {
+    int spc = mmtk_span_class_for_size(info, (size_t)const_size);
+    assert(spc != 0, "checked by the caller");
+    span_slot = adr(thread, mutator_offset + info->spans_offset + spc * wordSize);
+  } else {
+    // The size is below max_non_los_default_alloc_bytes (the initial slow test) and a multiple of 8.
+    Node* table_index = x->transform_later(new URShiftLNode(size_in_bytes, x->intcon(LogBytesPerLong)));
+    Node* table = x->transform_later(ConPNode::make((address)info->size_to_span_class));
+    Node* spc = load(ctrl, x->basic_plus_adr(x->top(), table, table_index), 0, TypeInt::UBYTE, T_BOOLEAN);
+    Node* slot_offset = x->transform_later(new LShiftLNode(x->transform_later(new ConvI2LNode(spc)), x->intcon(LogBytesPerWord)));
+    span_slot = adr(x->basic_plus_adr(x->top(), thread, slot_offset), mutator_offset + info->spans_offset);
+  }
+  Node* span = load(ctrl, span_slot, 0, TypeRawPtr::BOTTOM, T_ADDRESS);
+
+  if (ZeroTLAB) {
+    // Never the case for MMTk (UseTLAB is off, so C2 zeroes objects), but be safe.
+    Node* needzero = load(ctrl, span, info->needzero_offset, TypeInt::UBYTE, T_BOOLEAN);
+    ctrl = bail_if(ctrl, bool_of(new CmpINode(needzero, x->intcon(0)), BoolTest::ne));
+  }
+
+  // cache = span.alloc_cache; if cache == 0: slow
+  Node* cache = load(ctrl, span, info->alloc_cache_offset, TypeLong::LONG, T_LONG);
+  ctrl = bail_if(ctrl, bool_of(new CmpLNode(cache, x->longcon(0)), BoolTest::eq));
+  Node* bit = x->transform_later(new CountTrailingZerosLNode(cache));
+  // result = freeindex + bit; if result >= nelems: slow
+  Node* freeindex = load(ctrl, span, info->freeindex_offset, TypeLong::LONG, T_LONG);
+  Node* nelems = load(ctrl, span, info->nelems_offset, TypeLong::LONG, T_LONG);
+  Node* result = x->transform_later(new AddLNode(freeindex, x->transform_later(new ConvI2LNode(bit))));
+  ctrl = bail_if(ctrl, bool_of(new CmpULNode(result, nelems), BoolTest::ge));
+  // freeidx = result + 1; if freeidx % 64 == 0 && freeidx != nelems: slow
+  Node* freeidx = x->transform_later(new AddLNode(result, x->longcon(1)));
+  Node* low = x->transform_later(new AndLNode(freeidx, x->longcon(63)));
+  Node* at_word_end = bool_of(new CmpLNode(low, x->longcon(0)), BoolTest::eq);
+  // at_word_end ? freeidx : nelems
+  Node* sel = x->transform_later(new CMoveLNode(at_word_end, nelems, freeidx, TypeLong::LONG));
+  ctrl = bail_if(ctrl, bool_of(new CmpLNode(sel, nelems), BoolTest::ne));
+
+  // span.alloc_cache = cache >> (bit + 1), as two shifts so that a shift by 64 gives 0.
+  Node* shifted = x->transform_later(new URShiftLNode(cache, bit));
+  Node* new_cache = x->transform_later(new URShiftLNode(shifted, x->intcon(1)));
+  Node* count = load(ctrl, span, info->alloc_count_offset, TypeLong::LONG, T_LONG);
+  Node* m = store(ctrl, mem, span, info->alloc_cache_offset, new_cache, T_LONG);
+  m = store(ctrl, m, span, info->freeindex_offset, freeidx, T_LONG);
+  // Only the owning mutator writes the alloc_count of a cached span.
+  m = store(ctrl, m, span, info->alloc_count_offset, x->transform_later(new AddLNode(count, x->longcon(1))), T_LONG);
+
+  // obj = start + result * elemsize
+  Node* start = load(ctrl, span, info->start_offset, TypeRawPtr::BOTTOM, T_ADDRESS);
+  Node* elemsize = load(ctrl, span, info->elemsize_offset, TypeLong::LONG, T_LONG);
+  Node* offset = x->transform_later(new MulLNode(result, elemsize));
+  fast_oop = x->basic_plus_adr(x->top(), start, offset);
+
+  // if black: mmtk_span_allocate_black(mutator, obj)
+  {
+    IfNode* iff = new IfNode(ctrl, bool_of(new CmpINode(black, x->intcon(0)), BoolTest::ne), PROB_FAIR, COUNT_UNKNOWN);
+    x->transform_later(iff);
+    Node* black_ctrl = x->transform_later(new IfTrueNode(iff));
+    Node* white_ctrl = x->transform_later(new IfFalseNode(iff));
+    Node* mutator = adr(thread, mutator_offset);
+    Node* call = x->make_leaf_call(black_ctrl, m, mmtk_span_allocate_black_Type(),
+                                   CAST_FROM_FN_PTR(address, mmtk_span_allocate_black),
+                                   "mmtk_span_allocate_black", TypeRawPtr::BOTTOM, mutator, fast_oop);
+    x->transform_later(call);
+    Node* call_ctrl = x->transform_later(new ProjNode(call, TypeFunc::Control));
+    Node* call_mem = x->transform_later(new ProjNode(call, TypeFunc::Memory));
+    RegionNode* merge = new RegionNode(3);
+    merge->init_req(1, white_ctrl);
+    merge->init_req(2, call_ctrl);
+    x->transform_later(merge);
+    PhiNode* merge_mem = new PhiNode(merge, Type::MEMORY, TypeRawPtr::BOTTOM);
+    merge_mem->init_req(1, m);
+    merge_mem->init_req(2, call_mem);
+    x->transform_later(merge_mem);
+    ctrl = merge;
+    m = merge_mem;
+  }
+  fast_oop_ctrl = ctrl;
+  fast_oop_rawmem = m;
+
+  x->transform_later(slow);
+  return slow;
+}
 
 void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
                                        AllocateNode* alloc, // allocation node to be expanded
@@ -143,9 +294,22 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     }
   }
 
+  // The SpanAllocator fast path (ConcurrentSpan), if enabled and supported.
+  const MMTkSpanFastPathInfo* span_info = NULL;
+#ifdef AMD64
+  // Only tested on x86_64 (decision D86); other architectures take the slow path.
+  if (selector.tag == TAG_SPAN && Matcher::match_rule_supported(Op_CountTrailingZerosL)) {
+    span_info = mmtk_span_fastpath();
+  }
+#endif
+  if (span_info != NULL && const_size >= 0 && mmtk_span_class_for_size(span_info, (size_t)const_size) == 0) {
+    span_info = NULL; // No small size class: always slow (the size check above normally catches this).
+  }
+
   if (!mmtk_enable_allocation_fastpath
       // Malloc allocator has no fastpath
-      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)) {
+      || (selector.tag == TAG_MALLOC || selector.tag == TAG_LARGE_OBJECT || selector.tag == TAG_FREE_LIST)
+      || (selector.tag == TAG_SPAN && span_info == NULL)) {
     // Force slow-path allocation
     always_slow = true;
     initial_slow_test = NULL;
@@ -186,6 +350,28 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
       mem = mem->as_MergeMem()->memory_at(Compile::AliasIdxRaw);
     }
 
+    // Name successful fast-path variables
+    Node* fast_oop;
+    Node* fast_oop_ctrl;
+    Node* fast_oop_rawmem;
+
+    if (span_info != NULL) {
+      result_region = new RegionNode(3);
+      result_phi_rawmem = new PhiNode(result_region, Type::MEMORY, TypeRawPtr::BOTTOM);
+      result_phi_rawoop = new PhiNode(result_region, TypeRawPtr::BOTTOM);
+      result_phi_i_o    = new PhiNode(result_region, Type::ABIO);
+      // Slow-path does no I/O so just set it to the original I/O.
+      result_phi_i_o->init_req(slow_result_path, i_o);
+
+      Node* span_slow_region = expand_span_allocate(x, span_info, toobig_false, mem, size_in_bytes, const_size,
+                                                    fast_oop, fast_oop_ctrl, fast_oop_rawmem);
+      if (initial_slow_test) {
+        slow_region->init_req(need_gc_path, span_slow_region);
+        x->transform_later(slow_region);
+      } else {
+        slow_region = span_slow_region;
+      }
+    } else {
     Node* eden_top_adr;
     Node* eden_end_adr;
 
@@ -270,10 +456,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     // i_o = prefetch_allocation(i_o, needgc_false, contended_phi_rawmem,
     //                           old_eden_top, new_eden_top, length);
 
-    // Name successful fast-path variables
-    Node* fast_oop = old_eden_top;
-    Node* fast_oop_ctrl;
-    Node* fast_oop_rawmem;
+    fast_oop = old_eden_top;
 
     // Store (-conditional) the modified eden top back down.
     // StorePConditional produces flags for a test PLUS a modified raw
@@ -284,6 +467,7 @@ void MMTkBarrierSetC2::expand_allocate(PhaseMacroExpand* x,
     x->transform_later(store_eden_top);
     fast_oop_ctrl = needgc_false; // No contention, so this is the fast path
     fast_oop_rawmem = store_eden_top;
+    }
 
     bool enable_vo_bit = false;
     #ifdef MMTK_ENABLE_VO_BIT
@@ -652,4 +836,174 @@ bool MMTkBarrierSetC2::can_remove_barrier(GraphKit* kit, PhaseTransform* phase, 
 
   return false;
 }
+
+//////////////////// Weak reference load barrier ////////////////////
+// Shared by the barriers that keep the referent of a weak reference alive when it is loaded while
+// marking (SATBBarrier and HybridBarrier).  The barrier is gated by the byte at `flag_addr`.
+
+#define __ ideal.
+
+static void reference_load_barrier(GraphKit* kit, Node* slot, Node* val, bool emit_barrier, uintptr_t flag_addr) {
+  MMTkIdealKit ideal(kit, true);
+  Node* no_base = __ top();
+  float unlikely  = PROB_UNLIKELY(0.999);
+  Node* zero  = __ ConI(0);
+  Node* cm_flag = __ load(__ ctrl(), __ ConP(flag_addr), TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
+  // No slow-call if the barrier is not active
+  __ if_then(cm_flag, BoolTest::ne, zero, unlikely); {
+    // No slow-call if dst is NULL
+    __ if_then(val, BoolTest::ne, kit->null()); {
+      const TypeFunc* tf = __ func_type(TypeOopPtr::BOTTOM);
+      Node* x = __ make_leaf_call(tf, FN_ADDR(MMTkBarrierSetRuntime::load_reference_call), "mmtk_barrier_call", val);
+    } __ end_if();
+  } __ end_if();
+  kit->sync_kit(ideal);
+  if (emit_barrier) kit->insert_mem_bar(Op_MemBarCPUOrder);
+  kit->final_sync(ideal); // Final sync IdealKit and GraphKit.
+}
+
+static void reference_load_barrier_for_unknown_load(GraphKit* kit, Node* base_oop, Node* offset, Node* slot, Node* val, bool need_mem_bar, uintptr_t flag_addr) {
+  // Note: This function is copied from G1BarrierSetC2::insert_pre_barrier,
+  // and ShenandoahBarrierSetC2::insert_pre_barrier is probably copied from G1 as well.
+  // It basically implements BarrierSetC1::generate_referent_check in C2 IR.
+
+  // We could be accessing the referent field of a reference object. If so, when G1
+  // is enabled, we need to log the value in the referent field in an SATB buffer.
+  // This routine performs some compile time filters and generates suitable
+  // runtime filters that guard the pre-barrier code.
+  // Also add memory barrier for non volatile load from the referent field
+  // to prevent commoning of loads across safepoint.
+
+  // Some compile time checks.
+
+  // If offset is a constant, is it java_lang_ref_Reference::_reference_offset?
+  const TypeX* otype = offset->find_intptr_t_type();
+  if (otype != nullptr && otype->is_con() &&
+      otype->get_con() != java_lang_ref_Reference::referent_offset()) {
+    // Constant offset but not the reference_offset so just return
+    return;
+  }
+
+  // We only need to generate the runtime guards for instances.
+  const TypeOopPtr* btype = base_oop->bottom_type()->isa_oopptr();
+  if (btype != nullptr) {
+    if (btype->isa_aryptr()) {
+      // Array type so nothing to do
+      return;
+    }
+
+    const TypeInstPtr* itype = btype->isa_instptr();
+    if (itype != nullptr) {
+      // Can the klass of base_oop be statically determined to be
+      // _not_ a sub-class of Reference and _not_ Object?
+      ciKlass* klass = itype->instance_klass();
+      if (klass->is_loaded() &&
+          !klass->is_subtype_of(kit->env()->Reference_klass()) &&
+          !kit->env()->Object_klass()->is_subtype_of(klass)) {
+        return;
+      }
+    }
+  }
+
+  // The compile time filters did not reject base_oop/offset so
+  // we need to generate the following runtime filters
+  //
+  // if (offset == java_lang_ref_Reference::_reference_offset) {
+  //   if (instance_of(base, java.lang.ref.Reference)) {
+  //     pre_barrier(_, pre_val, ...);
+  //   }
+  // }
+
+  float likely   = PROB_LIKELY(  0.999);
+  float unlikely = PROB_UNLIKELY(0.999);
+
+  IdealKit ideal(kit);
+
+  Node* referent_off = __ ConX(java_lang_ref_Reference::referent_offset());
+
+  __ if_then(offset, BoolTest::eq, referent_off, unlikely); {
+    // Update graphKit memory and control from IdealKit.
+    kit->sync_kit(ideal);
+
+    Node* ref_klass_con = kit->makecon(TypeKlassPtr::make(kit->env()->Reference_klass()));
+    Node* is_instof = kit->gen_instanceof(base_oop, ref_klass_con);
+
+    // Update IdealKit memory and control from graphKit.
+    __ sync_kit(kit);
+
+    Node* one = __ ConI(1);
+    // is_instof == 0 if base_oop == nullptr
+    __ if_then(is_instof, BoolTest::eq, one, unlikely); {
+      // Update graphKit from IdeakKit.
+      kit->sync_kit(ideal);
+      // Use the pre-barrier to record the value in the referent field
+      reference_load_barrier(kit, slot, val, false, flag_addr);
+      if (need_mem_bar) {
+        // Add memory barrier to prevent commoning reads from this field
+        // across safepoint since GC can change its value.
+        kit->insert_mem_bar(Op_MemBarCPUOrder);
+      }
+      // Update IdealKit from graphKit.
+      __ sync_kit(kit);
+    } __ end_if(); // _ref_type != ref_none
+  } __ end_if(); // offset == referent_offset
+
+  // Final sync IdealKit and GraphKit.
+  kit->final_sync(ideal);
+}
+
+Node* MMTkBarrierSetC2::weak_reference_load_at_resolved(C2Access& access, const Type* val_type, uintptr_t flag_addr) const {
+  // Mostly copied from G1.
+  DecoratorSet decorators = access.decorators();
+  Node* adr = access.addr().node();
+  Node* obj = access.base();
+
+  bool anonymous = (decorators & C2_UNSAFE_ACCESS) != 0;
+  bool mismatched = (decorators & C2_MISMATCHED) != 0;
+  bool unknown = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+  bool in_heap = (decorators & IN_HEAP) != 0;
+  bool in_native = (decorators & IN_NATIVE) != 0;
+  bool on_weak = (decorators & ON_WEAK_OOP_REF) != 0;
+  bool on_phantom = (decorators & ON_PHANTOM_OOP_REF) != 0;
+  bool is_unordered = (decorators & MO_UNORDERED) != 0;
+  bool no_keepalive = (decorators & AS_NO_KEEPALIVE) != 0;
+  bool is_mixed = !in_heap && !in_native;
+  bool need_cpu_mem_bar = !is_unordered || mismatched || is_mixed;
+
+  Node* top = Compile::current()->top();
+  Node* offset = adr->is_AddP() ? adr->in(AddPNode::Offset) : top;
+
+  // If we are reading the value of the referent field of a Reference
+  // object (either by using Unsafe directly or through reflection)
+  // then, if G1 is enabled, we need to record the referent in an
+  // SATB log buffer using the pre-barrier mechanism.
+  // Also we need to add memory barrier to prevent commoning reads
+  // from this field across safepoint since GC can change its value.
+  bool need_read_barrier = (((on_weak || on_phantom) && !no_keepalive) ||
+                            (in_heap && unknown && offset != top && obj != top));
+
+  if (!access.is_oop() || !need_read_barrier) {
+    return BarrierSetC2::load_at_resolved(access, val_type);
+  }
+
+  // The other access "opt_access" is only used in arraycopy barriers.
+  // OpenJDK doesn't have weak arrays, so it must be "parse_access".
+  assert(access.is_parse_access(), "entry not supported at optimization time");
+
+  C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+  GraphKit* kit = parse_access.kit();
+  Node* load = BarrierSetC2::load_at_resolved(access, val_type);
+
+  if (mmtk_enable_reference_load_barrier) {
+    if (on_weak) {
+      reference_load_barrier(kit, adr, load, true, flag_addr);
+    } else if (unknown) {
+      reference_load_barrier_for_unknown_load(kit, obj, offset, adr, load, !need_cpu_mem_bar, flag_addr);
+    }
+  }
+
+  return load;
+}
+
+#undef __
 #endif

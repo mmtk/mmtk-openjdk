@@ -27,10 +27,15 @@
 #include "barriers/mmtkObjectBarrier.hpp"
 #include "barriers/mmtkFieldBarrier.hpp"
 #include "barriers/mmtkSATBBarrier.hpp"
+#ifdef AMD64
+#include "barriers/mmtkHybridBarrier.hpp"
+#endif
 #include "mmtkBarrierSet.hpp"
 #include "utilities/macros.hpp"
 #include CPU_HEADER(mmtkBarrierSetAssembler)
 #include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/orderAccess.hpp"
+#include "mmtkMutator.hpp"
 #ifdef COMPILER1
 #include "mmtkBarrierSetC1.hpp"
 #endif
@@ -41,6 +46,25 @@
 bool mmtk_enable_allocation_fastpath = true;
 bool mmtk_enable_barrier_fastpath = true;
 bool mmtk_enable_reference_load_barrier = true;
+bool mmtk_enable_span_allocation_fastpath = true;
+
+const MMTkSpanFastPathInfo* mmtk_span_fastpath() {
+  static MMTkSpanFastPathInfo info;
+  static volatile int state = 0; // 0: not computed, 1: computed
+  if (state == 0) {
+    // Idempotent: racing threads compute the same values.
+    MMTkSpanFastPathInfo tmp;
+    mmtk_span_fastpath_info(AllocatorDefault, &tmp);
+    info = tmp;
+    OrderAccess::release();
+    state = 1;
+  }
+  OrderAccess::acquire();
+  if (!mmtk_enable_allocation_fastpath || !mmtk_enable_span_allocation_fastpath || !info.valid) {
+    return NULL;
+  }
+  return &info;
+}
 
 MMTkAllocatorOffsets get_tlab_top_and_end_offsets(AllocatorSelector selector) {
   int tlab_top_offset, tlab_end_offset;
@@ -89,6 +113,9 @@ MMTkBarrierBase* get_selected_barrier() {
   else if (strcmp(barrier, "ObjectBarrier") == 0) selected_barrier = new MMTkObjectBarrier();
   else if (strcmp(barrier, "SATBBarrier") == 0) selected_barrier = new MMTkSATBBarrier();
   else if (strcmp(barrier, "FieldBarrier") == 0) selected_barrier = new MMTkFieldBarrier();
+#ifdef AMD64
+  else if (strcmp(barrier, "HybridBarrier") == 0) selected_barrier = new MMTkHybridBarrier();
+#endif
   else guarantee(false, "Unimplemented");
   return selected_barrier;
 }

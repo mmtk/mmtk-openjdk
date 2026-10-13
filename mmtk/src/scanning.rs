@@ -37,6 +37,36 @@ extern "C" fn report_slots_and_renew_buffer<S: Slot, F: RootsWorkFactory<S>>(
     NewBuffer { ptr, capacity }
 }
 
+/// Shade objects during concurrent marking: see [`mmtk::memory_manager::shade_objects`].
+///
+/// # Safety
+/// `objects` must point to `len` valid object references.
+#[no_mangle]
+pub unsafe extern "C" fn mmtk_shade_objects(objects: *const ObjectReference, len: usize) {
+    if len == 0 {
+        return;
+    }
+    let objects = std::slice::from_raw_parts(objects, len);
+    if crate::use_compressed_oops() {
+        memory_manager::shade_objects(crate::singleton::<true>(), objects);
+    } else {
+        memory_manager::shade_objects(crate::singleton::<false>(), objects);
+    }
+}
+
+/// Like [`report_slots_and_renew_buffer`], but the factory is behind a mutex, so the closure can be
+/// invoked from several threads at the same time (for example from handshake closures).
+extern "C" fn report_slots_and_renew_buffer_sync<S: Slot, F: RootsWorkFactory<S>>(
+    ptr: *mut Address,
+    length: usize,
+    capacity: usize,
+    factory_ptr: *mut libc::c_void,
+) -> NewBuffer {
+    let factory: &std::sync::Mutex<F> = unsafe { &*(factory_ptr as *const std::sync::Mutex<F>) };
+    let mut factory = factory.lock().unwrap();
+    report_slots_and_renew_buffer::<S, F>(ptr, length, capacity, &mut *factory as *mut F as _)
+}
+
 pub(crate) fn to_slots_closure<S: Slot, F: RootsWorkFactory<S>>(factory: &mut F) -> SlotsClosure {
     SlotsClosure {
         func: report_slots_and_renew_buffer::<S, F>,
@@ -91,6 +121,28 @@ impl<const COMPRESSED: bool> Scanning<OpenJDK<COMPRESSED>> for VMScanning {
 
     fn supports_return_barrier() -> bool {
         unimplemented!()
+    }
+
+    fn supports_concurrent_stack_scanning() -> bool {
+        true
+    }
+
+    fn scan_roots_in_mutator_threads_concurrently(
+        _tls: VMWorkerThread,
+        factory: impl RootsWorkFactory<OpenJDKSlot<COMPRESSED>>,
+    ) {
+        // Each Java thread scans its own stack in a handshake, and the VM thread scans the
+        // stacks of blocked threads, so the factory is shared between threads.
+        let factory = std::sync::Mutex::new(factory);
+        fn closure<S: Slot, T: RootsWorkFactory<S>>(factory: &std::sync::Mutex<T>) -> SlotsClosure {
+            SlotsClosure {
+                func: report_slots_and_renew_buffer_sync::<S, T>,
+                data: factory as *const std::sync::Mutex<T> as *mut libc::c_void,
+            }
+        }
+        unsafe {
+            ((*UPCALLS).scan_roots_in_mutator_threads_concurrently)(closure(&factory));
+        }
     }
 
     fn prepare_for_roots_re_scanning() {

@@ -17,6 +17,10 @@ protected:
   /// `compensate_val_reg` is true if this function is called after `BarrierSetAssembler::store_at` which compresses the pointer in the `val` register in place.
   virtual void object_reference_write_post(MacroAssembler* masm, DecoratorSet decorators, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3, bool compensate_val_reg) const {}
 
+  /// Weak reference load barrier, emitted after the load: if the byte at `flag_addr` is non-zero and
+  /// the loaded referent in `dst` is not null, call `MMTkBarrierSetRuntime::load_reference_call`.
+  static void weak_reference_load_barrier(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register dst, Register tmp1, uintptr_t flag_addr);
+
   /// Barrier elision test
   virtual bool can_remove_barrier(DecoratorSet decorators, Register val, bool skip_const_null) const {
     bool in_heap = (decorators & IN_HEAP) != 0;
@@ -27,6 +31,8 @@ protected:
 
 public:
   virtual void eden_allocate(MacroAssembler* masm, Register thread, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case) override;
+  // The SpanAllocator fast path (Go's nextFreeFast). Leaves the object in obj (rax), clobbers t1 and rscratch1.
+  void span_allocate(MacroAssembler* masm, const MMTkSpanFastPathInfo* info, Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Label& slow_case);
   virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Address dst, Register val, Register tmp1, Register tmp2, Register tmp3) override {
     if (type == T_OBJECT || type == T_ARRAY) object_reference_write_pre(masm, decorators, dst, val, tmp1, tmp2, tmp3);
     BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, tmp3);

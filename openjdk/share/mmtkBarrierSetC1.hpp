@@ -30,6 +30,10 @@ protected:
   /// Full post-barrier
   virtual void object_reference_write_post(LIRAccess& access, LIR_Opr src, LIR_Opr slot, LIR_Opr new_val) const {}
 
+  /// `load_at_resolved` with the weak reference load barrier: if the byte at `flag_addr` is non-zero,
+  /// call `MMTkBarrierSetRuntime::load_reference_call` with the loaded referent.
+  void weak_reference_load_at_resolved(LIRAccess& access, LIR_Opr result, uintptr_t flag_addr);
+
   /// Substituting write barrier
   virtual void store_at_resolved(LIRAccess& access, LIR_Opr value) override {
     if (access.is_oop()) object_reference_write_pre(access, access.base().opr(), access.resolved_addr(), value);

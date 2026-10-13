@@ -15,6 +15,14 @@ MMTkMutatorContext MMTkMutatorContext::bind(::Thread* current) {
     printf("ERROR: Unmatched free list allocator size: rs=%zu cpp=%zu\n", FREE_LIST_ALLOCATOR_SIZE, sizeof(MMTkFreeListAllocator));
     guarantee(false, "ERROR");
   }
+  if (SPAN_ALLOCATOR_SIZE != sizeof(SpanAllocator)) {
+    printf("ERROR: Unmatched span allocator size: rs=%zu cpp=%zu\n", SPAN_ALLOCATOR_SIZE, sizeof(SpanAllocator));
+    guarantee(false, "ERROR");
+  }
+  if (MUTATOR_SIZE != sizeof(MMTkMutatorContext)) {
+    printf("ERROR: Unmatched mutator size: rs=%zu cpp=%zu\n", MUTATOR_SIZE, sizeof(MMTkMutatorContext));
+    guarantee(false, "ERROR");
+  }
   return *((MMTkMutatorContext*) ::bind_mutator((void*) current));
 }
 

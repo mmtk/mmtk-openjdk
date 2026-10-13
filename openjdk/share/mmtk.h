@@ -26,6 +26,8 @@ extern const uintptr_t IMMIX_ALLOCATOR_SIZE;
 extern uint8_t RC_ENABLED;
 extern const size_t MMTK_LISP2_HEADER_RESERVED_IN_BYTES;
 extern const uintptr_t FREE_LIST_ALLOCATOR_SIZE;
+extern const uintptr_t SPAN_ALLOCATOR_SIZE;
+extern const uintptr_t MUTATOR_SIZE;
 extern uint8_t CONCURRENT_MARKING_ACTIVE;
 
 extern const char* get_mmtk_version();
@@ -36,6 +38,7 @@ extern const char* get_mmtk_version();
 extern MMTk_Mutator bind_mutator(void *tls);
 extern void destroy_mutator(MMTk_Mutator mutator);
 extern void flush_mutator(MMTk_Mutator mutator);
+extern void mmtk_shade_objects(void** objects, size_t len);
 extern void release_mutator(MMTk_Mutator mutator);
 
 extern void mmtk_report_gc_start();
@@ -68,6 +71,12 @@ extern void mmtk_object_reference_write_slow(MMTk_Mutator mutator, void* src, vo
 /// Full array-copy pre-barrier
 extern void mmtk_array_copy_pre(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
+/// Array-copy pre-barrier that only reads the source (the destination is uninitialised)
+extern void mmtk_array_copy_pre_src_only(MMTk_Mutator mutator, void* src, void* dst, size_t count);
+
+/// Address of the global flag of the hybrid barrier (non-zero while the barrier is active)
+extern uint8_t* mmtk_barrier_active_address();
+
 /// Full array-copy post-barrier
 extern void mmtk_array_copy_post(MMTk_Mutator mutator, void* src, void* dst, size_t count);
 
@@ -91,8 +100,35 @@ struct AllocatorSelector {
 #define TAG_IMMIX                     3
 #define TAG_LISP2                     4
 #define TAG_FREE_LIST                 5
+#define TAG_SPAN                      6
 
 extern AllocatorSelector get_allocator_mapping(int allocator);
+
+// Mirrors `SpanFastPathInfo` in mmtk/src/api.rs: what an inline SpanAllocator fast path needs.
+struct MMTkSpanFastPathInfo {
+    bool valid;
+    size_t spans_offset;
+    size_t space_offset;
+    size_t allocate_black_offset;
+    size_t inline_black_offset;
+    size_t black_bytes_offset;
+    size_t alloc_cache_offset;
+    size_t freeindex_offset;
+    size_t nelems_offset;
+    size_t elemsize_offset;
+    size_t start_offset;
+    size_t alloc_count_offset;
+    size_t needzero_offset;
+    size_t mark_bits_offset;
+    size_t scan_bits_offset;
+    size_t black_scan_offset;
+    const uint8_t* size_to_span_class;
+    size_t max_size;
+};
+
+extern void mmtk_span_fastpath_info(int semantics, MMTkSpanFastPathInfo* info);
+// Allocate-black for an object that C2's inline span fast path allocated at `cell` (a leaf).
+extern void mmtk_span_allocate_black(void* mutator, void* cell);
 extern size_t get_max_non_los_default_alloc_bytes();
 
 /**
@@ -189,6 +225,10 @@ typedef struct {
     void (*enqueue_references)(void** objects, size_t len);
     void (*fix_oop_relocations)(bool lxr, void* nmethods, size_t len);
     void (*gc_epilogue)();
+    void (*scan_roots_in_mutator_threads_concurrently)(SlotsClosure closure);
+    void (*flush_mutators_concurrently)();
+    void (*block_mutator_until)(bool (*check)(void* data), void* data);
+    void (*wake_blocked_mutators)();
 } OpenJDK_Upcalls;
 
 extern void openjdk_gc_init(OpenJDK_Upcalls *calls);

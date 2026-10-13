@@ -76,6 +76,9 @@ class MMTkHeap : public CollectedHeap {
   GCMemoryManager* _mmtk_manager;
   size_t _n_workers;
   Monitor* _gc_lock;
+  // Mutators blocked for mark assists wait on this.  It ranks below `nosafepoint`, so it can be
+  // notified from anywhere, including from handshake closures (which hold HandshakeState_lock).
+  Monitor* _assist_lock;
   ContiguousSpace* _space;
   int _num_root_scan_tasks;
   MMTkVMCompanionThread* _companion_thread;
@@ -146,6 +149,9 @@ public:
 
   Monitor* gc_lock() {
     return _gc_lock;
+  }
+  Monitor* assist_lock() const {
+    return _assist_lock;
   }
 
   bool can_elide_tlab_store_barriers() const;
