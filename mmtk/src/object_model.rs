@@ -1,6 +1,6 @@
-use crate::abi::Oop;
 use crate::UPCALLS;
-use crate::{vm_metadata, OpenJDK};
+use crate::abi::Oop;
+use crate::{OpenJDK, vm_metadata};
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::copy::*;
 use mmtk::util::{Address, ObjectReference};

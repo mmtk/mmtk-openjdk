@@ -6,7 +6,7 @@ use std::{
 use super::abi::LOG_BYTES_IN_INT;
 use atomic::Atomic;
 use mmtk::{
-    util::{constants::LOG_BYTES_IN_WORD, Address, ObjectReference},
+    util::{Address, ObjectReference, constants::LOG_BYTES_IN_WORD},
     vm::slot::{MemorySlice, Slot},
 };
 
@@ -24,8 +24,10 @@ pub fn enable_compressed_oops() {
         "cannot enable compressed pointers twice."
     );
     if cfg!(not(target_arch = "x86_64")) {
-        panic!("Compressed pointer is only enable on x86_64 platforms.\
-            For other RISC architectures, we need to find a way to process compressed embeded pointers in code objects first.");
+        panic!(
+            "Compressed pointer is only enable on x86_64 platforms.\
+            For other RISC architectures, we need to find a way to process compressed embeded pointers in code objects first."
+        );
     }
     USE_COMPRESSED_OOPS.store(true, Ordering::Relaxed)
 }

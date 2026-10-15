@@ -1,13 +1,13 @@
-use crate::scanning;
-use crate::scanning::to_slots_closure;
 use crate::OpenJDK;
 use crate::OpenJDKSlot;
 use crate::UPCALLS;
+use crate::scanning;
+use crate::scanning::to_slots_closure;
+use mmtk::MMTK;
 use mmtk::scheduler::*;
 use mmtk::util::Address;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::*;
-use mmtk::MMTK;
 
 macro_rules! scan_roots_work {
     ($struct_name: ident, $func_name: ident) => {
@@ -74,7 +74,7 @@ impl<const COMPRESSED: bool, F: RootsWorkFactory<OpenJDKSlot<COMPRESSED>>>
         let is_current_gc_nursery = mmtk
             .get_plan()
             .generational()
-            .is_some_and(|gen| gen.is_current_gc_nursery());
+            .is_some_and(|gen_plan| gen_plan.is_current_gc_nursery());
 
         let mut slots = Vec::with_capacity(scanning::WORK_PACKET_CAPACITY);
 
