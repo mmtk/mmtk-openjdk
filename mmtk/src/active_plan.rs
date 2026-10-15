@@ -1,9 +1,9 @@
 use crate::MutatorClosure;
 use crate::OpenJDK;
 use crate::UPCALLS;
+use mmtk::Mutator;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ActivePlan;
-use mmtk::Mutator;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 

@@ -1,10 +1,10 @@
+use mmtk::Mutator;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
-use mmtk::Mutator;
 
-use crate::{singleton, UPCALLS};
 use crate::{MutatorClosure, OpenJDK};
+use crate::{UPCALLS, singleton};
 
 pub struct VMCollection {}
 

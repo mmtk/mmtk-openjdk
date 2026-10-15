@@ -1,7 +1,7 @@
 use crate::OpenJDKSlot;
 
-use super::abi::*;
 use super::UPCALLS;
+use super::abi::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::SlotVisitor;
@@ -235,8 +235,8 @@ pub unsafe extern "C" fn scan_object_fn<
 >(
     slot: Address,
 ) {
-    let ptr: *mut u8 = CLOSURE.with(|x| *x.get());
-    let closure = &mut *(ptr as *mut V);
+    let ptr: *mut u8 = CLOSURE.with(|x| unsafe { *x.get() });
+    let closure = unsafe { &mut *(ptr as *mut V) };
     closure.visit_slot(slot.into());
 }
 
