@@ -48,6 +48,12 @@ void MMTkSATBBarrierSetAssembler::object_reference_write_pre(MacroAssembler* mas
 }
 
 void MMTkSATBBarrierSetAssembler::arraycopy_prologue(MacroAssembler* masm, DecoratorSet decorators, BasicType type, Register src, Register dst, Register count) {
+  // If the destination is uninitialized (e.g. the Arrays.copyOf / Object.clone fast path that
+  // allocates the destination without zeroing it, relying on this very copy to fill it in), its
+  // slots do not hold real "old" values to snapshot for SATB. Mirror
+  // G1BarrierSetAssembler::gen_write_ref_array_pre_barrier and skip the barrier entirely.
+  bool dest_uninitialized = (decorators & IS_DEST_UNINITIALIZED) != 0;
+  if (dest_uninitialized) return;
   if (type == T_OBJECT || type == T_ARRAY) {
     Label done;
     // Skip the runtime call if count is zero.

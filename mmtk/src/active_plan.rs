@@ -38,6 +38,8 @@ impl<'a, const COMPRESSED: bool> Iterator for OpenJDKMutatorIterator<'a, COMPRES
 pub struct VMActivePlan {}
 
 impl<const COMPRESSED: bool> ActivePlan<OpenJDK<COMPRESSED>> for VMActivePlan {
+    const NEEDS_MEMORY_ZEROING: bool = false;
+
     fn is_mutator(tls: VMThread) -> bool {
         unsafe { ((*UPCALLS).is_mutator)(tls) }
     }
