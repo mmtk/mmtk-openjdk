@@ -23,6 +23,19 @@ on:
         description: 'Heap factor relative to min heap'
         required: true
         type: string
+      # See build.yml for the inputs.
+      binding-repo:
+        required: false
+        type: string
+        default: ''
+      binding-ref:
+        required: false
+        type: string
+        default: ''
+      artifact-prefix:
+        required: false
+        type: string
+        default: ''
 
 env:
   # Minimal variant (~1.4GB) instead of the full zip (~6.3GB).
@@ -100,6 +113,9 @@ jobs:
         run: df -h
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.binding-repo || github.repository }}
+          ref: ${{ inputs.binding-ref || github.sha }}
       - name: Setup environment
         run: |
           pip3 install running-ng
@@ -140,7 +156,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-${{ inputs.arch }}-server-${{ matrix.debug-level }}-bundles-normal
+          name: ${{ inputs.artifact-prefix }}linux-${{ inputs.arch }}-server-${{ matrix.debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |
@@ -168,7 +184,7 @@ jobs:
       - name: Upload running artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ inputs.arch }}-${{ inputs.test-name }}-${{ matrix.benchmark }}-${{ matrix.debug-level }}
+          name: ${{ inputs.artifact-prefix }}linux-${{ inputs.arch }}-${{ inputs.test-name }}-${{ matrix.benchmark }}-${{ matrix.debug-level }}
           path: /tmp/${{ steps.extract-running-run-id.outputs.run-id }}/
       - name: Check for test failures
         run: |

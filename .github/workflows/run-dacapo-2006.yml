@@ -2,6 +2,20 @@ name: "Test with DaCapo 2006"
 
 on:
   workflow_call:
+    inputs:
+      # See build.yml for the inputs.
+      binding-repo:
+        required: false
+        type: string
+        default: ''
+      binding-ref:
+        required: false
+        type: string
+        default: ''
+      artifact-prefix:
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       mmtk-core-repo:
@@ -54,6 +68,9 @@ jobs:
       # We need to check out the binding repo to get the running configs and test scripts
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.binding-repo || github.repository }}
+          ref: ${{ inputs.binding-ref || github.sha }}
       - name: Setup environment
         run: |
           pip3 install running-ng
@@ -68,7 +85,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-normal
+          name: ${{ inputs.artifact-prefix }}linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-normal
           path: bundles
       - name: Extract OpenJDK
         run: |
@@ -103,6 +120,7 @@ jobs:
           - ci-test-malloc-mark-sweep
           - ci-test-mark-in-header
           - ci-test-forwarding-on-side
+          - ci-test-sanity
         include:
           - test-script: ci-test-vo-bit
             build-suffix: MMTK_VO_BIT=1
@@ -114,9 +132,14 @@ jobs:
             build-suffix: MMTK_MALLOC_MARK_SWEEP=1_MMTK_MARK_IN_HEADER=1
           - test-script: ci-test-forwarding-on-side
             build-suffix: MMTK_FORWARDING_ON_SIDE=1
+          - test-script: ci-test-sanity
+            build-suffix: MMTK_SANITY=1
     steps:
       - name: Checkout MMTk OpenJDK binding
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.binding-repo || github.repository }}
+          ref: ${{ inputs.binding-ref || github.sha }}
       - name: Fetch ${{ env.DACAPO_VERSION }} cache
         id: fetch-cache
         uses: actions/cache@v3
@@ -126,7 +149,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v4
         with:
-          name: linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
+          name: ${{ inputs.artifact-prefix }}linux-${{ matrix.platform.arch }}-server-${{ env.build-debug-level }}-bundles-${{ matrix.build-suffix }}
           path: bundles
       - name: Extract OpenJDK
         run: |

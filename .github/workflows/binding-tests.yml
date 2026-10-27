@@ -1,0 +1,164 @@
+name: Binding Tests
+
+# The full test suite of the OpenJDK binding: build the binding in different configurations, and run DaCapo tests.
+#
+# This workflow is called by test-pr.yml for pull requests in this repo, and by mmtk-core for its extended tests, e.g.
+#   uses: mmtk/mmtk-openjdk/.github/workflows/binding-tests.yml@jdk-21
+#   with:
+#     binding-repo: mmtk/mmtk-openjdk
+#     binding-ref: jdk-21
+#     mmtk-core-repo: mmtk/mmtk-core
+#     mmtk-core-ref: <sha>
+#     artifact-prefix: jdk21-
+#
+# Note that when called from another repo, the workflow files are always the ones at the ref in `uses:`.
+# The binding code, the scripts and the configs (including the expected results) are from `binding-repo`
+# at `binding-ref`.
+#
+# This workflow must not define `concurrency`: when it is called, `github.workflow` is the caller's workflow name,
+# and the concurrency group would conflict with the caller's.
+
+on:
+  workflow_call:
+    inputs:
+      # The binding repo and ref to test. When empty, use the repo and commit that triggered the workflow.
+      binding-repo:
+        required: false
+        type: string
+        default: ''
+      binding-ref:
+        required: false
+        type: string
+        default: ''
+      # The mmtk-core repo and ref to test with. When both are empty, use the mmtk-core version in mmtk/Cargo.toml.
+      mmtk-core-repo:
+        required: false
+        type: string
+        default: ''
+      mmtk-core-ref:
+        required: false
+        type: string
+        default: ''
+      # Prefix of the artifact names. Callers that run this workflow more than once in a workflow run need
+      # a different prefix for each call.
+      artifact-prefix:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  # Normal build: build both fastdebug and release
+  build-normal-fastdebug:
+    uses: ./.github/workflows/build.yml
+    with:
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-normal-release:
+    uses: ./.github/workflows/build.yml
+    with:
+      debug-level: release
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  # Feature build: only build fastdebug
+  build-vo-bit:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_VO_BIT=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-extreme-assertions:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_EXTREME_ASSERTIONS=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-malloc-mark-sweep:
+    uses: ./.github/workflows/build.yml
+    with:
+      # Test malloc mark sweep with extreme assertions
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_EXTREME_ASSERTIONS=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-mark-in-header:
+    uses: ./.github/workflows/build.yml
+    with:
+      # Before we get other plans work with mark in header, we only test with malloc mark sweep.
+      build-env-var: MMTK_MALLOC_MARK_SWEEP=1 MMTK_MARK_IN_HEADER=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-forwarding-on-side:
+    uses: ./.github/workflows/build.yml
+    with:
+      build-env-var: MMTK_FORWARDING_ON_SIDE=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  build-sanity:
+    uses: ./.github/workflows/build.yml
+    with:
+      # Sanity GC: verify the heap with an extra full-heap trace in each GC.
+      build-env-var: MMTK_SANITY=1
+      debug-level: fastdebug
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      mmtk-core-repo: ${{ inputs.mmtk-core-repo }}
+      mmtk-core-ref: ${{ inputs.mmtk-core-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  run-dacapo-2006:
+    needs:
+      - build-normal-fastdebug
+      - build-vo-bit
+      - build-extreme-assertions
+      - build-malloc-mark-sweep
+      - build-mark-in-header
+      - build-forwarding-on-side
+      - build-sanity
+    uses: ./.github/workflows/run-dacapo-2006.yml
+    with:
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}
+
+  run-dacapo-chopin:
+    needs:
+      - build-normal-fastdebug
+      - build-normal-release
+    uses: ./.github/workflows/run-dacapo-chopin.yml
+    with:
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}

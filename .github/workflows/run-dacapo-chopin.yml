@@ -2,6 +2,20 @@ name: "Test with DaCapo Chopin"
 
 on:
   workflow_call:
+    inputs:
+      # See build.yml for the inputs.
+      binding-repo:
+        required: false
+        type: string
+        default: ''
+      binding-ref:
+        required: false
+        type: string
+        default: ''
+      artifact-prefix:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   run:
@@ -37,3 +51,6 @@ jobs:
       test-name: ${{ matrix.test-name }}
       config-file: ${{ matrix.config-file }}
       heap-factor: ${{ matrix.heap-factor }}
+      binding-repo: ${{ inputs.binding-repo }}
+      binding-ref: ${{ inputs.binding-ref }}
+      artifact-prefix: ${{ inputs.artifact-prefix }}

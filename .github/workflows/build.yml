@@ -9,12 +9,32 @@ on:
       build-env-var:
         required: false
         type: string
+      # The binding repo and ref to build. When empty, use the repo and commit that triggered the workflow.
+      # They need to be set when this workflow is called from another repo (e.g. mmtk-core).
+      binding-repo:
+        required: false
+        type: string
+        default: ''
+      binding-ref:
+        required: false
+        type: string
+        default: ''
+      # The mmtk-core repo and ref to build with. When both are empty, use the mmtk-core version in mmtk/Cargo.toml.
+      # When only the ref is given, the repo defaults to mmtk/mmtk-core.
       mmtk-core-repo:
         required: false
         type: string
+        default: ''
       mmtk-core-ref:
         required: false
         type: string
+        default: ''
+      # Prefix of the uploaded artifact names. A caller that runs the tests more than once in a workflow run
+      # (e.g. mmtk-core testing multiple OpenJDK versions) needs a different prefix for each.
+      artifact-prefix:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -37,7 +57,16 @@ jobs:
     - name: Checkout MMTk OpenJDK binding
       uses: actions/checkout@v4
       with:
+        repository: ${{ inputs.binding-repo || github.repository }}
+        ref: ${{ inputs.binding-ref || github.sha }}
         path: ./git/mmtk-openjdk
+    - name: Checkout MMTk core
+      if: ${{ inputs.mmtk-core-repo != '' || inputs.mmtk-core-ref != '' }}
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.mmtk-core-repo || 'mmtk/mmtk-core' }}
+        ref: ${{ inputs.mmtk-core-ref }}
+        path: ./git/mmtk-core
     - name: Setup boot JDK
       uses: actions/setup-java@v4
       with:
@@ -45,12 +74,15 @@ jobs:
         java-version: 21
     - name: Checkout OpenJDK
       run: ./git/mmtk-openjdk/.github/scripts/ci-checkout.sh
-    - name: Patch mmtk-core version if needed
+    - name: Use the checked out mmtk-core
       if: ${{ inputs.mmtk-core-repo != '' || inputs.mmtk-core-ref != '' }}
       run: |
         pip3 install tomlkit
-        python3 .github/scripts/patch-mmtk-dep.py mmtk/Cargo.toml ${{ inputs.mmtk-core-ref }} ${{ inputs.mmtk-core-repo }}
+        python3 .github/scripts/patch-mmtk-dep.py mmtk/Cargo.toml --path ${{ github.workspace }}/git/mmtk-core
         cat mmtk/Cargo.toml
+        # mmtk-core may require a newer Rust toolchain than the binding. Use the toolchain of mmtk-core.
+        cp ${{ github.workspace }}/git/mmtk-core/rust-toolchain mmtk/rust-toolchain
+        cat mmtk/rust-toolchain
       working-directory: ./git/mmtk-openjdk
     - name: Setup environment
       run: ./.github/scripts/ci-setup.sh
@@ -76,7 +108,7 @@ jobs:
     - name: Upload bundles
       uses: actions/upload-artifact@v4
       with:
-        name: linux-${{ matrix.platform.arch }}-server-${{ inputs.debug-level }}-bundles-${{ env.BUILD_SUFFIX }}
+        name: ${{ inputs.artifact-prefix }}linux-${{ matrix.platform.arch }}-server-${{ inputs.debug-level }}-bundles-${{ env.BUILD_SUFFIX }}
         path: |
           ./git/openjdk/build/linux-${{ matrix.platform.arch }}-server-${{ inputs.debug-level }}/bundles/*_bin.tar.gz
           ./git/openjdk/build/linux-${{ matrix.platform.arch }}-server-${{ inputs.debug-level }}/bundles/*_bin-debug.tar.gz
