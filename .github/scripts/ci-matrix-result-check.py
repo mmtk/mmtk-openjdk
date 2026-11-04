@@ -95,28 +95,63 @@ def read_in_expected_results(build, benchmark):
 
     return data["results"][build][benchmark]
 
-def print_log(directory, search_string):
-    import gzip
+def parse_expected_result(plan, value):
+    # Returns (kind, patterns). `kind` is one of pass, fail, ignore or flaky.
+    # `patterns` is only non-empty for flaky. See the comment at the top of expected-results.yml.
+    if value in ("pass", "fail", "ignore"):
+        return value, []
+    if isinstance(value, dict) and list(value.keys()) == ["flaky"]:
+        flaky = value["flaky"]
+        if isinstance(flaky, dict) and list(flaky.keys()) == ["include"]:
+            patterns = flaky["include"]
+            if isinstance(patterns, str):
+                patterns = [patterns]
+            if isinstance(patterns, list) and len(patterns) > 0 and all(isinstance(p, str) for p in patterns):
+                return "flaky", patterns
+    raise ValueError(f"Invalid expected result for {plan}: {value}. "
+                     "Expect pass, fail, ignore, or {flaky: {include: <pattern or list of patterns>}}")
 
+def plan_log_files(directory, plan):
     # Check if the provided path is a directory
     if not os.path.isdir(directory):
         print(f"Error: {directory} is not a directory.")
         sys.exit(1)
 
-    # Walk through the directory
+    # Match "mmtk_gc-<plan>." rather than the bare plan name. Otherwise "Immix"
+    # would also match the logs for GenImmix, StickyImmix and ConcurrentImmix.
+    search_string = f"mmtk_gc-{plan}."
+    log_files = []
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if search_string in file:
-                file_path = os.path.join(root, file)
-                # Check if the file has a .gz extension
-                if file_path.endswith('log.gz'):
-                    with gzip.open(file_path, 'rt') as f:
-                        content = f.read()
-                        print(f"----------------------------------------------")
-                        print(f"START: {file_path}")
-                        print(content)
-                        print(f"END: {file_path}")
-                        print(f"----------------------------------------------")
+            if search_string in file and file.endswith('log.gz'):
+                log_files.append(os.path.join(root, file))
+    return sorted(log_files)
+
+def read_log(file_path):
+    import gzip
+    with gzip.open(file_path, 'rt', errors='replace') as f:
+        return f.read()
+
+def print_log(directory, plan):
+    for file_path in plan_log_files(directory, plan):
+        print(f"----------------------------------------------")
+        print(f"START: {file_path}")
+        print(read_log(file_path))
+        print(f"END: {file_path}")
+        print(f"----------------------------------------------")
+
+def find_flaky_pattern(directory, plan, patterns):
+    # Returns (pattern, matched line) for the first pattern found in the logs of the plan, or None.
+    for file_path in plan_log_files(directory, plan):
+        content = read_log(file_path)
+        for pattern in patterns:
+            m = re.search(pattern, content, re.MULTILINE)
+            if m:
+                line_start = content.rfind("\n", 0, m.start()) + 1
+                line_end = content.find("\n", m.end())
+                line = content[line_start:line_end if line_end != -1 else len(content)]
+                return pattern, line.strip()
+    return None
 
 # dict['a'] = 'SemiSpace', etc
 plan_dict = read_in_plans(config_file)
@@ -137,17 +172,29 @@ error_no = 0
 failed_plans = []
 
 for plan in expected:
+    kind, patterns = parse_expected_result(plan, expected[plan])
     if plan in actual:
         if actual[plan] == 'fail':
             failed_plans.append(plan)
 
-        if expected[plan] == "ignore":
+        if kind == "ignore":
             print(f"Result for {plan} is ignored")
             continue
 
-        if expected[plan] != actual[plan]:
+        if kind == "flaky":
+            if actual[plan] == "pass":
+                continue
+            found = find_flaky_pattern(log_dir, plan, patterns)
+            if found:
+                print(f"{plan} failed with a known flaky failure. Matched pattern {found[0]!r}: {found[1]}")
+            else:
+                error_no = 1
+                print(f"Expect {plan} to pass, or to fail with one of the known patterns {patterns}, but it failed without matching any of them.")
+            continue
+
+        if kind != actual[plan]:
             error_no = 1
-            if expected[plan] == "pass":
+            if kind == "pass":
                 print(f"Expect {plan} to pass, but it failed.")
             else:
                 print(f"Expect {plan} to fail, but it passed.")
