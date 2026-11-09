@@ -5,6 +5,9 @@ import yaml
 
 def convert_result_to_emoji(result):
     """Convert result to corresponding emoji."""
+    # A flaky result is a dict: {flaky: {include: <patterns>}}
+    if isinstance(result, dict) and 'flaky' in result:
+        return ':warning:'
     conversion = {
         'pass': ':white_check_mark:',
         'fail': ':x:',

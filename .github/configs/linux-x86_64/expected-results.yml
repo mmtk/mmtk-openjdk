@@ -1,5 +1,31 @@
 # Expected results of DaCapo Chopin tests on linux-x86_64 (see normal-heap.yml in this directory).
-# results.<debug level>.<benchmark>.<plan>: pass, fail or ignore.
+# results.<debug level>.<benchmark>.<plan> is one of:
+# - pass: the run must pass.
+# - fail: the run must fail.
+# - ignore: the result is not checked.
+# - {flaky: {include: <patterns>}}: the run should pass, but may fail with a known failure. If it fails,
+#   the log of the run must match at least one of the patterns (a Python regular expression, or a list of them).
+#   Otherwise, the failure is reported as an error.
+
+# Patterns of known failures, referred to in `results` by YAML aliases (e.g. *oom).
+known-failures:
+  # The heap is too small. MarkSweep may fail this way due to its high memory usage.
+  # https://github.com/mmtk/mmtk-openjdk/issues/247
+  oom: &oom 'Aborting due to java\.lang\.OutOfMemoryError'
+  # pmd has a data race that occasionally changes its report. It is not an MMTk bug.
+  # https://github.com/mmtk/mmtk-openjdk/issues/262
+  pmd-digest: &pmd-digest 'Digest validation failed for pmd-report\.txt'
+  # Cassandra queries time out when GC is slow, e.g. full heap GCs in a fastdebug build.
+  cassandra-timeout: &cassandra-timeout 'Cassandra timeout during|OperationTimedOutException'
+  # https://github.com/mmtk/mmtk-openjdk/issues/248
+  kafka-server-error: &kafka-server-error 'kafka\.common\.errors\.UnknownServerException'
+  # https://github.com/mmtk/mmtk-openjdk/issues/374, https://github.com/mmtk/mmtk-openjdk/issues/379
+  sunflow-image-check: &sunflow-image-check 'Image check failed!'
+  # https://github.com/mmtk/mmtk-openjdk/issues/376
+  lxr-tomcat: &lxr-tomcat 'ERROR Invalid 0x[0-9a-f]+ rc=0|mmtk_get_object_size\(void\*\)\+0x|returned status 500 \(expected 200\)'
+  # StickyImmix may exhaust the address space during nursery GC. https://github.com/mmtk/mmtk-core/issues/1590
+  sticky-immix-headroom: &sticky-immix-headroom 'A non-mutator thread failed to get pages from page resource'
+
 results:
   fastdebug:
     avrora:
@@ -41,10 +67,10 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
-      Lisp2: ignore
-      OVC: ignore
-      ConcurrentImmix: ignore
+      MarkSweep: {flaky: {include: [*oom, *cassandra-timeout]}}
+      Lisp2: {flaky: {include: [*cassandra-timeout]}}
+      OVC: {flaky: {include: [*cassandra-timeout]}}
+      ConcurrentImmix: {flaky: {include: [*cassandra-timeout]}}
       LXR: pass
     eclipse:
       SemiSpace: pass
@@ -52,7 +78,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -63,7 +89,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -85,7 +111,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -118,7 +144,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -130,7 +156,7 @@ results:
       GenImmix: pass
       StickyImmix: pass
       MarkSweep: pass
-      Lisp2: ignore
+      Lisp2: {flaky: {include: [*kafka-server-error]}}
       OVC: pass
       ConcurrentImmix: pass
       LXR: pass
@@ -157,16 +183,16 @@ results:
       ConcurrentImmix: pass
       LXR: pass
     pmd:
-      SemiSpace: pass
-      GenCopy: pass
-      Immix: pass
-      GenImmix: pass
-      StickyImmix: pass
-      MarkSweep: pass
-      Lisp2: pass
-      OVC: pass
-      ConcurrentImmix: pass
-      LXR: pass
+      SemiSpace: {flaky: {include: [*pmd-digest]}}
+      GenCopy: {flaky: {include: [*pmd-digest]}}
+      Immix: {flaky: {include: [*pmd-digest]}}
+      GenImmix: {flaky: {include: [*pmd-digest]}}
+      StickyImmix: {flaky: {include: [*pmd-digest]}}
+      MarkSweep: {flaky: {include: [*pmd-digest]}}
+      Lisp2: {flaky: {include: [*pmd-digest]}}
+      OVC: {flaky: {include: [*pmd-digest]}}
+      ConcurrentImmix: {flaky: {include: [*pmd-digest]}}
+      LXR: {flaky: {include: [*pmd-digest]}}
     sunflow:
       SemiSpace: pass
       GenCopy: pass
@@ -176,7 +202,7 @@ results:
       MarkSweep: pass
       Lisp2: pass
       OVC: pass
-      ConcurrentImmix: pass
+      ConcurrentImmix: {flaky: {include: [*sunflow-image-check]}}
       LXR: pass
     tomcat:
       SemiSpace: pass
@@ -188,7 +214,7 @@ results:
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
-      LXR: pass
+      LXR: {flaky: {include: [*lxr-tomcat]}}
     xalan:
       SemiSpace: pass
       GenCopy: pass
@@ -251,7 +277,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom, *cassandra-timeout]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -262,7 +288,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -273,7 +299,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -295,7 +321,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -306,7 +332,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -328,7 +354,7 @@ results:
       Immix: pass
       GenImmix: pass
       StickyImmix: pass
-      MarkSweep: ignore
+      MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
@@ -367,16 +393,16 @@ results:
       ConcurrentImmix: pass
       LXR: pass
     pmd:
-      SemiSpace: pass
-      GenCopy: pass
-      Immix: pass
-      GenImmix: pass
-      StickyImmix: pass
-      MarkSweep: pass
-      Lisp2: pass
-      OVC: pass
-      ConcurrentImmix: pass
-      LXR: pass
+      SemiSpace: {flaky: {include: [*pmd-digest]}}
+      GenCopy: {flaky: {include: [*pmd-digest]}}
+      Immix: {flaky: {include: [*pmd-digest]}}
+      GenImmix: {flaky: {include: [*pmd-digest]}}
+      StickyImmix: {flaky: {include: [*pmd-digest]}}
+      MarkSweep: {flaky: {include: [*pmd-digest]}}
+      Lisp2: {flaky: {include: [*pmd-digest]}}
+      OVC: {flaky: {include: [*pmd-digest]}}
+      ConcurrentImmix: {flaky: {include: [*pmd-digest]}}
+      LXR: {flaky: {include: [*pmd-digest]}}
     sunflow:
       SemiSpace: pass
       GenCopy: pass
@@ -386,7 +412,7 @@ results:
       MarkSweep: pass
       Lisp2: pass
       OVC: pass
-      ConcurrentImmix: pass
+      ConcurrentImmix: {flaky: {include: [*sunflow-image-check]}}
       LXR: pass
     tomcat:
       SemiSpace: pass
@@ -398,7 +424,7 @@ results:
       Lisp2: pass
       OVC: pass
       ConcurrentImmix: pass
-      LXR: pass
+      LXR: {flaky: {include: [*lxr-tomcat]}}
     xalan:
       SemiSpace: ignore
       GenCopy: ignore
