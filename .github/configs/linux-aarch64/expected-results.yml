@@ -88,7 +88,8 @@ results:
       SemiSpace: pass
       GenCopy: pass
       Immix: pass
-      GenImmix: pass
+      # GenImmix may die on aarch64 without any error message. https://github.com/mmtk/mmtk-openjdk/issues/390
+      GenImmix: ignore
       StickyImmix: pass
       MarkSweep: {flaky: {include: [*oom]}}
       Lisp2: pass
@@ -110,7 +111,8 @@ results:
       SemiSpace: pass
       GenCopy: pass
       Immix: pass
-      GenImmix: pass
+      # GenImmix may crash on aarch64 (NPE, SIGSEGV) without a consistent error. https://github.com/mmtk/mmtk-openjdk/issues/391
+      GenImmix: ignore
       # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
       StickyImmix: {flaky: {include: [*sticky-immix-headroom]}}
       MarkSweep: {flaky: {include: [*oom]}}
@@ -321,7 +323,8 @@ results:
       SemiSpace: pass
       GenCopy: pass
       Immix: pass
-      GenImmix: pass
+      # GenImmix may crash on aarch64 (NPE, SIGSEGV) without a consistent error. https://github.com/mmtk/mmtk-openjdk/issues/391
+      GenImmix: ignore
       # h2 may exhaust virtual memory incorrectly. See https://github.com/mmtk/mmtk-core/issues/1590
       StickyImmix: {flaky: {include: [*sticky-immix-headroom]}}
       MarkSweep: {flaky: {include: [*oom]}}
